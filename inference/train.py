@@ -127,8 +127,8 @@ class MyDataset(Dataset):
     img = self.transform(Image.open(os.path.join(self.img_path, f"{str(idx).zfill(len(str(self.nscenes)))}.png")))
     target_dict = json.load(open(os.path.join(self.target_path, f"{str(idx).zfill(len(str(self.nscenes)))}.json")))
     target = process_targets(target_dict)
-    return img, torch.cat((torch.argmax(target[:, :3]).unsqueeze(-1),
-                           torch.argmax(target[:, 3:6]).unsqueeze(-1)), dim=-1)
+    return img, torch.cat((torch.argmax(target[:, :3], dim=-1).unsqueeze(-1),
+                           torch.argmax(target[:, 3:6], dim=-1).unsqueeze(-1)), dim=-1)
 
 
 # instatiate dataset and dataloader
