@@ -238,8 +238,10 @@ class AddDecoder(nn.Module):
         # z [B, N, L, d]
         x = torch.zeros_like(img)
         for i, var_name in enumerate(params["latent_vars"]):
-            x = x + self.net[var_name](z[:, :, i, :]) / len(params["latent_vars"])
-        return x
+            out = self.net[var_name](z[:, :, i, :])
+            logger.info(out.shape)
+            x = x + out
+        return x/len(params["latent_vars"])
 
 
 """Slot Attention-based auto-encoder for object discovery."""
