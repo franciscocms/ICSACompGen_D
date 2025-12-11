@@ -312,7 +312,7 @@ class InvSlotAttentionGuide(nn.Module):
         x = self.encoder_cnn(self.img)
         x = nn.LayerNorm(x.shape[1:]).to(device)(x)
         self.features_to_slots = self.mlp(x)
-        self.slots, self.slot_pos, attn = self.slot_attention(self.features_to_slots, num_slots=n_s)
+        slots, self.slot_pos, attn = self.slot_attention(self.features_to_slots, num_slots=n_s)
             
         if False:
         #if self.is_train and self.step % params['step_size_img_sv'] == 0:
@@ -448,7 +448,7 @@ class InvSlotAttentionGuide(nn.Module):
                             
 
         del self.slots
-        return recon, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, 
+        return slots, recon, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, 
         
         
         

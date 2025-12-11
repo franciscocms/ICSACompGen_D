@@ -207,9 +207,9 @@ for epoch in range(params["training_epochs"]):
     batch_loss = 0.
     optimizer.zero_grad()
     
-    recon, e, mu, logvar, z, slot_hat = guide(img, target)
+    slots, recon, e, mu, logvar, z, slot_hat = guide(img, target)
     recon_loss = recon_loss_fn(recon, img)
-    slot_recon_loss = slot_rec_loss_crit(slot_hat, guide.slots)
+    slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
     batch_loss += alpha*(recon_loss + slot_recon_loss)
     
     if epoch % epoch_step == 0 and not printed:
