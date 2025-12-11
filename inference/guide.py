@@ -432,7 +432,7 @@ class InvSlotAttentionGuide(nn.Module):
         mu_noise = mu_noise.reshape(B*n_s, self.L, self.ldim)
         logvar_noise = logvar_noise.reshape(B*n_s, self.L, self.ldim)
         #rec_noise = rec_noise.reshape(B*n_s, self.L, self.slot_dim)
-        slot_hat = slot_hat.reshape(B*n_s, self.slot_dim)
+        #slot_hat = slot_hat.reshape(B*n_s, self.slot_dim)
         self.logvar_noise = logvar_noise
 
         recon = self.decoder(z_scm, img)
@@ -446,7 +446,7 @@ class InvSlotAttentionGuide(nn.Module):
             cp_m, self.prior_L_slopes, prior_ss, prior_ts = self.prior(self.u_m, z_scm, labels) # [B, N, L, d]
             self.prior_ss, self.prior_ts = prior_ss, prior_ts     
                             
-        return slots, recon, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, 
+        return slots, recon, z_noise, mu_noise, logvar_noise, z_scm, slot_hat
         
         
         
