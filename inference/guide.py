@@ -206,7 +206,7 @@ class Decoder(nn.Module):
         self.conv_net = nn.Sequential(
             nn.ConvTranspose2d(in_channels, in_channels, 4, 2, 1),
             nn.ReLU(),
-            nn.ConvTranspose2d(in_channels, in_channels, 4, 2, 1),
+            nn.ConvTranspose2d(in_channels, 3, 4, 2, 1),
             nn.Sigmoid()
         )
 
