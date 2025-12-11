@@ -218,7 +218,7 @@ class Decoder(nn.Module):
 
         z = torch.flatten(z, -2) # [B, N*d]
         x = self.fc_net(z)
-        x = x.reshape(B, self.img_dim[0], self.img_dim[1], self.img_dim[2])
+        x = x.reshape(B, self.img_dim[0], 32, 32)
         x = self.conv_net(x)
         return x
 
@@ -231,8 +231,8 @@ class AddDecoder(nn.Module):
             self.net[var_name] = Decoder(params["num_slots"],
                                          dim=params["slot_dim"],
                                          in_channels = 64,
-                                         W=params["resolution"][0],
-                                         H=params["resolution"][1])
+                                         W=32,
+                                         H=32)
 
     def forward(self, z):
         # z [B, N, L, d]
