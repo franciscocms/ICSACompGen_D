@@ -333,7 +333,7 @@ class InvSlotAttentionGuide(nn.Module):
                                 
         z_noise, mu_noise, logvar_noise, rec_noise = [], [], [], []           
         for var in params["latent_vars"]:
-            mu, logvars, slot_hat_i, z = self.z_nets[var](self.slots)
+            mu, logvars, slot_hat_i, z = self.z_nets[var](slots)
             z_noise.append(z)
             mu_noise.append(mu)
             logvar_noise.append(logvars)
@@ -345,7 +345,7 @@ class InvSlotAttentionGuide(nn.Module):
         rec_noise = torch.stack(rec_noise).permute(1, 2, 0, 3)        # [B, N, L, slot_dim]
         assert z_noise.size(2) == self.L
         
-        slot_hat = torch.zeros(self.slots.shape)
+        slot_hat = torch.zeros(slots.shape)
         for i in range(self.L):
             slot_hat = slot_hat + rec_noise[:, :, i, :]
         
@@ -446,8 +446,6 @@ class InvSlotAttentionGuide(nn.Module):
             cp_m, self.prior_L_slopes, prior_ss, prior_ts = self.prior(self.u_m, z_scm, labels) # [B, N, L, d]
             self.prior_ss, self.prior_ts = prior_ss, prior_ts     
                             
-
-        del self.slots
         return slots, recon, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, 
         
         
