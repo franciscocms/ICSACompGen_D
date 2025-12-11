@@ -220,36 +220,25 @@ def main():
     
     logging.info("starting scenes generation...")
     
-    OOD = True
-    
-    # path for slurm generation
-    if params["n_edges"] == 1:
-      
-      if len(params["latent_vars"]) == 3:
-        if OOD:
-          metadata_dir = 'metadata_ood'
-          img_dir = 'images_ood'
-        else:
-          metadata_dir = 'metadata'
-          img_dir = 'images'
-      elif len(params["latent_vars"]) == 2:
-        if OOD:
-          metadata_dir = 'metadata_ood_2vars'
-          img_dir = 'images_ood_2vars'
-        else:
-          metadata_dir = 'metadata_2vars'
-          img_dir = 'images_2vars'
-    
-    elif params["n_edges"] == 2:
-      if OOD:
-        metadata_dir = 'metadata_ood_2edges'
-        img_dir = 'images_ood_2edges'
-      else:
-        metadata_dir = 'metadata_2edges'
-        img_dir = 'images_2edges'
+    OOD = False
 
+    dataset_dir = "/nas-ctm01/datasets/public/CG"
+    if not os.path.isdir(dataset_dir):
+      os.mkdir(dataset_dir)
+    
+    train_dir = os.path.join(dataset_dir, "train")
+    if not os.path.isdir(train_dir):
+      os.mkdir(train_dir)
+    
+    img_dir = os.path.join(train_dir, "images")
+    if not os.path.isdir(img_dir):
+      os.mkdir(img_dir)
+    
+    metadata_dir = os.path.join(train_dir, "metadata")
+    if not os.path.isdir(metadata_dir):
+      os.mkdir(metadata_dir)
 
-    NSCENES = 5000
+    NSCENES = 100000
 
     dirs = [metadata_dir, img_dir]
     for d in dirs:
@@ -260,20 +249,15 @@ def main():
     gen_count = range(2, 3)
 
     for c in gen_count:
-
-      # set up paths for saving images and scene_dicts
-      dirs = [os.path.join(img_dir, str(c)), os.path.join(metadata_dir, str(c))]
-      for dir in dirs: 
-          if not os.path.isdir(dir): os.mkdir(dir)
       
       # generate scenes
       for scene_id in range(NSCENES): 
         img, scene_dict = model(scene_id, c, ood=OOD)
     
         # save scenes
-        with open(f"{metadata_dir}/{str(c)}/{str(scene_id).zfill(len(str(NSCENES)))}.json", "w") as outfile:
+        with open(f"{metadata_dir}/{str(scene_id).zfill(len(str(NSCENES)))}.json", "w") as outfile:
           json.dump(scene_dict, outfile)  
-        img.save(f"{img_dir}/{str(c)}/{str(scene_id).zfill(len(str(NSCENES)))}.png")
+        img.save(f"{img_dir}/{str(scene_id).zfill(len(str(NSCENES)))}.png")
 
       logging.info(f"images with {c} objects saved...")
 

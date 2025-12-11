@@ -278,7 +278,7 @@ class MixturePrior(nn.Module):
         
         return yc
 
-    def compute_elbo(self, mu, logvars, z, mask_pred, print_mixt_params, yc_temperature):
+    def compute_elbo(self, mu, logvars, z, print_mixt_params, yc_temperature):
         
         # aux_v = self.logvar_c + logvars/self.logvar_c + torch.square(mu - self.mu_c)/self.logvar_c
         # print(aux_v.shape) # [B, K, d]
@@ -314,15 +314,6 @@ class MixturePrior(nn.Module):
         #log_var_reg = 0.5*torch.sum(0.5 + logvars, dim=-1)
         #log_var_reg = 0.5*torch.sum(0.1 + logvars, dim=-1)
 
-
-
-        
-        # logger.info(mixt_kl.shape)
-        # logger.info(mask_pred.shape)
-        
-        # mask out the indexes where objects are not observed!!!!
-        # mixt_kl *= mask_pred
-        # kl_reg *= mask_pred
 
         mixt_kl = torch.mean(mixt_kl) #* 0.01
         #kl_reg = torch.mean(kl_reg)
@@ -532,7 +523,7 @@ class PriorMultivariateCausalFlow(nn.Module):
             self.nf[str(i)] = Flow(L, ldim, A, prior=True, f_act="tanh") # instead of "tanh"
 
     
-    def forward(self, u_m, z=None, preds=None, gt_labels=None, is_train=True, step=0):
+    def forward(self, u_m, z=None, gt_labels=None):
 
         # e:      [B, N, L, d]  ->  label embeddings
         # latent: [B, N, L, d]  ->  z_scm
@@ -549,42 +540,42 @@ class PriorMultivariateCausalFlow(nn.Module):
         - 
         """
 
-        assert preds != None
+        # assert preds != None
 
-        probs_exp = preds[:, :, None, :, :]  # [B, N, 1, L, K]
-        labels_exp = gt_labels[:, None, :, :]                # [B, 1, N, L]
-        labels_exp = labels_exp.expand(-1, N, -1, -1)      # [B, N, N, L]
-        labels_exp = labels_exp.unsqueeze(-1)             # [B, N, N, L, 1]
+        # probs_exp = preds[:, :, None, :, :]  # [B, N, 1, L, K]
+        # labels_exp = gt_labels[:, None, :, :]                # [B, 1, N, L]
+        # labels_exp = labels_exp.expand(-1, N, -1, -1)      # [B, N, N, L]
+        # labels_exp = labels_exp.unsqueeze(-1)             # [B, N, N, L, 1]
 
-        # Step 2: Compute log-probs
-        log_probs = (probs_exp + 1e-9).log()         # [B, N, 1, L, K]
-        log_probs = log_probs.expand(-1, -1, N, -1, -1)   # [B, N, N, L, K]
+        # # Step 2: Compute log-probs
+        # log_probs = (probs_exp + 1e-9).log()         # [B, N, 1, L, K]
+        # log_probs = log_probs.expand(-1, -1, N, -1, -1)   # [B, N, N, L, K]
 
-        # Step 3: Gather NLL loss at GT label positions
-        nll = -log_probs.gather(dim=-1, index=labels_exp).squeeze(-1)  # [B, N, N, L]
+        # # Step 3: Gather NLL loss at GT label positions
+        # nll = -log_probs.gather(dim=-1, index=labels_exp).squeeze(-1)  # [B, N, N, L]
 
-        # Step 4: Aggregate across latent variables (mean or sum)
-        class_cost = nll.mean(dim=-1)  # Final cost: [B, N, N]
+        # # Step 4: Aggregate across latent variables (mean or sum)
+        # class_cost = nll.mean(dim=-1)  # Final cost: [B, N, N]
 
-        # if is_train and step % params["step_size"] == 0:
-        #     logger.info(f"\npreds: {preds[:5]}")
-        #     logger.info(f"labels: {gt_labels[:5]}")
-        #     logger.info(f"cost: {class_cost}")
+        # # if is_train and step % params["step_size"] == 0:
+        # #     logger.info(f"\npreds: {preds[:5]}")
+        # #     logger.info(f"labels: {gt_labels[:5]}")
+        # #     logger.info(f"cost: {class_cost}")
         
-        a, b = torch.tensor([1.]), torch.tensor([1.])
-        #attn_logits = torch.cdist(e.reshape(B, N, L*d), latent.reshape(B, N, L*d)) 
-        #attn_logits = torch.cdist(e.reshape(B, N, L*d), latent.reshape(B, N, L*d)) + class_cost
-        attn_logits = class_cost
-        # logger.info(attn_logits.shape)    [B, N, N]   
-        attn_logits, p, q = minimize_entropy_of_sinkhorn(attn_logits, a, b, mesh_lr=3, n_mesh_iters=3) 
-        # logger.info(attn_logits.shape)    [B, N, N]
-        attn, _, _ = sinkhorn(attn_logits, a, b, u=p, v=q)
-        # logger.info(attn.shape)           [B, N, N]
+        # a, b = torch.tensor([1.]), torch.tensor([1.])
+        # #attn_logits = torch.cdist(e.reshape(B, N, L*d), latent.reshape(B, N, L*d)) 
+        # #attn_logits = torch.cdist(e.reshape(B, N, L*d), latent.reshape(B, N, L*d)) + class_cost
+        # attn_logits = class_cost
+        # # logger.info(attn_logits.shape)    [B, N, N]   
+        # attn_logits, p, q = minimize_entropy_of_sinkhorn(attn_logits, a, b, mesh_lr=3, n_mesh_iters=3) 
+        # # logger.info(attn_logits.shape)    [B, N, N]
+        # attn, _, _ = sinkhorn(attn_logits, a, b, u=p, v=q)
+        # # logger.info(attn.shape)           [B, N, N]
 
-        # if is_train and step % params["step_size"] == 0:
-        #     logger.info(f"align attn: {attn[:5]}")
+        # # if is_train and step % params["step_size"] == 0:
+        # #     logger.info(f"align attn: {attn[:5]}")
         
-        u_m = torch.matmul(attn, u_m.reshape(B, N, L*d)).reshape(B, N, L, d)
+        # u_m = torch.matmul(attn, u_m.reshape(B, N, L*d)).reshape(B, N, L, d)
     
         cp_m = torch.zeros_like(u_m).to(device)
         L_slopes = torch.tensor([]).to(device)
@@ -597,7 +588,7 @@ class PriorMultivariateCausalFlow(nn.Module):
             embedding = self.embeddings[j](gt_labels[:, :, j].long()).unsqueeze(-2)
             self.embeddings_stack = torch.cat((self.embeddings_stack, embedding), dim=-2) # [B, N, L, d]
 
-        self.embeddings_stack = torch.matmul(attn, self.embeddings_stack.reshape(B, N, L*d)).reshape(B, N, L, d)
+        #self.embeddings_stack = torch.matmul(attn, self.embeddings_stack.reshape(B, N, L*d)).reshape(B, N, L, d)
         z = torch.cat((z, self.embeddings_stack), dim=-1) # [B, N, L, d+d]
         
         """
@@ -607,8 +598,6 @@ class PriorMultivariateCausalFlow(nn.Module):
         - align the embeddings just like I align u_m above
         - concat these embeddings on z, so that each element in z has the class embedding 
         """
-
-
 
         total_dims = self.L*self.ldim
         for i in range(self.L):

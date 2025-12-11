@@ -192,6 +192,58 @@ class Encoder(nn.Module):
 
         return x
 
+class Decoder(nn.Module):
+    def __init__(self, num_slots, dim, in_channels, W, H):
+        super().__init__()
+
+        self.img_dim = [in_channels, W, H]
+        self.fc_net = nn.Sequential(
+            nn.Linear(num_slots*dim, in_channels*W*H),
+            nn.ReLU(),
+            nn.Linear(in_channels*W*H, in_channels*W*H)
+        )
+        # hdim = channels * W * H (64x128x128)
+        self.conv_net = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels, 3, 1, 1),
+            nn.ReLU(),
+            nn.Conv2d(in_channels, in_channels, 3, 1, 1),
+            nn.ReLU(),
+            nn.Conv2d(in_channels, 3, 3, 1, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, z):
+        # z [B, N, d]
+        B, N, d = z.shape
+
+        z = torch.flatten(z, -2) # [B, N*d]
+        x = self.fc_net(z)
+        x = x.reshape(B, self.img_dim[0], self.img_dim[1], self.img_dim[2])
+        x = self.conv_net(x)
+        return x
+
+class AddDecoder(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.net = nn.ModuleDict()
+        for var_name in params["latent_vars"]:
+            self.net[var_name] = Decoder(params["num_slots"],
+                                         dim=params["slot_dim"],
+                                         in_channels = 64,
+                                         W=params["resolution"][0],
+                                         H=params["resolution"][1])
+        self.vars = vars
+
+    def forward(self, z):
+        # z [B, N, L, d]
+
+        x = torch.tensor([])
+        for i, var_name in enumerate(self.vars):
+            x = x + self.net[var_name](z[:, :, i, :]) / len(self.vars)
+        return x
+
+
 """Slot Attention-based auto-encoder for object discovery."""
 class InvSlotAttentionGuide(nn.Module):
     def __init__(self, resolution, num_iterations, slot_dim, latent_dim, nlatents, A, stage):
@@ -206,27 +258,17 @@ class InvSlotAttentionGuide(nn.Module):
         self.resolution = resolution
         self.num_slots = 0
         self.num_iterations = num_iterations
-        
-        # self.shape_vals = params["shape_vals"]
-        # self.color_vals = params["color_vals"]
-        # self.size_vals = params["size_vals"]
         self.stage = stage
         assert self.stage in ["train", "eval"], "stage must be either 'train' or 'eval'"
-        self.current_trace = []
-        self.is_train = True
-        self.pred_loss = 0.
 
         self.encoder_cnn = Encoder(self.resolution)
-
         self.hid_dim = self.encoder_cnn.last_dim
         self.ldim = latent_dim
-
         self.mlp = nn.Sequential(
              nn.Linear(self.hid_dim, self.hid_dim), # used to be hid_dim, hid_dim
              nn.ReLU(inplace=True),
              nn.Linear(self.hid_dim, self.hid_dim)
         )
-
         self.slot_attention = SlotAttention(
                 num_slots=self.num_slots,
                 slot_dim = self.slot_dim,
@@ -234,1001 +276,179 @@ class InvSlotAttentionGuide(nn.Module):
                 iters = self.num_iterations,
                 eps = 1e-8, 
                 hidden_dim = 128)
-
-        self.prop_nets = nn.ModuleDict() 
         self.z_nets = nn.ModuleDict() 
+        self.decoder = AddDecoder()
+        self.causal_flow = MultivariateCausalFlow(self.L, self.ldim, self.A)
+        self.prior = PriorMultivariateCausalFlow(self.L, self.ldim, self.A)
+        self.mmd_loss = MMDLoss()
+        self.embeddings_mu = torch.randn(self.L, self.num_classes_list[0], self.ldim) * params["label_embeddings_mu_mult"]
+        if params["TC_minimization"]: self.tc_discriminator = TCDiscriminator(self.L*self.ldim, self.L*self.ldim*4)
         
         self.L = nlatents
         self.A = A
         self.num_classes_list = [len(params[f"{v}_vals"]) for v in params["latent_vars"]]
         self.num_classes_dict = {v: len(params[f"{v}_vals"]) for v in params["latent_vars"]}
-
-        
-        self.alpha = params["alpha"]
-        self.beta = params["beta"]
-        self.gamma = 0.
-        self.pred_coeff = 0.
-        self.margin = 1.
-        self.yc_t = 0.
-        self.logvar_coeff = 0.
-        self.TC_coeff = params["TC_coeff"]
-        self.log_det_coeff = params["log_det_coeff"]
-        self.causal_dropout_prob = params["causal_dropout_prob"] if not params["causal_dropout_scheduled"] else 1.
         
         self.some_labels = torch.tensor([])
         self.gmm_fit_step = 200 if self.alpha > 0. else 0. # 200
 
-        self.dag = self.A
-        self.causal_flag = torch.zeros(params["batch_size"], params["num_slots"], 1).to(device)
-        self.causal_flow = MultivariateCausalFlow(self.L, self.ldim, self.A)
-
-        if params["beta"] > 0:
-            self.prior = PriorMultivariateCausalFlow(self.L, self.ldim, self.A)
-            self.mmd_loss = MMDLoss()
-
-
         self.batch_idx = 0
         self.step = 0
-        self.embeddings_mu = torch.randn(self.L, self.num_classes_list[0], self.ldim) * params["label_embeddings_mu_mult"]
         
-
-        if params["TC_minimization"]: self.tc_discriminator = TCDiscriminator(self.L*self.ldim, self.L*self.ldim*4)
-
     
-    def add_proposal_net(self, var, out_dim, child=False):    
-        add_flag = False
-        if var.proposal_distribution == "categorical": last_activ = nn.Softmax(dim=-1) # discrete variables
-        elif var.proposal_distribution == "bernoulli": last_activ = nn.Sigmoid() # mask
-        else: raise ValueError(f"Unknown distribution: {var.proposal_distribution}")
+    def forward(self, img, labels):
 
-        input_dim = 1 if var.address in ["locX", "locY"] else self.slot_dim
-        
-        z_net = nn.Sequential(
-            nn.Linear(input_dim, self.hid_dim), nn.ReLU(),
-            nn.Linear(self.hid_dim, self.ldim)
-            )
-        
-        if var.proposal_distribution != "categorical":
-            self.z_nets[var.address] = z_net.to(device)
-        else:
-            #z_noise_net = NoiseNet(input_dim, self.hid_dim, self.ldim) # outputs mean and logvar of the representation
-            z_noise_net = MixturePrior(label = [var.address],
-                                       num_classes_list = [out_dim],
-                                       nin = input_dim,
-                                       nh = input_dim*4,
-                                       ldim = self.ldim
-                                       )
-            self.z_nets[var.address] = z_noise_net.to(device)
+        B, _, _, _ = self.img.shape
+        n_s = params['num_slots'] 
 
-        if params["conditioned_classifier"] and var.proposal_distribution != "bernoulli":
-            proposal_net = nn.Sequential(
-                #nn.Linear(self.ldim + 1, self.ldim + 1),
-                #nn.ReLU(),
-                nn.Linear(self.ldim + 1, out_dim),
-                last_activ
-                )
-            self.prop_nets[var.address] = proposal_net.to(device)
-        else:
-
-            if child:
-                proposal_net_obs = nn.Sequential(
-                    nn.Linear(self.ldim, out_dim),
-                    last_activ
-                    )
-                proposal_net_int = nn.Sequential(
-                    nn.Linear(self.ldim, out_dim),
-                    last_activ
-                    )
-                self.prop_nets[var.address] = nn.ModuleDict()
-                self.prop_nets[var.address]["obs"] = proposal_net_obs.to(device) 
-                self.prop_nets[var.address]["int"] = proposal_net_int.to(device) 
-            
-            else:
-                proposal_net = nn.Sequential(
-                    nn.Linear(self.ldim, out_dim),
-                    last_activ
-                    )
-                self.prop_nets[var.address] = proposal_net.to(device)
-
-        
-
-        if var.address in self.prop_nets: add_flag = True 
-        if not add_flag: logging.info(f"ERROR: proposal net for site {var.name} was not added!")
-    
-    def infer_step(self, variable, obs=None, proposal_distribution=None): 
-
-        # evaluation
-        if isinstance(variable, str): 
-            variable_name = variable      
-            variable_proposal_distribution = proposal_distribution
-        
-        # training
-        elif isinstance(variable, Variable): 
-            variable_name = variable.name
-            variable_address = variable.address
-            variable_prior_distribution = variable.prior_distribution
-            variable_proposal_distribution = variable.proposal_distribution
-                
-        if variable_proposal_distribution == "normal":
-            z = None
-            proposal = obs.squeeze(-1)
-            # std = params['loc_proposal_std']
-            # if self.stage == 'eval':
-            #   proposal = proposal.expand(params['num_inference_samples'], -1)
-            #   proposal = torch.clamp(proposal, 0.15, 0.85)
-            #out = pyro.sample(variable_name, dist.Normal(proposal, std))
-
-        elif variable_proposal_distribution == "categorical":            
-            
-            z = self.z_nets[variable_name](obs)
-            proposal = None
-            
-            # if self.stage == 'eval': proposal = proposal.expand(params['num_inference_samples'], -1, -1)
-            # out = pyro.sample(variable_name, dist.Categorical(probs=proposal))
-
-        elif variable_proposal_distribution == "bernoulli": 
-            z = None
-
-            # if self.stage == "train":
-            #   noise = torch.randn(obs.size()).to(device)
-            #   obs = obs + noise
-            
-            proposal = self.prop_nets[variable_name](self.z_nets[variable_name](obs))
-            proposal = proposal.squeeze(-1) 
-    
-            # if self.stage == 'eval': proposal = proposal.expand(params['num_inference_samples'], -1, -1)
-            #out = pyro.sample(variable_name, dist.Bernoulli(proposal))
-                        
-        else: raise ValueError(f"Unknown variable proposal distribution: {variable_proposal_distribution}")
-
-        return z, proposal
-    
-    def forward(self, observations={"image": torch.zeros((1, 3, 128, 128))}, N=None):
-
-        # register networks to be optimized
-        pyro.module("encoder", self.encoder_cnn, True)
-        pyro.module("proposal_nets", self.prop_nets, True)
-        pyro.module("z_nets", self.z_nets, True)
-        pyro.module("sa", self.slot_attention, True)
-        pyro.module("mlp", self.mlp, True)
-        pyro.module("causalflow", self.causal_flow, True)
-        
-        #pyro.module("label_embeddings", self.label_embeddings, True)
-        if params["beta"] > 0.: pyro.module("prior", self.prior, True)
-        if params["TC_minimization"]: pyro.module("tc_discriminator", self.tc_discriminator, True)
-        if params["reduce_noise_leak_adv"]: pyro.module("disentangle_mlps", self.disentangle_mlps, True)
+        assert labels.shape == (B, n_s, self.L)
 
 
-        self.img = observations["image"]
-        self.img = self.img.to(device)
+        self.img = img
         x = self.encoder_cnn(self.img)
         x = nn.LayerNorm(x.shape[1:]).to(device)(x)
         self.features_to_slots = self.mlp(x)
+        self.slots, self.slot_pos, attn = self.slot_attention(self.features_to_slots, num_slots=n_s)
+            
+        if False:
+        #if self.is_train and self.step % params['step_size_img_sv'] == 0:
+            aux_attn = attn.reshape((B, n_s, 128, 128)) if not params["strided_convs"] else attn.reshape((B, n_s, 32, 32))
+            fig, ax = plt.subplots(ncols=n_s)
+            for j in range(n_s):                                       
+                    im = ax[j].imshow(aux_attn[0, j, :, :].detach().cpu().numpy())
+                    ax[j].grid(False)
+                    ax[j].axis('off')        
+            plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/attn.png")
+            plt.close()
 
-        B, _, _, _ = self.img.shape
-        n_s = params['num_slots']  
+            plot_img = np.transpose(self.img[0].detach().cpu().numpy(), (1, 2, 0))
+            plt.imshow(np.clip(plot_img, 0., 1.))
+            plt.axis('off')
+            plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/img.png")
+            plt.close()
+                                
+        z_noise, mu_noise, logvar_noise, rec_noise = [], [], [], []           
+        for var in params["latent_vars"]:
+            mu, logvars, slot_hat_i, z = self.z_nets[var](self.slots)
+            z_noise.append(z)
+            mu_noise.append(mu)
+            logvar_noise.append(logvars)
+            rec_noise.append(slot_hat_i)
         
-        if self.stage == "train":
-            self.slots, self.slot_pos, attn = self.slot_attention(self.features_to_slots, num_slots=n_s)
+        z_noise = torch.stack(z_noise).permute(1, 2, 0, 3)            # [B, N, L, d] => 'L' refers to the number of categorical latents
+        mu_noise = torch.stack(mu_noise).permute(1, 2, 0, 3)          # [B, N, L, d]
+        logvar_noise = torch.stack(logvar_noise).permute(1, 2, 0, 3)  # [B, N, L, d]
+        rec_noise = torch.stack(rec_noise).permute(1, 2, 0, 3)        # [B, N, L, slot_dim]
+        assert z_noise.size(2) == self.L
+        
+        slot_hat = torch.zeros(self.slots.shape)
+        for i in range(self.L):
+            slot_hat = slot_hat + rec_noise[:, :, i, :]
+        
+
+        self.u_m = torch.tensor([])            
+        for l in range(self.L):
+            self.u_m = torch.cat((self.u_m,
+                                self.embeddings_mu[l][labels.reshape(B*n_s, self.L)[:, l]].unsqueeze(-2) + params["label_embeddings_std"] * torch.randn(B*n_s, 1, self.ldim)),
+                                dim=-2)
+                
+        l_to_label = {i: l for i, l in enumerate(params["latent_vars"])}
+
+        if self.step < self.gmm_fit_step:                   
+            # collect some labels to then use for GMM fit
+            self.some_labels = torch.cat((self.some_labels, labels.reshape(B*n_s, self.L)), dim = 0)
             
-            if False:
-            #if self.is_train and self.step % params['step_size_img_sv'] == 0:
-                aux_attn = attn.reshape((B, n_s, 128, 128)) if not params["strided_convs"] else attn.reshape((B, n_s, 32, 32))
-                fig, ax = plt.subplots(ncols=n_s)
-                for j in range(n_s):                                       
-                        im = ax[j].imshow(aux_attn[0, j, :, :].detach().cpu().numpy())
-                        ax[j].grid(False)
-                        ax[j].axis('off')        
-                plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/attn.png")
-                plt.close()
+        # fit GMM 
+        if self.is_train and self.step == self.gmm_fit_step and self.alpha > 0.:          
+            gmm_wts, gmm_means, gmm_stds = [], [], []   
 
-                plot_img = np.transpose(self.img[0].detach().cpu().numpy(), (1, 2, 0))
-                plt.imshow(np.clip(plot_img, 0., 1.))
-                plt.axis('off')
-                plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/img.png")
-                plt.close()
-                                    
-            z_noise, mu_noise, logvar_noise, rec_noise = [], [], [], []
-            proposals = {}
-            labels_dict = {}
-            for var in self.current_trace:
-                if var.name == "mask":
-                    real_mask = var.value
-
-                if var.proposal_distribution == "categorical":
-                    labels_dict[var.name] = var.value.long()
-
-                # `slots` has shape: [batch_size, num_slots, slot_size].
-                if var.address == "locX": obs = self.slot_pos[..., 0]
-                elif var.address == "locY": obs = self.slot_pos[..., 1]
-                else: 
-                    obs = self.slots # [B, N, d]
-            
-                # gather entangled posterior proposals and representations
-                z_temp, proposal = self.infer_step(var, obs) 
-                proposals[var.name] = proposal
-                if isinstance(z_temp, tuple): 
-                    mu, logvars, x_hat, z = z_temp
-                    z_noise.append(z)
-                    mu_noise.append(mu)
-                    logvar_noise.append(logvars)
-                    rec_noise.append(x_hat)
-            z_noise = torch.stack(z_noise).permute(1, 2, 0, 3)            # [B, N, L, d] => 'L' refers to the number of categorical latents
-            mu_noise = torch.stack(mu_noise).permute(1, 2, 0, 3)          # [B, N, L, d]
-            logvar_noise = torch.stack(logvar_noise).permute(1, 2, 0, 3)  # [B, N, L, d]
-            rec_noise = torch.stack(rec_noise).permute(1, 2, 0, 3)        # [B, N, L, slot_dim]
-            
-            slot_hat = torch.zeros(self.slots.shape)
-            for i in range(self.L):
-                slot_hat = slot_hat + rec_noise[:, :, i, :]
-
-
-            assert z_noise.size(2) == self.L
-    
-            
-            labels = torch.cat(([labels_dict[f"{v}"].unsqueeze(-1) for v in params["latent_vars"]]), dim = -1) # [B, N, L]            
-            sigma = params["label_embeddings_std"]
-            self.u_m = torch.tensor([])
+            some_u_m = torch.tensor([])
+            for l in range(self.L):
+                some_u_m = torch.cat((some_u_m,
+                                        self.embeddings_mu[l][self.some_labels.long()[:, l]].unsqueeze(-2) + sigma * torch.randn(self.some_labels.size(0), 1, self.ldim)),
+                                        dim=-2) # [B*n_s, L, ldim]
             
             for l in range(self.L):
-                self.u_m = torch.cat((self.u_m,
-                                 self.embeddings_mu[l][labels.reshape(B*n_s, self.L)[:, l]].unsqueeze(-2) + sigma * torch.randn(B*n_s, 1, self.ldim)),
-                                 dim=-2)
-                 
+                K = self.num_classes_list[l]
+                gmm = GaussianMixture(n_components=K, covariance_type='spherical')
+                gmm.fit(some_u_m[:, l, :].detach().cpu().numpy())
+                u_wts, u_means, u_vars = gmm.weights_, gmm.means_, gmm.covariances_    # [K], [K, ldim], [K]
+                preds = torch.from_numpy(gmm.predict(some_u_m[:, l, :].detach().cpu().numpy())).to(device).to(torch.float) # [B]
 
-            l_to_label = {i: l for i, l in enumerate(params["latent_vars"])}
+                conf_mat = torch.zeros((K, K), dtype=torch.int32)
+                for i in range(K):
+                    for j in range(K):
+                        conf_mat[i, j] = torch.sum((preds == i) & (self.some_labels[:, l] == j))
 
-            self.kl_noise = 0.
-            self.noise_loss = 0.
-            #self.label_embeddings_loss = 0.
-            self.logvar_div = 0.
-            self.mu_dist = 0.
-            self.tc_loss = 0.
-            self.noise_leak_encoder_loss = 0.
-            self.log_det = 0.
-            self.log_det_prior = 0.
-            self.causal_loss = 0.
-            self.assignments_loss = 0.
-            self.logvar_noise = torch.zeros(B*n_s, self.L, self.ldim)
-
-            if self.step < self.gmm_fit_step:
-                if self.is_train:                     
-                    # collect some labels to then use for GMM fit
-                    self.some_labels = torch.cat((self.some_labels, labels.reshape(B*n_s, self.L)), dim = 0)
-
-
-            # now train the rest of the components
-            #else:
+                # Apply Hungarian algorithm to maximize agreement
+                row_ind, col_ind = linear_sum_assignment(-conf_mat.cpu().numpy())  # maximize by negating
+                mapping = {row: col for row, col in zip(row_ind, col_ind)}            
                 
-            # fit GMM 
-            if self.is_train and self.step == self.gmm_fit_step and self.alpha > 0.:          
-                gmm_wts, gmm_means, gmm_stds = [], [], []   
+                # pass to tensor
+                u_wts = torch.from_numpy(u_wts).to(device)
+                u_means = torch.from_numpy(u_means).to(device) 
+                u_vars = torch.from_numpy(u_vars).to(device)
 
-                some_u_m = torch.tensor([])
-                for l in range(self.L):
-                    some_u_m = torch.cat((some_u_m,
-                                          self.embeddings_mu[l][self.some_labels.long()[:, l]].unsqueeze(-2) + sigma * torch.randn(self.some_labels.size(0), 1, self.ldim)),
-                                          dim=-2) # [B*n_s, L, ldim]
-                
-                for l in range(self.L):
-                    K = self.num_classes_list[l]
-                    gmm = GaussianMixture(n_components=K, covariance_type='spherical')
-                    gmm.fit(some_u_m[:, l, :].detach().cpu().numpy())
-                    u_wts, u_means, u_vars = gmm.weights_, gmm.means_, gmm.covariances_    # [K], [K, ldim], [K]
-                    preds = torch.from_numpy(gmm.predict(some_u_m[:, l, :].detach().cpu().numpy())).to(device).to(torch.float) # [B]
+                u_wts = torch.index_select(u_wts, dim=0, index = torch.tensor(list(mapping.values())))
+                u_means = torch.index_select(u_means, dim=0, index = torch.tensor(list(mapping.values())))
+                u_vars = torch.index_select(u_vars, dim=0, index = torch.tensor(list(mapping.values())))
 
-                    conf_mat = torch.zeros((K, K), dtype=torch.int32)
-                    for i in range(K):
-                        for j in range(K):
-                            conf_mat[i, j] = torch.sum((preds == i) & (self.some_labels[:, l] == j))
+                gmm_wts.append(u_wts)
+                gmm_means.append(u_means)
+                gmm_stds.append(torch.sqrt(u_vars))
 
-                    # Apply Hungarian algorithm to maximize agreement
-                    row_ind, col_ind = linear_sum_assignment(-conf_mat.cpu().numpy())  # maximize by negating
-                    mapping = {row: col for row, col in zip(row_ind, col_ind)}            
-                    
-                    # pass to tensor
-                    u_wts = torch.from_numpy(u_wts).to(device)
-                    u_means = torch.from_numpy(u_means).to(device) 
-                    u_vars = torch.from_numpy(u_vars).to(device)
-
-                    u_wts = torch.index_select(u_wts, dim=0, index = torch.tensor(list(mapping.values())))
-                    u_means = torch.index_select(u_means, dim=0, index = torch.tensor(list(mapping.values())))
-                    u_vars = torch.index_select(u_vars, dim=0, index = torch.tensor(list(mapping.values())))
-
-                    gmm_wts.append(u_wts)
-                    gmm_means.append(u_means)
-                    gmm_stds.append(torch.sqrt(u_vars))
-
-                    # if self.is_train and self.step % params['step_size'] == 0:
-                    #   logger.info(f"\nGMM mixture params for variable {l_to_label[l]}:")
-                    #   logger.info(f"GMM wts: {u_wts}")
-                    #   logger.info(f"GMM means: {u_means}")
-                    #   logger.info(f"GMM vars: {u_vars}")
-                
-                    # set the prior params in MixturePrior according to what is inferred by the GMM
-                    self.z_nets[l_to_label[l]].pi_c = u_wts
-                    self.z_nets[l_to_label[l]].mu_c = u_means
-                    self.z_nets[l_to_label[l]].logvar_c = torch.log(u_vars)
-
-            else:
-                gmm_wts, gmm_means, gmm_stds = [], [], []
-                for l in range(self.L):
-                    gmm_wts.append(self.z_nets[l_to_label[l]].pi_c)
-                    gmm_means.append(self.z_nets[l_to_label[l]].mu_c)
-                    gmm_stds.append(torch.exp(0.5 * self.z_nets[l_to_label[l]].logvar_c))
-
+                # if self.is_train and self.step % params['step_size'] == 0:
+                #   logger.info(f"\nGMM mixture params for variable {l_to_label[l]}:")
+                #   logger.info(f"GMM wts: {u_wts}")
+                #   logger.info(f"GMM means: {u_means}")
+                #   logger.info(f"GMM vars: {u_vars}")
             
-            self.u_m = self.u_m.reshape(B, n_s, self.L, self.ldim)
-            
-            if params["causal_dropout_prob"] <= 1.:
-                
-                if self.step % params['step_size_img_sv'] == 0:
-                    logger.info(f"\nnoise: {torch.mean(torch.sum(z_noise, dim=-1))}")               
-                
-                z_scm, L_slopes, ss, ts = self.causal_flow(z_noise)
-                
-                if self.step % params['step_size_img_sv'] == 0:
-                    logger.info(f"\ns: {torch.mean(torch.sum(ss, dim=-1))}")
-                    logger.info(f"\nz: {torch.mean(torch.sum(z_scm, dim=-1))}")
+                # set the prior params in MixturePrior according to what is inferred by the GMM
+                self.z_nets[l_to_label[l]].pi_c = u_wts
+                self.z_nets[l_to_label[l]].mu_c = u_means
+                self.z_nets[l_to_label[l]].logvar_c = torch.log(u_vars)
 
-                self.ss, self.ts = ss, ts
-            else:
-                z_scm = z_noise 
+        else:
+            gmm_wts, gmm_means, gmm_stds = [], [], []
+            for l in range(self.L):
+                gmm_wts.append(self.z_nets[l_to_label[l]].pi_c)
+                gmm_means.append(self.z_nets[l_to_label[l]].mu_c)
+                gmm_stds.append(torch.exp(0.5 * self.z_nets[l_to_label[l]].logvar_c))
 
-            discrete_latent_proposals = {}
-            var_idx = {l: i for i, l in enumerate(params["latent_vars"])}
-            # now need to compute proposals and make predictions with the causal disentangled representations 
-            for var in self.current_trace:
-                if var.proposal_distribution == "normal": 
-                    proposal = proposals[var.name]
-                    pyro.sample(var.name, dist.Normal(proposal, params['loc_proposal_std']))
-                elif var.proposal_distribution == "bernoulli": 
-                    proposal = proposals[var.name]
-                    mask_pred = proposal.reshape(B*n_s).detach()
-                    pyro.sample(var.name, dist.Bernoulli(proposal))
-                elif var.proposal_distribution == "categorical": 
-                    idx = var_idx[var.name] 
-                    
-                    if params["conditioned_classifier"]:
-                        pred_input = torch.cat((z_scm[:, :, idx, :], self.causal_flag), dim=-1)
-                        proposal = self.prop_nets[var.name](pred_input)
-                        
-                    else:
-                        pred_input = z_scm[:, :, idx, :]
-                        if var.name == "shape":
-                            if self.dag_dropout == 0: proposal = self.prop_nets[var.name]["obs"](pred_input)
-                            elif self.dag_dropout == 1: proposal = self.prop_nets[var.name]["int"](pred_input)
-                        else:
-                            proposal = self.prop_nets[var.name](pred_input)
-                    
-                    #logger.info(f"\n{var.name} proposal: {torch.mean(proposal, dim=[0, 1])}")
-                    
-                    discrete_latent_proposals[var.name] = proposal
-                    assert not torch.isnan(z_noise[:, :, idx]).any(), f"{idx}"
-                    assert not torch.isnan(z_scm[:, :, idx]).any(), f"{idx}"
-                    assert not torch.isnan(proposal).any()
-
-                    pyro.sample(var.name, dist.Categorical(probs=proposal))
-                    
-                # log predictions
-                if self.step % params['step_size'] == 0:
-                    logger.info(f"\n{var.name} target values {var.value[0]}")
-                    logger.info(f"\n{var.name} proposed values {proposal[0]}")
-            
-            if self.is_train:
-                z_noise = z_noise.reshape(B*n_s, self.L, self.ldim)
-                mu_noise = mu_noise.reshape(B*n_s, self.L, self.ldim)
-                logvar_noise = logvar_noise.reshape(B*n_s, self.L, self.ldim)
-                #rec_noise = rec_noise.reshape(B*n_s, self.L, self.slot_dim)
-                slot_hat = slot_hat.reshape(B*n_s, self.slot_dim)
-
-                self.logvar_noise = logvar_noise
-                
-                preds = torch.tensor([]) # [B, N, L, 3]
-                for l in range(self.L):
-                    preds = torch.cat(
-                        (preds, discrete_latent_proposals[l_to_label[l]].unsqueeze(-2)),
-                        dim = -2)
-
-                print_mixt_params = False
-
-                rec_loss_crit = nn.MSELoss()
-                rec_loss = rec_loss_crit(slot_hat, self.slots.reshape(B*n_s, self.slot_dim))
-                self.kl_noise = rec_loss
-                
-                if self.is_train and self.step % params["step_size"] == 0 and self.step >= self.gmm_fit_step:
-                    logger.info(f"rec loss: {rec_loss}")
-                
-                r = torch.tensor([])                    
-                for l in range(self.L):
-                    if self.is_train and self.step % params["step_size"] == 0: 
-                        if self.step >= self.gmm_fit_step:
-                            logger.info(f"\nGMMVAE losses for variable {l_to_label[l]}:")
-                            print_mixt_params = True
-                    
-                    mixt_kl, kl_reg, logvar_reg, yc = self.z_nets[l_to_label[l]].compute_elbo(mu_noise[:, l, :].unsqueeze(-2),
-                                                                                            logvar_noise[:, l, :].unsqueeze(-2),
-                                                                                            z_noise[:, l, :],
-                                                                                            mask_pred,
-                                                                                            print_mixt_params=print_mixt_params,
-                                                                                            yc_temperature=self.yc_t)
-                    
-                    r = torch.cat((r, yc.unsqueeze(-2)), dim=-2) # [B*N, L, K]
-                    
-                    if self.is_train and self.step % params["step_size"] == 0 and self.step >= self.gmm_fit_step:
-                        #logger.info(f"yc shape: {yc.shape}")
-                        
-                        
-                        logger.info(f"yc: {yc[:5]}")
-                        logger.info(f"preds: {preds.reshape(B*n_s, self.L, preds.size(-1))[:5, l, :]}")
-                        logger.info(f"yc mean: {torch.mean(yc, dim=0)}")
-                        logger.info(f"pi_c: {self.z_nets[l_to_label[l]].pi_c.tolist()}")
-                        logger.info(f"logvars: {torch.mean(logvar_noise[:, l, :])}")
-                        logger.info(f"logvar_c: {self.z_nets[l_to_label[l]].logvar_c}")
-
-                        
-                        if False:
-                        #if self.step % params["step_size_img_sv"] == 0:
-                            for l in range(self.L):
-                                np.save(f"{params['check_attn_folder']}/attn-step-{self.step}/{l_to_label[l]}_prior_mu.npy", self.z_nets[l_to_label[l]].mu_c.detach().cpu().numpy())
-                                np.save(f"{params['check_attn_folder']}/attn-step-{self.step}/{l_to_label[l]}_prior_logvar.npy", self.z_nets[l_to_label[l]].logvar_c.detach().cpu().numpy())   
-                                np.save(f"{params['check_attn_folder']}/attn-step-{self.step}/{l_to_label[l]}_noise.npy", z_noise[:, l, :].detach().cpu().numpy())
-                                np.save(f"{params['check_attn_folder']}/attn-step-{self.step}/{l_to_label[l]}_mu.npy", mu_noise[:, l, :].detach().cpu().numpy())
-                                np.save(f"{params['check_attn_folder']}/attn-step-{self.step}/{l_to_label[l]}_logvar.npy", logvar_noise[:, l, :].detach().cpu().numpy())
-                    
-                    #self.kl_noise += rec_loss + params["mixt_kl_coeff"] * mixt_kl - kl_reg - params["logvar_reg_coeff"]*logvar_reg
-                    self.kl_noise += params["mixt_kl_coeff"] * mixt_kl + kl_reg - params["logvar_reg_coeff"]*logvar_reg
-
-                    # assignments_loss = torch.mean(torch.sum(torch.square(yc - preds.reshape(B*n_s, self.L, preds.size(-1))[:, l, :]), dim=-1))
-                    # self.kl_noise += assignments_loss
-                    # self.assignments_loss += assignments_loss
-
-                    K = discrete_latent_proposals[l_to_label[l]].shape[-1] 
-                    real_idx = torch.where(torch.round(mask_pred) == 1.)[0]
-                    for k in range(K):
-                        k_idx = torch.where((torch.argmax(discrete_latent_proposals[l_to_label[l]].reshape(B*n_s, -1), dim=-1) == k))[0]
-                        intersect = [a for a in k_idx if a in real_idx]
-                        
-                        if len(intersect) > 0:
-                            k_idx_intersect = torch.stack(intersect)
-                            self.mu_dist += torch.mean(torch.sum(torch.cdist(mu_noise[k_idx_intersect, l, :], mu_noise[k_idx_intersect, l, :]), dim=-1))
-
-                    # add a constraint to approximate encoded to prior logvars, using the KL-div between to zero-mean Gaussians
-                    if params["noise_logvar_constraint"]:
-                        l_logvar_div = torch.mean(self.z_nets[l_to_label[l]].kl_div_mixt(
-                            logvar_noise[:, l, :],
-                            self.z_nets[l_to_label[l]].logvar_c
-                            ))
-                        self.logvar_div += l_logvar_div
-
-                if params["TC_minimization"]:
-                    for name, param in self.tc_discriminator.named_parameters():
-                        assert param.requires_grad == False
-                    
-                    self.disc_input = torch.flatten(z_noise, -2)
-                    self.D_joint = self.tc_discriminator(self.disc_input)
-                    self.tc_loss = torch.square(torch.mean(self.D_joint[:, :1] - self.D_joint[:, 1:]))
-                    self.fake_z_noise, perms = permute_dims(self.disc_input, self.ldim)
-                
-
-                if params["reduce_noise_leak_adv"]:
-                    for perm in permutations(params["latent_vars"], 2):
-                        for name, param in self.disentangle_mlps[f"{perm[0]}_{perm[1]}"].named_parameters():
-                            assert param.requires_grad == False
-
-                    for lp in permutations(params["latent_vars"], 2):
-                        lp_input = z_noise.reshape(B, n_s, self.L, self.ldim)[:, :, var_idx[lp[0]], :]  # [B, N, ldim]
-                        lp_target = labels[:, :, var_idx[lp[1]]]                                        # [B, N]  
-                        leak_logits = self.disentangle_mlps[f"{lp[0]}_{lp[1]}"](lp_input)                            # [B, N, K]            
-                        leak_loss = compute_leakage_loss(leak_logits, lp_target)
-                        self.noise_leak_encoder_loss += 1/leak_loss
-
-                    self.mask_pred = mask_pred
-                    self.z_noise = z_noise
-                    self.labels = labels
-
-                
-                if params["causal_dropout_prob"] <= 1.:
-                    for i in range(self.L):
-                        s = L_slopes[:, :, i, :]
-                        #self.log_det += torch.sum(mask_pred.unsqueeze(-1) * s, dim=-1)/s.size(-1)
-                        if params["normalized_logdet"]: self.log_det += torch.sum(s, dim=-1)/s.size(-1)
-                        else: self.log_det += torch.sum(s, dim=-1)
-                    self.log_det = torch.mean(self.log_det)
-                
-                #self.noise_loss = self.kl_noise - self.log_det_coeff*self.log_det
-                #self.noise_loss = self.kl_noise + self.TC_coeff*self.tc_loss - self.log_det_coeff*self.log_det
-
-                # if self.beta > 0:
-                #     cp_m, log_det_prior, aligned_u_m, self.attn_loss, attn = self.prior(self.u_m, z_scm, self.dag, preds, labels) # [B, N, L, d]
-                #     self.log_det_prior = torch.mean(log_det_prior)
-                
-                #     for i in range(self.L):
-                #         #self.causal_loss += torch.mean(kl_normal(z_scm[:, :, i, :], cp_v, cp_m[:, :, i, :], cp_v))
-                #         self.causal_loss += self.mmd_loss(z_scm[:, :, i, :].reshape(B*n_s, -1), cp_m[:, :, i, :].reshape(B*n_s, -1))  
-
-                if params["beta"] > 0:
-                    cp_m, prior_L_slopes, prior_ss, prior_ts = self.prior(self.u_m, z_scm, preds, labels) # [B, N, L, d]
-                    self.prior_ss, self.prior_ts = prior_ss, prior_ts
-                    for i in range(self.L):
-                        s = prior_L_slopes[:, :, i, :]
-                        self.log_det_prior += torch.sum(s, dim=-1)
-                    self.log_det_prior = torch.mean(self.log_det_prior)
-                
-                    for i in range(self.L):
-                        #self.causal_loss += torch.mean(kl_normal(z_scm[:, :, i, :], cp_v, cp_m[:, :, i, :], cp_v))
-                        self.causal_loss += self.mmd_loss(z_scm[:, :, i, :].reshape(B*n_s, -1), cp_m[:, :, i, :].reshape(B*n_s, -1))     
-                
-            if self.is_train and self.step > self.gmm_fit_step and self.step % params['step_size_img_sv'] == 0:
-            #if False:
-                for l in range(self.L): 
-
-                        # get indexes of objects predicted as 'real'
-                        real_idx = torch.where(torch.round(mask_pred) == 1.)[0]
-                        
-                        if len(real_idx) > 0:
-                        
-                            preds = torch.argmax(discrete_latent_proposals[l_to_label[l]].reshape(B*n_s, -1), dim=-1)[real_idx].detach().cpu().numpy()
-                        
-                            """ permute labels according to the attention matrix obtained in self.prior(.) """
-                            
-                            # turn 'attn' into a hard permutation matrix
-                            # if self.beta > 0.:
-                            #     perm = torch.round(attn)
-                            #     #embed_labels = labels[:, :, l].reshape(B*n_s).detach().cpu().numpy() # [B*N]
-                            #     perm_labels = torch.matmul(perm, labels[:, :, l].float().unsqueeze(-1)).squeeze(-1).reshape(B*n_s).detach().cpu().numpy() # [B*N]
-                            
-                            # NOISE REPRESENTATIONS
-                            
-                            z_l = z_noise[real_idx, l, :].detach().cpu().numpy() # [B*N, d]
-                            mu_l = mu_noise[real_idx, l, :].detach().cpu().numpy() # [B*N, d]
-
-                            if params["TC_minimization"]:
-                                perm_real_idx = torch.where(torch.round(mask_pred[perms[l]]) == 1.)[0]
-                                fake_z_l = self.fake_z_noise.reshape(B*n_s, self.L, self.ldim)[perm_real_idx, l, :].detach().cpu().numpy()
-                                fake_preds = torch.argmax(discrete_latent_proposals[l_to_label[l]].reshape(B*n_s, -1), dim=-1)[perms[l]][perm_real_idx].detach().cpu().numpy()
-
-                            #logger.info(f"fake preds: {fake_preds[:5]}")
-
-
-                            # Apply PCA to reduce dimensionality to 2D
-                            if self.ldim != 2:
-                                #pca = PCA(n_components=2)
-                                pca = TSNE(n_components=2, random_state=0)
-                                z_pca = pca.fit_transform(z_l)  # Output shape: (sum(num_classes_per_label), 2)
-                                mu_pca = pca.fit_transform(mu_l)
-                                if params["TC_minimization"]: 
-                                    fake_z_pca = pca.fit_transform(fake_z_l)
-                            else:
-                                z_pca = z_l
-                                mu_pca = mu_l
-
-                            # Plot with class indices as color
-                            plt.figure(figsize=(8, 6))
-                            scatter = plt.scatter(z_pca[:, 0], z_pca[:, 1], c=preds, alpha=0.5)
-                            # Add legend
-                            plt.legend(handles=scatter.legend_elements()[0], labels=[f"class {c}" for c in range(self.num_classes_list[l])], title="Class")
-                            #plt.colorbar(label="Class Index")
-                            plt.title("exogenous noise representations (z)")
-                            plt.xlabel("PC1")
-                            plt.ylabel("PC2")
-                            plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/z_noise_{l_to_label[l]}.png")
-                            plt.close()
-
-                            if l == 1:
-                                
-                                # get color preds
-                                color_preds = torch.argmax(discrete_latent_proposals[l_to_label[0]].reshape(B*n_s, -1), dim=-1)[real_idx].detach().cpu().numpy()
-                                
-                                plt.figure(figsize=(8, 6))
-                                scatter = plt.scatter(z_pca[:, 0], z_pca[:, 1], c=color_preds, alpha=0.5)
-                                # Add legend
-                                plt.legend(handles=scatter.legend_elements()[0], labels=[f"class {c}" for c in range(self.num_classes_list[l])], title="Class")
-                                #plt.colorbar(label="Class Index")
-                                plt.title("exogenous noise representations (z)")
-                                plt.xlabel("PC1")
-                                plt.ylabel("PC2")
-                                plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/z_noise_{l_to_label[l]}_with_color_preds.png")
-                                plt.close()
-                            
-                            if l == 0:
-                                
-                                # get color preds
-                                shape_preds = torch.argmax(discrete_latent_proposals[l_to_label[1]].reshape(B*n_s, -1), dim=-1)[real_idx].detach().cpu().numpy()
-                                
-                                plt.figure(figsize=(8, 6))
-                                scatter = plt.scatter(z_pca[:, 0], z_pca[:, 1], c=shape_preds, alpha=0.5)
-                                # Add legend
-                                plt.legend(handles=scatter.legend_elements()[0], labels=[f"class {c}" for c in range(self.num_classes_list[l])], title="Class")
-                                #plt.colorbar(label="Class Index")
-                                plt.title("exogenous noise representations (z)")
-                                plt.xlabel("PC1")
-                                plt.ylabel("PC2")
-                                plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/z_noise_{l_to_label[l]}_with_shape_preds.png")
-                                plt.close()
-
-
-                            # Plot with class indices as color
-                            if params["TC_minimization"]:
-                                plt.figure(figsize=(8, 6))
-                                scatter = plt.scatter(fake_z_pca[:, 0], fake_z_pca[:, 1], c=fake_preds, alpha=0.5)
-                                # Add legend
-                                plt.legend(handles=scatter.legend_elements()[0], labels=[f"class {c}" for c in range(self.num_classes_list[l])], title="Class")
-                                #plt.colorbar(label="Class Index")
-                                plt.title("fake exogenous noise representations (z)")
-                                plt.xlabel("PC1")
-                                plt.ylabel("PC2")
-                                plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/fake_z_noise_{l_to_label[l]}.png")
-                                plt.close()
-
-                            plt.figure(figsize=(8, 6))
-                            scatter = plt.scatter(mu_pca[:, 0], mu_pca[:, 1], c=preds, alpha=0.5)
-                            # Add legend
-                            plt.legend(handles=scatter.legend_elements()[0], labels=[f"class {c}" for c in range(self.num_classes_list[l])], title="Class")
-                            #plt.colorbar(label="Class Index")
-                            plt.title("exogenous noise representations (mu)")
-                            plt.xlabel("PC1")
-                            plt.ylabel("PC2")
-                            plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/mu_noise_{l_to_label[l]}.png")
-                            plt.close()  
-
-                            if l == 0:
-                                
-                                # get color preds
-                                shape_preds = torch.argmax(discrete_latent_proposals[l_to_label[1]].reshape(B*n_s, -1), dim=-1)[real_idx].detach().cpu().numpy()
-                                
-                                plt.figure(figsize=(8, 6))
-                                scatter = plt.scatter(mu_pca[:, 0], mu_pca[:, 1], c=shape_preds, alpha=0.5)
-                                # Add legend
-                                plt.legend(handles=scatter.legend_elements()[0], labels=[f"class {c}" for c in range(self.num_classes_list[l])], title="Class")
-                                #plt.colorbar(label="Class Index")
-                                plt.title("exogenous noise representations (z)")
-                                plt.xlabel("PC1")
-                                plt.ylabel("PC2")
-                                plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/mu_noise_{l_to_label[l]}_with_shape_preds.png")
-                                plt.close()    
-
-                            if l == 1:
-                                
-                                # get color preds
-                                color_preds = torch.argmax(discrete_latent_proposals[l_to_label[0]].reshape(B*n_s, -1), dim=-1)[real_idx].detach().cpu().numpy()
-                                
-                                plt.figure(figsize=(8, 6))
-                                scatter = plt.scatter(mu_pca[:, 0], mu_pca[:, 1], c=color_preds, alpha=0.5)
-                                # Add legend
-                                plt.legend(handles=scatter.legend_elements()[0], labels=[f"class {c}" for c in range(self.num_classes_list[l])], title="Class")
-                                #plt.colorbar(label="Class Index")
-                                plt.title("exogenous noise representations (z)")
-                                plt.xlabel("PC1")
-                                plt.ylabel("PC2")
-                                plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/mu_noise_{l_to_label[l]}_with_color_preds.png")
-                                plt.close()     
-                            
-                            # LABEL EMBEDDINGS
-                            z_l = self.u_m.reshape(B*n_s, self.L, self.ldim)[:, l, :].detach().cpu().numpy() # [B*N, d]
-                            embed_labels = labels[:, :, l].reshape(B*n_s).detach().cpu().numpy() # [B*N]
-
-                            # Apply PCA to reduce dimensionality to 2D
-                            if self.ldim != 2:
-                                pca = PCA(n_components=2)
-                                z_pca = pca.fit_transform(z_l)  # Output shape: (sum(num_classes_per_label), 2)
-                                
-                                if self.step >= self.gmm_fit_step:
-                                    gmm_means_pca = pca.fit_transform(gmm_means[l].detach().cpu().numpy())
-                                    #gmm_stds_pca = pca.fit_transform(gmm_stds[l].detach().cpu().numpy())
-                            else:
-                                z_pca = z_l
-                                if self.step >= self.gmm_fit_step:
-                                    gmm_means_pca = gmm_means[l].detach().cpu().numpy()
-                                    #gmm_stds_pca = gmm_stds[l].detach().cpu().numpy()
-
-                            # Plot with class indices as color
-                            fig, ax = plt.subplots(figsize=(8, 6))
-                            scatter = plt.scatter(z_pca[:, 0], z_pca[:, 1], c=embed_labels, cmap='rainbow', alpha=0.3)
-                            if self.step > self.gmm_fit_step:
-                                for j in range(gmm_means_pca.shape[0]):
-                                    #color = "blue" if c == 0 else "red"
-                                    ax.scatter(gmm_means_pca[j, 0], gmm_means_pca[j, 1], marker="x")
-                                    # ellipse = Ellipse(gmm_means_pca[c], width=2*gmm_stds_pca[c, 0], height=2*gmm_stds_pca[c, 1], 
-                                    #                               edgecolor=color, facecolor='none', linestyle='--', linewidth=2)
-                                    # ax.add_patch(ellipse)
-
-                            # Add legend
-                            plt.legend(handles=scatter.legend_elements()[0], labels=[f"class {c}" for c in range(self.num_classes_list[l])], title="Class")
-                            #plt.colorbar(label="Class Index")
-                            plt.title("label embeddings u")
-                            plt.xlabel("PC1")
-                            plt.ylabel("PC2")
-                            plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/embeddings_{l_to_label[l]}.png")
-                            plt.close()
-
-
-                            # if self.beta > 0:
-                            #     # ALIGNED LABEL EMBEDDINGS
-                            #     z_l = aligned_u_m.reshape(B*n_s, self.L, self.ldim)[:, l, :].detach().cpu().numpy() # [B*N, d]
-
-                            #     # Apply PCA to reduce dimensionality to 2D
-                            #     if self.ldim != 2:
-                            #         pca = PCA(n_components=2)
-                            #         z_pca = pca.fit_transform(z_l)  # Output shape: (sum(num_classes_per_label), 2)
-                                    
-                            #         if self.step >= self.gmm_fit_step:
-                            #             gmm_means_pca = pca.fit_transform(gmm_means[l].detach().cpu().numpy())
-                            #             #gmm_stds_pca = pca.fit_transform(gmm_stds[l].detach().cpu().numpy())
-                            #     else:
-                            #         z_pca = z_l
-                            #         if self.step >= self.gmm_fit_step:
-                            #             gmm_means_pca = gmm_means[l].detach().cpu().numpy()
-                            #             #gmm_stds_pca = gmm_stds[l].detach().cpu().numpy()
-
-                            #     fig, ax = plt.subplots(figsize=(8, 6))
-                            #     scatter = plt.scatter(z_pca[:, 0], z_pca[:, 1], c=perm_labels, cmap='rainbow', alpha=0.3)
-                            #     if self.step > self.gmm_fit_step:
-                            #         for c in range(gmm_means_pca.shape[0]):
-                            #             #color = "blue" if c == 0 else "red"
-                            #             ax.scatter(gmm_means_pca[c, 0], gmm_means_pca[c, 1], marker="x", alpha=0.9)
-                            #             # ellipse = Ellipse(gmm_means_pca[c], width=2*gmm_stds_pca[c, 0], height=2*gmm_stds_pca[c, 1], 
-                            #             #                               edgecolor=color, facecolor='none', linestyle='--', linewidth=2)
-                            #             # ax.add_patch(ellipse)
-
-                            #     # Add legend
-                            #     plt.legend(handles=scatter.legend_elements()[0], labels=[f"class {c}" for c in range(self.num_classes_list[l])], title="Class")
-                            #     #plt.colorbar(label="Class Index")
-                            #     plt.title("label embeddings u")
-                            #     plt.xlabel("PC1")
-                            #     plt.ylabel("PC2")
-                            #     plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/aligned_embeddings_{l_to_label[l]}.png")
-                            #     plt.close()
-                            
-
-                            # POSTERIOR
-                            
-                            z_l = z_scm.reshape(B*n_s, self.L, self.ldim)[real_idx, l, :].detach().cpu().numpy() # [B*N, d]
-
-                            # Apply PCA to reduce dimensionality to 2D
-                            if self.ldim != 2:
-                                #pca = PCA(n_components=2)
-                                pca = TSNE(n_components=2, random_state=0)
-                                z_pca = pca.fit_transform(z_l)  # Output shape: (sum(num_classes_per_label), 2)
-                            else:
-                                z_pca = z_l
-
-                            # Plot with class indices as color
-                            plt.figure(figsize=(8, 6))
-                            scatter = plt.scatter(z_pca[:, 0], z_pca[:, 1], c=preds, cmap='rainbow', alpha=0.5)
-                            # Add legend
-                            plt.legend(handles=scatter.legend_elements()[0], labels=[f"class {c}" for c in range(self.num_classes_list[l])], title="Class")
-                            #plt.colorbar(label="Class Index")
-                            plt.title("z_scm")
-                            plt.xlabel("PC1")
-                            plt.ylabel("PC2")
-                            plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/posterior_{l_to_label[l]}.png")
-                            plt.close()
-
-
-                            # CAUSAL PRIOR
-                            if self.beta > 0:
-                            #     z_l = cp_m.reshape(B*n_s, self.L, self.ldim)[:, l, :].detach().cpu().numpy() # [B*N, d]
-
-                            #     # Apply PCA to reduce dimensionality to 2D
-                            #     if self.ldim != 2:
-                            #         #pca = PCA(n_components=2)
-                            #         pca = TSNE(n_components=2, random_state=0)
-                            #         z_pca = pca.fit_transform(z_l)  # Output shape: (sum(num_classes_per_label), 2)
-                            #     else:
-                            #         z_pca = z_l
-
-                            #     # Plot with class indices as color
-                            #     plt.figure(figsize=(8, 6))
-                            #     scatter = plt.scatter(z_pca[:, 0], z_pca[:, 1], c=perm_labels, cmap='rainbow', alpha=0.5)
-                            #     # Add legend
-                            #     plt.legend(handles=scatter.legend_elements()[0], labels=[f"class {c}" for c in range(self.num_classes_list[l])], title="Class")
-                            #     #plt.colorbar(label="Class Index")
-                            #     plt.title("PCA Projection of Learned Prior p(z|u)")
-                            #     plt.xlabel("PC1")
-                            #     plt.ylabel("PC2")
-                            #     plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/prior_w_labels_{l_to_label[l]}.png")
-                            #     plt.close()
-
-                                
-                            #     # CAUSAL PRIOR 
-                                
-                                z_l = cp_m.reshape(B*n_s, self.L, self.ldim)[real_idx, l, :].detach().cpu().numpy() # [B*N, d]
-
-                                # Apply PCA to reduce dimensionality to 2D
-                                if self.ldim != 2:
-                                    #pca = PCA(n_components=2)
-                                    pca = TSNE(n_components=2, random_state=0)
-                                    z_pca = pca.fit_transform(z_l)  # Output shape: (sum(num_classes_per_label), 2)
-                                else:
-                                    z_pca = z_l
-
-                                # Plot with class indices as color
-                                plt.figure(figsize=(8, 6))
-                                scatter = plt.scatter(z_pca[:, 0], z_pca[:, 1], c=preds, cmap='rainbow', alpha=0.5)
-                                # Add legend
-                                plt.legend(handles=scatter.legend_elements()[0], labels=[f"class {c}" for c in range(self.num_classes_list[l])], title="Class")
-                                #plt.colorbar(label="Class Index")
-                                plt.title("PCA Projection of Learned Prior p(z|u)")
-                                plt.xlabel("PC1")
-                                plt.ylabel("PC2")
-                                plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/prior_w_preds_{l_to_label[l]}.png")
-                                plt.close()
-
-                            #     if l == 1:
-                                    
-                            #         # get color preds
-                            #         color_preds = torch.argmax(discrete_latent_proposals[l_to_label[0]].reshape(B*n_s, -1), dim=-1)[real_idx].detach().cpu().numpy()
-                                    
-                            #         plt.figure(figsize=(8, 6))
-                            #         scatter = plt.scatter(z_pca[:, 0], z_pca[:, 1], c=color_preds, alpha=0.5)
-                            #         # Add legend
-                            #         plt.legend(handles=scatter.legend_elements()[0], labels=[f"class {c}" for c in range(self.num_classes_list[l])], title="Class")
-                            #         #plt.colorbar(label="Class Index")
-                            #         plt.title("exogenous noise representations (z)")
-                            #         plt.xlabel("PC1")
-                            #         plt.ylabel("PC2")
-                            #         plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/prior_{l_to_label[l]}_with_color_preds.png")
-                            #         plt.close()
-                                
-                            #     if l == 0:
-                                    
-                            #         # get color preds
-                            #         shape_preds = torch.argmax(discrete_latent_proposals[l_to_label[1]].reshape(B*n_s, -1), dim=-1)[real_idx].detach().cpu().numpy()
-                                    
-                            #         plt.figure(figsize=(8, 6))
-                            #         scatter = plt.scatter(z_pca[:, 0], z_pca[:, 1], c=shape_preds, alpha=0.5)
-                            #         # Add legend
-                            #         plt.legend(handles=scatter.legend_elements()[0], labels=[f"class {c}" for c in range(self.num_classes_list[l])], title="Class")
-                            #         #plt.colorbar(label="Class Index")
-                            #         plt.title("exogenous noise representations (z)")
-                            #         plt.xlabel("PC1")
-                            #         plt.ylabel("PC2")
-                            #         plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/prior_{l_to_label[l]}_with_shape_preds.png")
-                            #         plt.close()
-                                
-
-            del self.slots
-            self.current_trace = []
         
-        elif self.stage == "eval":
-            with torch.no_grad():
-                assert self.current_trace == [], "current_trace list is not empty in the begining of evaluation!"
+        self.u_m = self.u_m.reshape(B, n_s, self.L, self.ldim)
+        
+        if params["causal_dropout_prob"] <= 1.:
+            z_scm, self.L_slopes, ss, ts = self.causal_flow(z_noise)
+            self.ss, self.ts = ss, ts
+        else:
+            z_scm = z_noise 
 
-                n_s = params['max_objects']
-                self.slots, self.slot_pos, attn = self.slot_attention(self.features_to_slots, num_slots=n_s) 
-                self.attn = attn
+        z_noise = z_noise.reshape(B*n_s, self.L, self.ldim)
+        mu_noise = mu_noise.reshape(B*n_s, self.L, self.ldim)
+        logvar_noise = logvar_noise.reshape(B*n_s, self.L, self.ldim)
+        #rec_noise = rec_noise.reshape(B*n_s, self.L, self.slot_dim)
+        slot_hat = slot_hat.reshape(B*n_s, self.slot_dim)
+        self.logvar_noise = logvar_noise
 
-                # the idea here is to reset the causal graph adjacency matrix
-                # and use the final representations to compute predictions
-                # - during training, the guide learns to extract representations that both
-                #   align with causal representations and predict posterior params well
-                # - for inference, in a compositional generalization setting, I just need to 
-                #   extract representations that don't depend on any parent...
+        recon = self.decoder(z_scm)
 
-                if "size" in params["latent_vars"]: latents = ["mask", "color", "shape", "size", "locX", "locY"]
-                else: latents = ["mask", "color", "shape", "locX", "locY"]
-                
-                z_noise = []
-                for var in latents:
-                    if var in ["mask"]: 
-                        proposal_distribution = "bernoulli"
-                        prior_distribution = "bernoulli"
-                        obs = self.slots
-                    elif var in ["shape", "color", "size"]: 
-                        proposal_distribution = "categorical"
-                        prior_distribution = "categorical"
-                        obs = self.slots
-                    elif var in ["locX", "locY"]: 
-                        proposal_distribution = "normal"
-                        prior_distribution = "uniform"
-                        if var == "locX": obs = self.slot_pos[..., 0]
-                        elif var == "locY": obs = self.slot_pos[..., 1]
-                    
-                    z_temp, proposal = self.infer_step(var, obs, proposal_distribution) 
+        """
+        - prior won't be aligned with labels...
+        
+        """
 
-                    if proposal_distribution == "normal":
-                        #proposal = proposal.expand(params['num_inference_samples'], -1)
-                        proposal = torch.clamp(proposal, 0.15, 0.85)
-                        pyro.sample(var, dist.Normal(proposal, params['loc_proposal_std']))
-
-                        if var == "locX": x_prop = proposal
-                        elif var == "locY": y_prop = proposal
-
-                        # logger.info(f"{var} - {proposal.shape}")
-                    
-                    elif proposal_distribution == "bernoulli":
-                        #logger.info(f"PREDICTED MASK: {proposal}")
-                        #proposal = proposal.expand(params['num_inference_samples'], -1)
-                        mask = proposal
-                        pyro.sample(var, dist.Bernoulli(proposal))
-
-                        # logger.info(f"{var} - {proposal.shape} - {proposal[0]}")
-
-                    elif proposal_distribution == "categorical":
-                        mu, logvars, x_hat, z = z_temp
-                        z_noise.append(z)
-
-                        #logger.info(f"{var} - {proposal.shape}")
-
-                        #logger.info(f"\nappending noise representations of {var}...")
-                
-                z_noise = torch.stack(z_noise).permute(1, 2, 0, 3) # [B, N, L, d] => 'L' refers to the number of categorical latents
-                assert z_noise.size(2) == self.L  
-                B, N, L, d = z_noise.shape
-
-                if not params["infer_by_prediction"]:
-                    return z_noise
-
-                else:
-                    z_scm, L_slopes, ss, ts = self.causal_flow(z_noise)
-                    
-                    #var_idx = {"color": 0, "shape": 1, "size": 2}
-                    var_idx = {l: i for i, l in enumerate(params["latent_vars"])}
-                    latents = list(var_idx.keys())
-                    for var in latents:
-                        idx = var_idx[var] 
-                        
-                        if params["conditioned_classifier"]:
-                            if torch.equal(self.A, torch.zeros(self.L, self.L)):
-                                causal_flag = torch.ones(B, n_s, 1).to(device)
-                            else:
-                                causal_flag = torch.zeros(B, n_s, 1).to(device)
+        if params["beta"] > 0:
+            cp_m, self.prior_L_slopes, prior_ss, prior_ts = self.prior(self.u_m, z_scm, labels) # [B, N, L, d]
+            self.prior_ss, self.prior_ts = prior_ss, prior_ts     
                             
-                            pred_input = torch.cat((z_scm[:, :, idx, :], causal_flag), dim=-1)
-                            proposal = self.prop_nets[var](pred_input)
-                            if var == "color": self.color_prop = proposal
-                            elif var == "size": self.size_prop = proposal
-                            elif var == "shape": self.shape_prop = proposal
-                        
-                        else:
-                            pred_input = z_scm[:, :, idx, :]
-                            if var == "shape":
-                                proposal = self.prop_nets[var]["int"](pred_input)
-                                self.shape_prop = proposal
-                            else:
-                                proposal = self.prop_nets[var](pred_input)
-                                
-                                if var == "color": self.color_prop = proposal
-                                elif var == "size": self.size_prop = proposal
-                                
-                        
-                    
-                        
-                        # logger.info(f"\n{var} proposal given the intervention on the causal graph:")
-                        # logger.info(proposal)
-                        
-                        #proposal = proposal.expand(params['num_inference_samples'], -1, -1)
-                        pyro.sample(var, dist.Categorical(probs=proposal))
 
-                        # new_var = Variable(name=var,
-                        #                    value=out,
-                        #                    prior_distribution=prior_distribution,
-                        #                    proposal_distribution=proposal_distribution,
-                        #                    address=var
-                        #                    )
-                        # self.current_trace.append(new_var)
-                    
-                    self.z = z_scm
-                    self.attn = attn
-
-                    self.current_trace = []
-                    if "size" in params["latent_vars"]:
-                        return torch.cat((F.one_hot(torch.argmax(self.shape_prop, dim=-1), len(params["shape_vals"])), 
-                                        F.one_hot(torch.argmax(self.size_prop, dim=-1), len(params["size_vals"])),
-                                        F.one_hot(torch.argmax(self.color_prop, dim=-1), len(params["color_vals"])),
-                                        x_prop.unsqueeze(-1),
-                                        y_prop.unsqueeze(-1),
-                                        mask.unsqueeze(-1)
-                                        ), dim=-1)
-                    else:
-                        return torch.cat((F.one_hot(torch.argmax(self.shape_prop, dim=-1), len(params["shape_vals"])), 
-                                        F.one_hot(torch.argmax(self.color_prop, dim=-1), len(params["color_vals"])),
-                                        x_prop.unsqueeze(-1),
-                                        y_prop.unsqueeze(-1),
-                                        mask.unsqueeze(-1)
-                                        ), dim=-1)
-                
-            
-        else: raise ValueError(f"Unknown stage: {self.stage}")
+        del self.slots
+        return recon, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, 
+        
+        
+        
+        
+        
+        
 

@@ -1,26 +1,16 @@
 import os
 import shutil
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
-import pyro
-import pyro.infer
-import pyro.optim
-import numpy as np
-import pickle as pkl
-from itertools import permutations
-import random
 
 # add project path to sys to import relative modules
 import sys
 sys.path.append(os.path.abspath(__file__+'/../../'))
 
 from guide import InvSlotAttentionGuide
-from main.models import model
-from main.modifiedCSIS import CSIS
-from utils.var import Variable
 from main.setup import params
-from utils.loss import save_loss, save_loss_plot
-from utils.guide import get_pretrained_wts, load_trained_guide, compute_leakage_loss, linear_scheduler, exp_scheduler, exp_scheduler_neg
+from utils.guide import permute_dims, linear_scheduler, exp_scheduler
 
 import wandb # type: ignore
 
@@ -32,8 +22,6 @@ fh = logging.FileHandler(logfile_name, mode='w')
 logger.addHandler(fh)
 
 main_dir = os.path.abspath(__file__+'/../../')
-
-pyro.clear_param_store()
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -50,32 +38,20 @@ GUIDE_PATH = f"{main_dir}/checkpoint-{params['jobID']}"
 for p in [GUIDE_PATH]: 
   if not os.path.isdir(p): os.mkdir(p)
 logger.info(f"\n... saving model checkpoints in {GUIDE_PATH}")
-
-torch.manual_seed(params["random_seed"])
-
-# fetch some variables from setup file
 CHECK_ATTN = params["check_attn"]
 root_folder = params["check_attn_folder"]
 TRAIN_BATCH_SIZE = params["batch_size"]
-VAL_BATCH_SIZE = params["batch_size"]
 LR = params["lr"]
-nsteps = params["training_iters"]
-step_size = params['step_size']
+training_epochs = params["training_epochs"]
+epoch_step = params["epoch_step"]
 L = len(params["latent_vars"])
 
 logger.info(params)
 
 l_to_label = {i: l for i, l in enumerate(params["latent_vars"])}
 A = params["adj_matrix"]
-
-# A = torch.zeros(9)
-# dep_ind = 3
-# A[dep_ind] = 1
-# A = A.reshape((3, 3))
-
 logger.info(f"\nA: {A}\n")
-
-
+torch.manual_seed(params["random_seed"])
 
 guide = InvSlotAttentionGuide(resolution = params['resolution'],
                               num_iterations = 3,
@@ -87,28 +63,7 @@ guide = InvSlotAttentionGuide(resolution = params['resolution'],
                               ).to(DEVICE)
 run.watch(guide)
 
-# get model pre-trained weights
-if not TRAINING_FROM_SCRATCH:
-  pretrained_guide_path = GUIDE_PATH + "/guide_" + str(params["guide_step"]) + ".pth"
-  logger.info(f"pretrained guide path: {pretrained_guide_path}")
-  resume_training = False
-  guide = load_trained_guide(guide, pretrained_guide_path)
-  logger.info(f"Guide from step {params['guide_step']} successfully loaded...\n")
-  resume_training = True
-else: 
-  logger.info(f"Training from scratch using {DEVICE}...\n")
-  resume_training = False
-
-optimiser = pyro.optim.Adam({'lr': LR})
-csis = CSIS(model = model,
-            guide = guide,
-            optim = optimiser,
-            num_inference_samples=params["num_inference_samples"],
-            training_batch_size=TRAIN_BATCH_SIZE,
-            validation_batch_size=VAL_BATCH_SIZE)
-
-if resume_training: resume_step = int(pretrained_guide_path.split("/")[-1].split(".")[0].split("_")[1]) + 1
-else: resume_step = 0
+logger.info(f"Training from scratch using {DEVICE}...\n")
 
 if not os.path.isdir(root_folder): os.mkdir(root_folder)
 
@@ -123,209 +78,165 @@ if CHECK_ATTN and TRAINING_FROM_SCRATCH:
     except OSError:
       logger.info("Error occurred while deleting files.")
 
-  # if len(os.listdir(root_folder)) == 0:
-  #   logger.info("Folders for all steps deleted...")
-
-
-# 'TRAINING_FROM_SCRATCH' is True either if the slot module is to be trained or not
-# it is only False if it is supposed to load weights from some checkpoint saved while training the whole model
-if TRAINING_FROM_SCRATCH:
-
-  for name, param in csis.guide.named_parameters():
-    if not param.requires_grad:
-      logger.info(f"{name} - {param.requires_grad}")
-
-
+optimizer = torch.optim.Adam(guide.parameters(), lr=params["lr"])
 if params["TC_minimization"]:
-  dis_optimizer = torch.optim.Adam(csis.guide.tc_discriminator.parameters(), lr=params["lr"] * 0.1)
-
-if params["reduce_noise_leak_adv"]:
-  leak_optimizer = torch.optim.Adam(csis.guide.disentangle_mlps.parameters(), lr=1e-4)
+  dis_optimizer = torch.optim.Adam(guide.tc_discriminator.parameters(), lr=params["lr"] * 0.1)
 
 
-all_val_loss = []
-min_val_loss = 0.
-for s in range(resume_step, resume_step + nsteps):    
+# instatiate dataset and dataloader
+
+
+
+
+
+
+
+
+
+def compute_e_loss(mu, logvar, e, print_mixt_params, yc):
+  kl_noise = 0.
+  for i in range(L):
+    mixt_kl, kl_reg, logvar_reg, yc = guide.z_nets[l_to_label[i]].compute_elbo(mu[:, i, :].unsqueeze(-2),
+                                                                                logvar[:, i, :].unsqueeze(-2),
+                                                                                e[:, i, :],
+                                                                                print_mixt_params=print_mixt_params,
+                                                                                yc_temperature=yc)
+    kl_noise += params["mixt_kl_coeff"] * mixt_kl + kl_reg - params["logvar_reg_coeff"]*logvar_reg
+
+    if print_mixt_params:
+      logger.info(f"\nGMMVAE losses for variable {l_to_label[i]}:")
+      logger.info(f"yc: {yc[:5]}")
+      logger.info(f"yc mean: {torch.mean(yc, dim=0)}")
+      logger.info(f"logvars: {torch.mean(logvar[:, i, :])}")
   
-  if CHECK_ATTN and (s % params["step_size_img_sv"] == 0 or s == csis.guide.gmm_fit_step): 
-    if not os.path.isdir(f"{root_folder}/attn-step-{s}"): os.mkdir(f"{root_folder}/attn-step-{s}")   
-  
-  # if s >= csis.guide.gmm_fit_step:
-  #   for name, param in csis.guide.label_embeddings.named_parameters():
-  #     param.requires_grad = False
-    
-  breakin = torch.tensor(s - csis.guide.gmm_fit_step)
-  
-  if params["alpha_beta_scheduled"]:
-    #csis.guide.alpha = torch.sigmoid(breakin) * linear_scheduler(s, 2000, 0.0, 1.0)
-    csis.guide.alpha = torch.sigmoid(breakin) * exp_scheduler(s, 2000, 0.0, params["alpha"])
-    #csis.guide.beta = torch.sigmoid(breakin) * linear_scheduler(s, 2000, 0.0, params["beta"])
-    if params["beta"] != 0.:
-      csis.guide.beta = torch.sigmoid(breakin) * exp_scheduler(s, 2000, 0.0, params["beta"])
-    else:
-      csis.guide.beta = 0.
-  else:
-    csis.guide.alpha = torch.sigmoid(breakin) * params["alpha"]
-    csis.guide.beta = torch.sigmoid(breakin) * params["beta"]
+  return kl_noise
 
-  if params["causal_dropout_scheduled"]:
-    #csis.guide.causal_dropout_prob = torch.sigmoid(breakin) * linear_scheduler(s, 2000, 1.0, params["causal_dropout_prob"])
-    csis.guide.causal_dropout_prob = torch.sigmoid(breakin) * exp_scheduler_neg(s, 2000, 1.0, params["causal_dropout_prob"])
-  
-  csis.guide.pred_coeff = torch.sigmoid(breakin) * 1.
-  csis.guide.TC_coeff = torch.sigmoid(breakin) * params["TC_coeff"]
-  csis.guide.log_det_coeff = torch.sigmoid(breakin) * params["log_det_coeff"]
+def compute_log_det(L_slopes):
+  for i in range(L):
+    s = L_slopes[:, :, i, :]
+    if params["normalized_logdet"]: log_det += torch.sum(s, dim=-1)/s.size(-1)
+    else: log_det += torch.sum(s, dim=-1)
+  log_det = torch.mean(log_det)
+  return log_det
 
-  csis.guide.gamma = 1.0 - torch.sigmoid(breakin)
+def compute_prior_z_loss(z, cp):
+  B, n_s, _, _ = z.shape
+  causal_loss = 0.
+  for i in range(L):
+    causal_loss += guide.mmd_loss(z[:, :, i, :].reshape(B*n_s, -1), cp[:, :, i, :].reshape(B*n_s, -1))
+  return
 
-  csis.guide.yc_t = linear_scheduler(s, 2200, params["yc_temperature"], 1.)
-  #csis.guide.yc_t = params["yc_temperature"]
-  if params["noise_logvar_constraint"]:
-    csis.guide.logvar_coeff = linear_scheduler(s, 2200, 0., 1.)
-  else:
-    csis.guide.logvar_coeff = 0.
+recon_loss_fn = nn.L1Loss()
+slot_rec_loss_crit = nn.L1Loss()
+prior_labels_breakin = 1
 
+guide.train()
+for epoch in range(params["training_epochs"]):
+  epoch_train_loss = 0.
+  epoch_val_loss = 0.
+
+  # update coefficients
+  yc_t = linear_scheduler(epoch, 20, params["yc_temperature"], 1.)
+  prior_coeff = exp_scheduler(epoch, 20, 0., 1.)
+  TC_coeff = params["TC_coeff"] if epoch >= prior_labels_breakin else 0.
+  log_det_coeff = params["log_det_coeff"] if epoch >= prior_labels_breakin else 0.
+  alpha = params["alpha"] if epoch >= prior_labels_breakin else 0.
+
+  # update gradient computation flags
   if params["TC_minimization"]:
-    for name, param in csis.guide.tc_discriminator.named_parameters():
+    for name, param in guide.tc_discriminator.named_parameters():
       param.requires_grad = False
   
-  if params["reduce_noise_leak_adv"]:
-    latent_permutations = permutations(params["latent_vars"], 2)
-    for perm in latent_permutations:
-      for name, param in csis.guide.disentangle_mlps[f"{perm[0]}_{perm[1]}"].named_parameters():
-        param.requires_grad = False
-  
-  csis.nstep = s
-  loss = csis.step()
+  for img, target in dl_train:
+    img = img.to(DEVICE)
+    target = target.to(DEVICE)
 
-  if params["TC_minimization"]:
-    if s >= csis.guide.gmm_fit_step:
-      for name, param in csis.guide.tc_discriminator.named_parameters():
+    printed = False
+    batch_loss = 0.
+    optimizer.zero_grad()
+    
+    recon, e, mu, logvar, z, slot_hat = guide(img, target)
+    recon_loss = recon_loss_fn(recon, img)
+    slot_recon_loss = slot_rec_loss_crit(slot_hat, guide.slots)
+    batch_loss += alpha*(recon_loss + slot_recon_loss)
+    
+    if epoch % epoch_step == 0 and not printed:
+      print_mixt_params = True
+      logger.info(f"img recon loss: {recon_loss}")
+      logger.info(f"slot recon loss: {slot_recon_loss}")
+
+    kl_noise = compute_e_loss(mu, logvar, e, print_mixt_params, yc_t)
+    batch_loss += alpha*kl_noise
+    
+    if params["TC_minimization"]:
+      disc_input = torch.flatten(e, -2)
+      D_joint = guide.tc_discriminator(disc_input)
+      tc_loss = torch.square(torch.mean(D_joint[:, :1] - D_joint[:, 1:]))
+      fake_z_noise, perms = permute_dims(disc_input, params["slot_dim"])
+      batch_loss += TC_coeff*tc_loss
+    else:
+      tc_loss = torch.tensor(0.)
+      
+    if params["causal_dropout_prob"] <= 1.:
+      log_det = compute_log_det(guide.L_slopes)
+      batch_loss -= log_det_coeff*log_det
+    else:
+      log_det = torch.tensor(0.)
+    
+    if params["beta"] > 0:
+      log_det_prior = compute_log_det(guide.prior_L_slopes)
+      causal_loss = compute_prior_z_loss()
+      batch_loss += prior_coeff*causal_loss - prior_coeff*log_det_coeff*log_det_prior
+    else:
+      causal_loss = torch.tensor(0.)
+      log_det_prior = torch.tensor(0.)
+
+    batch_loss.backward()
+    optimizer.step()
+    epoch_train_loss += batch_loss/img.size(0) 
+
+    if params["TC_minimization"]:
+      for name, param in guide.tc_discriminator.named_parameters():
         param.requires_grad = True
       
-      D_perm = csis.guide.tc_discriminator(csis.guide.fake_z_noise.detach())
-      D_joint = csis.guide.tc_discriminator(csis.guide.disc_input.detach())
+      D_perm = guide.tc_discriminator(fake_z_noise.detach())
+      D_joint = guide.tc_discriminator(disc_input.detach())
       ones = torch.ones(D_perm.size(0), dtype=torch.long, device=DEVICE)
       zeros = torch.zeros(D_perm.size(0), dtype=torch.long, device=DEVICE)
-      disc_tc_loss = torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
-
-      if s % step_size == 0:
-        logger.info(f"real batches pred: {torch.mean(D_joint)}")
-        logger.info(f"fake batches pred: {torch.mean(D_perm)}")
-
+      disc_tc_loss = alpha * torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
+      
       dis_optimizer.zero_grad()
       disc_tc_loss.backward()
       dis_optimizer.step()
 
-      disc_tc_loss = disc_tc_loss.item()
+      if epoch % epoch_step == 0 and not printed:
+        logger.info(f"real batches pred: {torch.mean(D_joint)}")
+        logger.info(f"fake batches pred: {torch.mean(D_perm)}")
     else:
-      disc_tc_loss = 0.
-  
-
-  if params["reduce_noise_leak_adv"]:
-    if s >= csis.guide.gmm_fit_step:
-
-      for perm in permutations(params["latent_vars"], 2):
-        for name, param in csis.guide.disentangle_mlps[f"{perm[0]}_{perm[1]}"].named_parameters():
-          param.requires_grad = True
-      
-      noise_leak_discriminator_loss = 0.
-      var_idx = {l: i for i, l in enumerate(params["latent_vars"])}
-      
-      for lp in permutations(params["latent_vars"], 2):
-        # lp_input = csis.guide.mask_pred.unsqueeze(-1) * csis.guide.z_noise[:, var_idx[lp[0]], :]
-        # lp_target = csis.guide.mask_pred.unsqueeze(-1) * csis.guide.z_noise[:, var_idx[lp[1]], :]
-        # lp_input = lp_input.detach()
-        # lp_target = lp_target.detach()
-        # rec = csis.guide.disentangle_mlps[lp[0]](lp_input)
-        # rec_loss = F.mse_loss(rec, lp_target)
-        # noise_leak_discriminator_loss += rec_loss
-        
-        _, L, ldim = csis.guide.z_noise.shape
-        
-        lp_input = csis.guide.z_noise.reshape(params["batch_size"], params["num_slots"], L, ldim)[:, :, var_idx[lp[0]], :]  # [B, N, ldim]
-        lp_input = lp_input.detach()
-
-        lp_target = csis.guide.labels[:, :, var_idx[lp[1]]]                                                                 # [B, N]  
-        leak_logits = csis.guide.disentangle_mlps[f"{lp[0]}_{lp[1]}"](lp_input)                                                                                    
-        leak_loss = compute_leakage_loss(leak_logits, lp_target)
-        noise_leak_discriminator_loss += leak_loss
-      
-      leak_optimizer.zero_grad()
-      noise_leak_discriminator_loss.backward()
-      leak_optimizer.step()
-
-      noise_leak_discriminator_loss = noise_leak_discriminator_loss.item()
-    else:
-      noise_leak_discriminator_loss = 0.
-
-  dict_to_log = {'train_loss': loss}
+      disc_tc_loss = torch.tensor(0.)
     
-  #if params["ood_eval"]:
-  dict_to_log["alpha"] = guide.alpha
-  dict_to_log["beta"] = guide.beta
-  dict_to_log["gamma"] = guide.gamma
-  dict_to_log["causal_loss"] = guide.causal_loss
-  dict_to_log["log_det"] = guide.log_det
-  dict_to_log["kl_noise"] = guide.kl_noise
-  dict_to_log["assign_loss"] = guide.assignments_loss
+    printed = True
+    
+  if epoch % epoch_step == 0:
+    logger.info(f"epoch {epoch} - train_loss: {epoch_train_loss}")  
 
+  dict_to_log = {'train_loss': epoch_train_loss}
+  dict_to_log["causal_loss"] = causal_loss
+  dict_to_log["log_det"] = log_det
+  dict_to_log["kl_noise"] = kl_noise
   if params["beta"] > 0:
-    dict_to_log["prior_coeff"] = csis.prior_coeff
+    dict_to_log["prior_coeff"] = prior_coeff
     dict_to_log["prior_s"] = guide.prior_ss
     dict_to_log["prior_t"] = guide.prior_ts
-
-
-
-  #if params["causal_dropout_scheduled"]:
   dict_to_log["causal_dropout_prob"] = guide.causal_dropout_prob
-
-  for l in range(L):
-    dict_to_log[f"logvar_noise_{l_to_label[l]}"] = torch.mean(guide.logvar_noise[:, l, :])
-    dict_to_log[f"s_{l_to_label[l]}"] = torch.mean(torch.sum(csis.guide.ss[:, :, l, :], dim=-1))
-    dict_to_log[f"t_{l_to_label[l]}"] = torch.mean(torch.sum(csis.guide.ts[:, :, l, :], dim=-1))
-
-  
-  if params["noise_logvar_constraint"]:
-    dict_to_log["logvar_div"] = guide.logvar_div
-  
-  dict_to_log["mu_dist"] = guide.mu_dist
-  dict_to_log["yc_temperature"] = guide.yc_t
-  
+  dict_to_log["yc_temperature"] = yc_t
   if params["TC_minimization"]:
-    dict_to_log["latent_TC"] = guide.tc_loss
+    dict_to_log["latent_TC"] = tc_loss
     dict_to_log["latent_TC_disc"] = disc_tc_loss
-  
-  if params["reduce_noise_leak_adv"]:
-    dict_to_log["noise_leak_encoder_loss"] = csis.guide.noise_leak_encoder_loss
-    dict_to_log["noise_leak_discriminator_loss"] = noise_leak_discriminator_loss
-
-  dict_to_log["pred_loss"] = guide.pred_loss
   dict_to_log["log_det_prior"] = guide.log_det_prior
-  #dict_to_log["label_embedd_loss"] = guide.label_embeddings_loss
-
-  if s >= csis.guide.gmm_fit_step: 
-    validation_ood_loss = csis.validation_loss()
-  else:
-    validation_ood_loss = 0.
-  dict_to_log["validation_OOD_loss"] = validation_ood_loss
-  all_val_loss.append(validation_ood_loss)
   
-  if validation_ood_loss < min_val_loss:
-    torch.save(csis.guide.state_dict(), GUIDE_PATH+'/guide_'+str(s)+'.pth')
-    min_val_loss = validation_ood_loss 
-  
-  if s % step_size == 0 or s == nsteps-1: 
-    # logger.info(f"step {s}/{resume_step + nsteps-1} - train_loss: {loss} - val_loss: {val_loss}")
-    # dict_to_log = {'train_loss': loss, 'val_loss': val_loss}
-    logger.info(f"step {s}/{resume_step + nsteps-1} - train_loss: {loss}")
-    torch.save(csis.guide.state_dict(), GUIDE_PATH+'/guide_'+str(s)+'.pth')
-    run.log(dict_to_log)
-  
-  # logger.info(f"\ntrain loss: {loss}\n\n")
-     
-  
-logger.info(f"\nmin validation loss of {min(all_val_loss)} at iteration {all_val_loss.index(min(all_val_loss))}\n")
+  torch.save(guide.state_dict(), GUIDE_PATH+'/guide_'+str(epoch)+'.pth')
+  run.log(dict_to_log)
 
 logger.info("\ntraining ended...")
 wandb.finish()

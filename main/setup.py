@@ -14,18 +14,11 @@ params = {
     "dataset": "2Dobjects",
     "resolution": (128, 128),
     "num_slots": 2,
-    "max_objects": 2,
-    "print_distributions": False,
-    "print_importance_sampling": False,
-    "bernoulli_inf_reduction": 'none',
-    "num_inference_samples": 1, 
-    "loc_proposal_std": 0.05, 
     "training_from_scratch" : True,
-    "training_iters": 10100, # 10k
-    "step_size": 100,
-    "step_size_img_sv": 500,
-    "running_type": "eval", # train, debug, eval, inspect
-    "guide_step" : 6000, 
+    "training_epochs": 100, 
+    "epoch_step": 1,
+    "running_type": "train", # train, debug, eval, inspect
+    "epoch_to_load" : 6000, 
     "ood_eval": True,
     "TC_minimization": True, # usually True
     "alpha": 1., # usually 1.
@@ -36,8 +29,6 @@ params = {
     "mixt_kl_coeff": 0.01, # previosuly 0.01
     "logvar_reg_coeff": 0.01, # prev 0.001
     "yc_temperature": 10, # previosuly 10
-    "reduce_noise_leak_adv": False,
-    "noise_logvar_constraint": False,
     "slope_constraint_flag": False,
     "slope_constraint": 0.1,
     "label_embeddings_std": 1.,  # previously 1.0
