@@ -233,14 +233,13 @@ class AddDecoder(nn.Module):
                                          in_channels = 64,
                                          W=params["resolution"][0],
                                          H=params["resolution"][1])
-        self.vars = vars
 
     def forward(self, z):
         # z [B, N, L, d]
 
         x = torch.tensor([])
-        for i, var_name in enumerate(self.vars):
-            x = x + self.net[var_name](z[:, :, i, :]) / len(self.vars)
+        for i, var_name in enumerate(params["latent_vars"]):
+            x = x + self.net[var_name](z[:, :, i, :]) / len(params["latent_vars"])
         return x
 
 
