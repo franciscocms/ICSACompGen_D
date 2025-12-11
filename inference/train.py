@@ -208,7 +208,7 @@ for epoch in range(params["training_epochs"]):
     batch_loss = 0.
     optimizer.zero_grad()
     
-    slots, recon, e, mu, logvar, z, slot_hat = guide(img, target)
+    slots, recon, e, mu, logvar, z, slot_hat, cp = guide(img, target)
     recon_loss = recon_loss_fn(recon, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
     batch_loss += alpha*(recon_loss + slot_recon_loss)
@@ -238,7 +238,7 @@ for epoch in range(params["training_epochs"]):
     
     if params["beta"] > 0:
       log_det_prior = compute_log_det(guide.prior_L_slopes)
-      causal_loss = compute_prior_z_loss()
+      causal_loss = compute_prior_z_loss(z, cp)
       batch_loss += prior_coeff*causal_loss - prior_coeff*log_det_coeff*log_det_prior
     else:
       causal_loss = torch.tensor(0.)

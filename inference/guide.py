@@ -443,10 +443,10 @@ class InvSlotAttentionGuide(nn.Module):
         """
 
         if params["beta"] > 0:
-            cp_m, self.prior_L_slopes, prior_ss, prior_ts = self.prior(self.u_m, z_scm, labels) # [B, N, L, d]
+            cp, self.prior_L_slopes, prior_ss, prior_ts = self.prior(self.u_m, z_scm, labels) # [B, N, L, d]
             self.prior_ss, self.prior_ts = prior_ss, prior_ts     
                             
-        return slots, recon, z_noise, mu_noise, logvar_noise, z_scm, slot_hat
+        return slots, recon, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, cp
         
         
         
