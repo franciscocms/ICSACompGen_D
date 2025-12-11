@@ -290,10 +290,8 @@ class InvSlotAttentionGuide(nn.Module):
         self.num_classes_dict = {v: len(params[f"{v}_vals"]) for v in params["latent_vars"]}
         
         self.some_labels = torch.tensor([])
-        self.gmm_fit_step = 200 if self.alpha > 0. else 0. # 200
-
-        self.batch_idx = 0
-        self.step = 0
+        self.gmm_fit_epoch = 20 if self.alpha > 0. else 0. # 200
+        self.epoch = 0
         
     
     def forward(self, img, labels):
@@ -359,13 +357,13 @@ class InvSlotAttentionGuide(nn.Module):
             self.some_labels = torch.cat((self.some_labels, labels.reshape(B*n_s, self.L)), dim = 0)
             
         # fit GMM 
-        if self.is_train and self.step == self.gmm_fit_step and self.alpha > 0.:          
+        if self.epoch == self.gmm_fit_epoch:          
             gmm_wts, gmm_means, gmm_stds = [], [], []   
 
             some_u_m = torch.tensor([])
             for l in range(self.L):
                 some_u_m = torch.cat((some_u_m,
-                                        self.embeddings_mu[l][self.some_labels.long()[:, l]].unsqueeze(-2) + sigma * torch.randn(self.some_labels.size(0), 1, self.ldim)),
+                                        self.embeddings_mu[l][self.some_labels.long()[:, l]].unsqueeze(-2) + params["label_embeddings_std"] * torch.randn(self.some_labels.size(0), 1, self.ldim)),
                                         dim=-2) # [B*n_s, L, ldim]
             
             for l in range(self.L):

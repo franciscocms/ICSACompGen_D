@@ -42,7 +42,7 @@ params = {
     "softmax_temperature": 1.0,
     "strided_convs": True,
     "check_attn": True,
-    "jobID": 177,  
+    "jobID": 1000,  
     "mesh_iters": 4,
     "mesh_lr": 5, 
     "mesh_noise": 1e-3,

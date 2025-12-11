@@ -3,9 +3,14 @@ import shutil
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision import transforms
+from torch.utils.data import Dataset, DataLoader
 
 # add project path to sys to import relative modules
+import json
+from PIL import Image
 import sys
+import glob
 sys.path.append(os.path.abspath(__file__+'/../../'))
 
 from guide import InvSlotAttentionGuide
@@ -46,6 +51,10 @@ training_epochs = params["training_epochs"]
 epoch_step = params["epoch_step"]
 L = len(params["latent_vars"])
 
+shape_vals = {v: params["shape_vals"].index(v) for v in params["shape_vals"]}
+size_vals = {v: params["size_vals"].index(v) for v in params["size_vals"]}
+color_vals = {v: params["color_vals"].index(v) for v in params["color_vals"]}
+
 logger.info(params)
 
 l_to_label = {i: l for i, l in enumerate(params["latent_vars"])}
@@ -82,16 +91,54 @@ optimizer = torch.optim.Adam(guide.parameters(), lr=params["lr"])
 if params["TC_minimization"]:
   dis_optimizer = torch.optim.Adam(guide.tc_discriminator.parameters(), lr=params["lr"] * 0.1)
 
+def process_targets(target_dict):   
+    
+    n = int(target_dict['scene_attr']['N'])
+    if "size" in params["latent_vars"]:
+        target = torch.zeros(params['max_objects'], len(shape_vals) + len(size_vals) + len(color_vals) + 3) 
+    else:
+        target = torch.zeros(params['max_objects'], len(shape_vals) + len(color_vals) + 3) 
+
+    for i in range(n):
+        s = len(color_vals)
+        target[i, :s] = F.one_hot(torch.tensor(color_vals[target_dict['scene_attr'][f'object_{i}']['color']]), len(color_vals))
+        
+        if "size" in params["latent_vars"]:
+            target[i, s:s+len(size_vals)] = F.one_hot(torch.tensor(size_vals[target_dict['scene_attr'][f'object_{i}']['size']]), len(size_vals))
+            s = s+len(size_vals)
+        
+        target[i, s:s+len(shape_vals)] = F.one_hot(torch.tensor(shape_vals[target_dict['scene_attr'][f'object_{i}']['shape']]), len(shape_vals))
+        s = s+len(shape_vals)
+        target[i, s] = target_dict['scene_attr'][f'object_{i}']['initLocX']
+        target[i, s+1] = target_dict['scene_attr'][f'object_{i}']['initLocY']
+        target[i, s+2] = torch.tensor(1.)
+    return target
+
+class MyDataset(Dataset):
+  def __init__(self, dataset_path):
+      self.dataset_path = dataset_path
+      self.img_path = os.path.join(self.dataset_path, "images")
+      self.target_path = os.path.join(self.dataset_path, "metadata")
+      self.nscenes = len(glob.glob(os.path.join(self.img_path, "*.png")))
+      self.transform = transforms.Compose([transforms.ToTensor()])
+
+  def __len__(self):
+      return self.nscenes
+  
+  def __getitem__(self, idx):
+    img = self.transform(Image.open(os.path.join(self.img_path, f"{str(idx).zfill(self.nscenes)}.png")))
+    target_dict = json.load(open(os.path.join(self.target_path, f"{str(idx).zfill(self.nscenes)}.json")))
+    target = process_targets(target_dict)
+    return img, target
+
 
 # instatiate dataset and dataloader
+dataset_dir = "/nas-ctm01/datasets/public/CG/train"
+img_dir = os.path.join(dataset_dir, "images")
+target_dir = os.path.join(dataset_dir, "metadata")
 
-
-
-
-
-
-
-
+train_ds = MyDataset(dataset_dir)
+train_dl = DataLoader(train_ds, 256, shuffle=True, generator=torch.Generator(device='cuda'))
 
 def compute_e_loss(mu, logvar, e, print_mixt_params, yc):
   kl_noise = 0.
@@ -132,6 +179,8 @@ prior_labels_breakin = 1
 
 guide.train()
 for epoch in range(params["training_epochs"]):
+  
+  guide.epoch = epoch
   epoch_train_loss = 0.
   epoch_val_loss = 0.
 
@@ -147,7 +196,7 @@ for epoch in range(params["training_epochs"]):
     for name, param in guide.tc_discriminator.named_parameters():
       param.requires_grad = False
   
-  for img, target in dl_train:
+  for img, target in train_dl:
     img = img.to(DEVICE)
     target = target.to(DEVICE)
 
