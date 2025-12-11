@@ -288,10 +288,9 @@ class InvSlotAttentionGuide(nn.Module):
         self.embeddings_mu = torch.randn(self.L, self.num_classes_list[0], self.ldim) * params["label_embeddings_mu_mult"]
         if params["TC_minimization"]: self.tc_discriminator = TCDiscriminator(self.L*self.ldim, self.L*self.ldim*4)
         
-        
-        
+
         self.some_labels = torch.tensor([])
-        self.gmm_fit_epoch = 20 if self.alpha > 0. else 0. # 200
+        self.gmm_fit_epoch = 20 if params["alpha"] > 0. else 0. # 200
         self.epoch = 0
         
     
