@@ -296,7 +296,7 @@ class InvSlotAttentionGuide(nn.Module):
     
     def forward(self, img, labels):
 
-        B, _, _, _ = self.img.shape
+        B, _, _, _ = img.shape
         n_s = params['num_slots'] 
 
         assert labels.shape == (B, n_s, self.L)
