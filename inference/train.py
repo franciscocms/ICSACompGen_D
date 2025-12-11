@@ -173,7 +173,7 @@ def compute_prior_z_loss(z, cp):
   causal_loss = 0.
   for i in range(L):
     causal_loss += guide.mmd_loss(z[:, :, i, :].reshape(B*n_s, -1), cp[:, :, i, :].reshape(B*n_s, -1))
-  return
+  return causal_loss
 
 recon_loss_fn = nn.L1Loss()
 slot_rec_loss_crit = nn.L1Loss()
@@ -239,12 +239,6 @@ for epoch in range(params["training_epochs"]):
     if params["beta"] > 0:
       log_det_prior = compute_log_det(guide.prior_L_slopes)
       causal_loss = compute_prior_z_loss(z, cp)
-      
-      logger.info(prior_coeff)
-      logger.info(causal_loss)
-      logger.info(log_det_coeff)
-      logger.info(log_det_prior)
-
       batch_loss += prior_coeff*causal_loss - prior_coeff*log_det_coeff*log_det_prior
     else:
       causal_loss = torch.tensor(0.)
