@@ -134,7 +134,7 @@ if params["dataset"] == "clevr":
     params["batch_size"] = 64 if params["running_type"] == "train" else 1
     params["lr"] = 4e-4
 elif params["dataset"] == "2Dobjects": 
-    params["batch_size"] = 256
+    params["batch_size"] = 128
     params["lr"] = 1e-4 #j221 1e-3, j222 3e-4, j223 1e-4
 else: raise ValueError(f"Dataset error: dataset named {params['dataset']} not found!")
 

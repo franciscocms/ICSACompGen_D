@@ -138,7 +138,7 @@ img_dir = os.path.join(dataset_dir, "images")
 target_dir = os.path.join(dataset_dir, "metadata")
 
 train_ds = MyDataset(dataset_dir)
-train_dl = DataLoader(train_ds, 256, shuffle=True, generator=torch.Generator(device='cuda'))
+train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, generator=torch.Generator(device='cuda'))
 
 def compute_e_loss(mu, logvar, e, print_mixt_params, yc):
   kl_noise = 0.
