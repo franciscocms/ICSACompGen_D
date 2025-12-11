@@ -280,7 +280,15 @@ class InvSlotAttentionGuide(nn.Module):
                 iters = self.num_iterations,
                 eps = 1e-8, 
                 hidden_dim = 128)
-        self.z_nets = nn.ModuleDict() 
+        self.z_nets = nn.ModuleDict()
+        for var_name in params["latent_vars"]:
+            self.z_nets[var_name] = MixturePrior(label = [var_name],
+                                                num_classes_list = [3],
+                                                nin = self.ldim,
+                                                nh = self.ldim*4,
+                                                ldim = self.ldim
+                                                )
+        
         self.decoder = AddDecoder()
         self.causal_flow = MultivariateCausalFlow(self.L, self.ldim, self.A)
         self.prior = PriorMultivariateCausalFlow(self.L, self.ldim, self.A)
@@ -299,7 +307,7 @@ class InvSlotAttentionGuide(nn.Module):
         B, _, _, _ = img.shape
         n_s = params['num_slots'] 
 
-        assert labels.shape == (B, n_s, self.L)
+        assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
 
 
         self.img = img
