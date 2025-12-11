@@ -198,17 +198,17 @@ class Decoder(nn.Module):
 
         self.img_dim = [in_channels, W, H]
         self.fc_net = nn.Sequential(
-            nn.Linear(num_slots*dim, in_channels*W*H),
+            nn.Linear(num_slots*dim, 32*32),
             nn.ReLU(),
-            nn.Linear(in_channels*W*H, in_channels*W*H)
+            nn.Linear(32*32, in_channels*32*32)
         )
         # hdim = channels * W * H (64x128x128)
         self.conv_net = nn.Sequential(
-            nn.Conv2d(in_channels, in_channels, 3, 1, 1),
+            nn.ConvTranspose2d(in_channels, in_channels, 3, 2, 1),
             nn.ReLU(),
-            nn.Conv2d(in_channels, in_channels, 3, 1, 1),
+            nn.ConvTranspose2d(in_channels, in_channels, 3, 2, 1),
             nn.ReLU(),
-            nn.Conv2d(in_channels, 3, 3, 1, 1),
+            nn.ConvTranspose2d(in_channels, 3, 3, 1, 1),
             nn.Sigmoid()
         )
 
