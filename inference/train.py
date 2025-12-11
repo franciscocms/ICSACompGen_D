@@ -160,6 +160,7 @@ def compute_e_loss(mu, logvar, e, print_mixt_params, yc):
   return kl_noise
 
 def compute_log_det(L_slopes):
+  log_det = 0.
   for i in range(L):
     s = L_slopes[:, :, i, :]
     if params["normalized_logdet"]: log_det += torch.sum(s, dim=-1)/s.size(-1)
