@@ -138,6 +138,8 @@ img_dir = os.path.join(dataset_dir, "images")
 target_dir = os.path.join(dataset_dir, "metadata")
 
 train_ds = MyDataset(dataset_dir)
+logger.info(len(train_ds))
+
 train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, generator=torch.Generator(device='cuda'))
 
 def compute_e_loss(mu, logvar, e, print_mixt_params, yc):
@@ -199,6 +201,8 @@ for epoch in range(params["training_epochs"]):
   for img, target in train_dl:
     img = img.to(DEVICE)
     target = target.to(DEVICE)
+
+    logger.info(img.shape)
 
     printed = False
     batch_loss = 0.
