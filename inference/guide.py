@@ -360,7 +360,7 @@ class InvSlotAttentionGuide(nn.Module):
                 
         l_to_label = {i: l for i, l in enumerate(params["latent_vars"])}
 
-        if self.step < self.gmm_fit_step:                   
+        if self.epoch < self.gmm_fit_epoch:                   
             # collect some labels to then use for GMM fit
             self.some_labels = torch.cat((self.some_labels, labels.reshape(B*n_s, self.L)), dim = 0)
             
