@@ -239,6 +239,12 @@ for epoch in range(params["training_epochs"]):
     if params["beta"] > 0:
       log_det_prior = compute_log_det(guide.prior_L_slopes)
       causal_loss = compute_prior_z_loss(z, cp)
+      
+      logger.info(prior_coeff)
+      logger.info(causal_loss)
+      logger.info(log_det_coeff)
+      logger.info(log_det_prior)
+
       batch_loss += prior_coeff*causal_loss - prior_coeff*log_det_coeff*log_det_prior
     else:
       causal_loss = torch.tensor(0.)
