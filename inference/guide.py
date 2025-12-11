@@ -234,10 +234,9 @@ class AddDecoder(nn.Module):
                                          W=32,
                                          H=32)
 
-    def forward(self, z):
+    def forward(self, z, img):
         # z [B, N, L, d]
-
-        x = torch.tensor([])
+        x = torch.zeros_like(img)
         for i, var_name in enumerate(params["latent_vars"]):
             x = x + self.net[var_name](z[:, :, i, :]) / len(params["latent_vars"])
         return x
@@ -436,7 +435,7 @@ class InvSlotAttentionGuide(nn.Module):
         slot_hat = slot_hat.reshape(B*n_s, self.slot_dim)
         self.logvar_noise = logvar_noise
 
-        recon = self.decoder(z_scm)
+        recon = self.decoder(z_scm, img)
 
         """
         - prior won't be aligned with labels...
