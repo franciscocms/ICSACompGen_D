@@ -204,11 +204,9 @@ class Decoder(nn.Module):
         )
         # hdim = channels * W * H (64x128x128)
         self.conv_net = nn.Sequential(
-            nn.ConvTranspose2d(in_channels, in_channels, 3, 2, 1),
+            nn.ConvTranspose2d(in_channels, in_channels, 4, 2, 1),
             nn.ReLU(),
-            nn.ConvTranspose2d(in_channels, in_channels, 3, 2, 1),
-            nn.ReLU(),
-            nn.ConvTranspose2d(in_channels, 3, 3, 1, 1),
+            nn.ConvTranspose2d(in_channels, in_channels, 4, 2, 1),
             nn.Sigmoid()
         )
 
