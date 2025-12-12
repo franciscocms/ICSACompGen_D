@@ -312,6 +312,7 @@ class InvSlotAttentionGuide(nn.Module):
         x = nn.LayerNorm(x.shape[1:]).to(device)(x)
         self.features_to_slots = self.mlp(x)
         slots, self.slot_pos, attn = self.slot_attention(self.features_to_slots, num_slots=n_s)
+        self.attn = attn
             
         if False:
         #if self.is_train and self.step % params['step_size_img_sv'] == 0:
