@@ -101,8 +101,7 @@ def process_targets(target_dict):
       y_out = torch.FloatTensor([target_dict['scene_attr'][f'object_{i}']['initLocY']]).unsqueeze(0)
       out = torch.cat([color_out, shape_out, x_out, y_out], dim=-1)
       target.append(out)
-      target = torch.stack(target)
-
+    target = torch.stack(target)
     return target
 
 class MyDataset(Dataset):
