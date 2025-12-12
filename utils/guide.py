@@ -326,6 +326,7 @@ class MixturePrior(nn.Module):
             logger.info(f"yc * (mu - mu_c): {(yc * torch.sum(torch.square(mu - self.mu_c), dim=-1))[:5]}")
             #logger.info(f"(mu - mu_c)/var_c: {torch.mean(torch.sum(torch.sum(torch.square(mu - self.mu_c)/torch.exp(self.logvar_c), dim=-1), dim=-1))}")
 
+            logger.info(f"kl uni: {kl_uni}")
             logger.info(f"kl reg: {kl_reg}")
             logger.info(f"logvar reg: {log_var_reg}")
 
