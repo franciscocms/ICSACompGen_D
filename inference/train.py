@@ -141,13 +141,14 @@ logger.info(len(train_ds))
 
 train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, generator=torch.Generator(device='cuda'))
 
-def compute_e_loss(mu, logvar, e, print_mixt_params, yc):
+def compute_e_loss(mu, logvar, e, print_mixt_params, printed, yc):
   kl_noise = 0.
   for i in range(L):
     mixt_kl, kl_reg, logvar_reg, yc = guide.z_nets[l_to_label[i]].compute_elbo(mu[:, i, :].unsqueeze(-2),
                                                                                 logvar[:, i, :].unsqueeze(-2),
                                                                                 e[:, i, :],
                                                                                 print_mixt_params=print_mixt_params,
+                                                                                printed=printed,
                                                                                 yc_temperature=yc)
     kl_noise += params["mixt_kl_coeff"] * mixt_kl + kl_reg - params["logvar_reg_coeff"]*logvar_reg
 
@@ -202,8 +203,6 @@ for epoch in range(params["training_epochs"]):
     img = img.to(DEVICE)
     target = target.to(DEVICE)
 
-    logger.info(img.shape)
-
     printed = False
     batch_loss = 0.
     optimizer.zero_grad()
@@ -218,7 +217,7 @@ for epoch in range(params["training_epochs"]):
       logger.info(f"img recon loss: {recon_loss}")
       logger.info(f"slot recon loss: {slot_recon_loss}")
 
-    kl_noise = compute_e_loss(mu, logvar, e, print_mixt_params, yc_t)
+    kl_noise = compute_e_loss(mu, logvar, e, print_mixt_params, printed, yc_t)
     batch_loss += alpha*kl_noise
     
     if params["TC_minimization"]:

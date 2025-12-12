@@ -278,7 +278,7 @@ class MixturePrior(nn.Module):
         
         return yc
 
-    def compute_elbo(self, mu, logvars, z, print_mixt_params, yc_temperature):
+    def compute_elbo(self, mu, logvars, z, print_mixt_params, printed, yc_temperature):
         
         # aux_v = self.logvar_c + logvars/self.logvar_c + torch.square(mu - self.mu_c)/self.logvar_c
         # print(aux_v.shape) # [B, K, d]
@@ -319,7 +319,7 @@ class MixturePrior(nn.Module):
         #kl_reg = torch.mean(kl_reg)
         log_var_reg = torch.mean(log_var_reg)
         
-        if print_mixt_params:
+        if print_mixt_params and not printed:
             logger.info(f"mixt kl loss: {mixt_kl}")
             #logger.info(f"(mu - mu_c) shape: {torch.square(mu - self.mu_c).shape}") # [B*N, L, d]
             logger.info(f"(mu - mu_c): {torch.sum(torch.square(mu - self.mu_c), dim=-1)[:5]}")
