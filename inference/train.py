@@ -144,6 +144,9 @@ train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, generator=to
 def compute_e_loss(mu, logvar, e, print_mixt_params, printed, yc):
   kl_noise = 0.
   for i in range(L):
+    if print_mixt_params and not printed:
+      logger.info(f"\nGMMVAE losses for variable {l_to_label[i]}:")
+    
     mixt_kl, kl_reg, logvar_reg, yc = guide.z_nets[l_to_label[i]].compute_elbo(mu[:, i, :].unsqueeze(-2),
                                                                                 logvar[:, i, :].unsqueeze(-2),
                                                                                 e[:, i, :],
@@ -152,8 +155,7 @@ def compute_e_loss(mu, logvar, e, print_mixt_params, printed, yc):
                                                                                 yc_temperature=yc)
     kl_noise += params["mixt_kl_coeff"] * mixt_kl + kl_reg - params["logvar_reg_coeff"]*logvar_reg
 
-    if print_mixt_params:
-      logger.info(f"\nGMMVAE losses for variable {l_to_label[i]}:")
+    if print_mixt_params and not printed:
       logger.info(f"yc: {yc[:5]}")
       logger.info(f"yc mean: {torch.mean(yc, dim=0)}")
       logger.info(f"logvars: {torch.mean(logvar[:, i, :])}")
