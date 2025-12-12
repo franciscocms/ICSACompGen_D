@@ -522,6 +522,8 @@ class PriorMultivariateCausalFlow(nn.Module):
         self.nf = nn.ModuleDict()
         for i in range(L):
             self.nf[str(i)] = Flow(L, ldim, A, prior=True, f_act="tanh") # instead of "tanh"
+        
+        self.embeddings = nn.ModuleList([nn.Embedding(3, ldim) for _ in range(self.L)])
 
     
     def forward(self, u_m, z=None, gt_labels=None):
@@ -583,7 +585,6 @@ class PriorMultivariateCausalFlow(nn.Module):
         ss = torch.tensor([])
         ts = torch.tensor([])
 
-        self.embeddings = nn.ModuleList([nn.Embedding(3, d) for _ in range(L)])
         self.embeddings_stack = torch.tensor([])
         for j in range(L): 
             embedding = self.embeddings[j](gt_labels[:, :, j].long()).unsqueeze(-2)
