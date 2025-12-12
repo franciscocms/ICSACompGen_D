@@ -300,7 +300,7 @@ def main():
             img_saved = False
             with torch.no_grad():
                 for img, target in dataloader:
-                    batch_noise = guide(observations={"image": img}) # [B, N, L, d]
+                    batch_noise = guide(img) # [B, N, L, d]
                     z_noise = torch.cat((z_noise, batch_noise), dim=0)
 
                     B, N, _, d = batch_noise.shape
