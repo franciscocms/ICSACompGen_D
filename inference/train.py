@@ -285,7 +285,7 @@ for epoch in range(params["training_epochs"]):
   if params["TC_minimization"]:
     dict_to_log["latent_TC"] = tc_loss
     dict_to_log["latent_TC_disc"] = disc_tc_loss
-  dict_to_log["log_det_prior"] = guide.log_det_prior
+  dict_to_log["log_det_prior"] = log_det_prior
   
   torch.save(guide.state_dict(), GUIDE_PATH+'/guide_'+str(epoch)+'.pth')
   run.log(dict_to_log)
