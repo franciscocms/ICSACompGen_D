@@ -268,6 +268,7 @@ def main():
     # GUIDE_PATH = f"{main_dir}/checkpoint-{params['jobID']}/guide_{params['guide_step']}.pth"
     GUIDE_PATH = f"{main_dir}/checkpoint-{params['jobID']}/guide_{params['epoch_to_load']}.pth"
     guide.load_state_dict(torch.load(GUIDE_PATH))
+    guide.eval()
     
     #logger.info(f'\n\nseed {seed}\n\n')
     logger.info(GUIDE_PATH)
@@ -301,6 +302,9 @@ def main():
             img_saved = False
             with torch.no_grad():
                 for img, target in dataloader:
+                    img = img.to(device)
+                    target = target.to(device)
+                    
                     batch_noise = guide(img, target) # [B, N, L, d]
                     z_noise = torch.cat((z_noise, batch_noise), dim=0)
 
