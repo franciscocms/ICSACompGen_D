@@ -145,7 +145,8 @@ class MyDataset(Dataset):
         img = self.transform(Image.open(os.path.join(self.img_path, f"{str(idx).zfill(len(str(self.nscenes)))}.png")))        
         target_dict = json.load(open(os.path.join(self.target_path, f"{str(idx).zfill(len(str(self.nscenes)))}.json")))        
         target = process_targets(target_dict)
-        return img, target
+        return img, torch.cat((torch.argmax(target[:, :3], dim=-1).unsqueeze(-1),
+                               torch.argmax(target[:, 3:6], dim=-1).unsqueeze(-1)), dim=-1)
 
 class ProbeDataset(Dataset):
     def __init__(self, noise, yc, target, var_idx, split):
@@ -160,8 +161,8 @@ class ProbeDataset(Dataset):
         return len(self.noise)
     
     def __getitem__(self, idx):
-        target = torch.argmax(self.target[idx, :, self.var_idx*3 : (self.var_idx + 1)*3], dim=-1)
-        return self.noise[idx], self.yc[idx], target
+        #target = torch.argmax(self.target[idx, :, self.var_idx*3 : (self.var_idx + 1)*3], dim=-1)
+        return self.noise[idx], self.yc[idx], self.target[idx, :, self.var_idx]
 
 def hungarian_r2_score(pred, target):
     """
@@ -300,7 +301,7 @@ def main():
             img_saved = False
             with torch.no_grad():
                 for img, target in dataloader:
-                    batch_noise = guide(img) # [B, N, L, d]
+                    batch_noise = guide(img, target) # [B, N, L, d]
                     z_noise = torch.cat((z_noise, batch_noise), dim=0)
 
                     B, N, _, d = batch_noise.shape
@@ -343,9 +344,9 @@ def main():
 
             for i in range(L):
 
-                if i == 0: j = 1
-                elif i == 1: j = 0
-                #j = i
+                #if i == 0: j = 1
+                #elif i == 1: j = 0
+                j = i
                 
                 logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
                 
