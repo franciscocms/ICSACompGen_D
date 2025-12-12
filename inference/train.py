@@ -93,15 +93,20 @@ if params["TC_minimization"]:
 
 def process_targets(target_dict):   
     n = int(target_dict['scene_attr']['N'])
-    target = torch.tensor([])
+    target = []
     for i in range(n):
-      out = torch.tensor([])
+      out = []
       color_out = F.one_hot(torch.tensor(color_vals[target_dict['scene_attr'][f'object_{i}']['color']]), len(color_vals)).unsqueeze(0)      
       shape_out = F.one_hot(torch.tensor(shape_vals[target_dict['scene_attr'][f'object_{i}']['shape']]), len(shape_vals)).unsqueeze(0)
       x_out = target_dict['scene_attr'][f'object_{i}']['initLocX'].unsqueeze(0)
       y_out = target_dict['scene_attr'][f'object_{i}']['initLocY'].unsqueeze(0)
-      out = torch.cat((color_out, shape_out, x_out, y_out), dim=-1)
-      target = torch.cat((target, out), dim=0)
+      out.append(color_out)
+      out.append(shape_out)
+      out.append(x_out)
+      out.append(y_out)
+      out = torch.stack(out)
+      target.append(out)
+      target = torch.stack(target)
 
     return target
 
