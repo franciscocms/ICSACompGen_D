@@ -108,9 +108,9 @@ def process_targets(target_dict):
     n = int(target_dict['scene_attr']['N'])
 
     if "size" in params["latent_vars"]:
-        target = torch.zeros(params['max_objects'], len(shape_vals) + len(size_vals) + len(color_vals) + 3) 
+        target = torch.zeros(params['num_slots'], len(shape_vals) + len(size_vals) + len(color_vals) + 2) 
     else:
-        target = torch.zeros(params['max_objects'], len(shape_vals) + len(color_vals) + 3) 
+        target = torch.zeros(params['num_slots'], len(shape_vals) + len(color_vals) + 2) 
 
     for i in range(n):
         s = len(color_vals)
@@ -124,7 +124,6 @@ def process_targets(target_dict):
         s = s+len(shape_vals)
         target[i, s] = target_dict['scene_attr'][f'object_{i}']['initLocX']
         target[i, s+1] = target_dict['scene_attr'][f'object_{i}']['initLocY']
-        target[i, s+2] = torch.tensor(1.)
     return target
     
 class MyDataset(Dataset):
