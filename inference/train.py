@@ -280,7 +280,7 @@ for epoch in range(params["training_epochs"]):
     dict_to_log["prior_coeff"] = prior_coeff
     dict_to_log["prior_s"] = guide.prior_ss
     dict_to_log["prior_t"] = guide.prior_ts
-  dict_to_log["causal_dropout_prob"] = guide.causal_dropout_prob
+  dict_to_log["causal_dropout_prob"] = params["causal_dropout_prob"]
   dict_to_log["yc_temperature"] = yc_t
   if params["TC_minimization"]:
     dict_to_log["latent_TC"] = tc_loss
