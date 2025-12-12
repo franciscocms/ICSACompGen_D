@@ -249,18 +249,18 @@ class MixturePrior(nn.Module):
         
         return mu, logvars, x_hat, z
     
-    def compute_yc(self, z, print_mixt_params=False, yc_temperature=1.):
+    def compute_yc(self, z, print_mixt_params=False, printed=False, yc_temperature=1.):
     
         # log q(c|x) = log p(c) + log p(z|c)
         log_pzc = self.gaussian_pdfs_log(z, self.mu_c, self.logvar_c)  
-        if print_mixt_params:
+        if print_mixt_params and not printed:
             logger.info(f"log p(e|c): {log_pzc[:5]}")
 
         log_prob = torch.log(self.pi_c + 1e-10) + log_pzc # [B, K]
-        if print_mixt_params:
+        if print_mixt_params and not printed:
             logger.info(f"log prob before temperature: {torch.mean(log_prob, dim=0).tolist()}")
         log_prob = log_prob / yc_temperature
-        if print_mixt_params: 
+        if print_mixt_params and not printed: 
             logger.info(f"log prob after temperature: {torch.mean(log_prob, dim=0).tolist()}")
         
         log_prob = log_prob - torch.logsumexp(log_prob, dim=-1, keepdim=True)  # normalize
@@ -283,7 +283,7 @@ class MixturePrior(nn.Module):
         # aux_v = self.logvar_c + logvars/self.logvar_c + torch.square(mu - self.mu_c)/self.logvar_c
         # print(aux_v.shape) # [B, K, d]
 
-        yc = self.compute_yc(z, print_mixt_params, yc_temperature)
+        yc = self.compute_yc(z, print_mixt_params, printed, yc_temperature)
         #rec_loss = self.compute_rec_loss(x_hat, x)
 
         B, num_comp = yc.shape
