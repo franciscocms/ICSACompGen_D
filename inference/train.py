@@ -93,23 +93,16 @@ if params["TC_minimization"]:
 
 def process_targets(target_dict):   
     n = int(target_dict['scene_attr']['N'])
-    if "size" in params["latent_vars"]:
-        target = torch.zeros(params['num_slots'], len(shape_vals) + len(size_vals) + len(color_vals) + 2) 
-    else:
-        target = torch.zeros(params['num_slots'], len(shape_vals) + len(color_vals) + 2) 
-
+    target = torch.tensor([])
     for i in range(n):
-        s = len(color_vals)
-        target[i, :s] = F.one_hot(torch.tensor(color_vals[target_dict['scene_attr'][f'object_{i}']['color']]), len(color_vals))
-        
-        if "size" in params["latent_vars"]:
-            target[i, s:s+len(size_vals)] = F.one_hot(torch.tensor(size_vals[target_dict['scene_attr'][f'object_{i}']['size']]), len(size_vals))
-            s = s+len(size_vals)
-        
-        target[i, s:s+len(shape_vals)] = F.one_hot(torch.tensor(shape_vals[target_dict['scene_attr'][f'object_{i}']['shape']]), len(shape_vals))
-        s = s+len(shape_vals)
-        target[i, s] = target_dict['scene_attr'][f'object_{i}']['initLocX']
-        target[i, s+1] = target_dict['scene_attr'][f'object_{i}']['initLocY']
+      out = torch.tensor([])
+      color_out = F.one_hot(torch.tensor(color_vals[target_dict['scene_attr'][f'object_{i}']['color']]), len(color_vals)).unsqueeze(0)      
+      shape_out = F.one_hot(torch.tensor(shape_vals[target_dict['scene_attr'][f'object_{i}']['shape']]), len(shape_vals)).unsqueeze(0)
+      x_out = target_dict['scene_attr'][f'object_{i}']['initLocX'].unsqueeze(0)
+      y_out = target_dict['scene_attr'][f'object_{i}']['initLocY'].unsqueeze(0)
+      out = torch.cat((color_out, shape_out, x_out, y_out), dim=-1)
+      target = torch.cat((target, out), dim=0)
+
     return target
 
 class MyDataset(Dataset):
