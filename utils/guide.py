@@ -307,7 +307,7 @@ class MixturePrior(nn.Module):
         
         uniform = torch.full_like(torch.mean(yc, dim=0), 1.0 / num_comp)
         kl_uni = (torch.mean(yc, dim=0) * (torch.log(torch.mean(yc, dim=0) + 1e-12) - torch.log(uniform))).sum()        
-        kl_reg = -torch.mean(torch.sum(yc * torch.log(yc), dim=-1)) + kl_uni
+        kl_reg = -torch.mean(torch.sum(yc * torch.log(yc + 1e-12), dim=-1)) + kl_uni
         
         
         log_var_reg = 0.5*torch.sum(1 + logvars, dim=-1)
