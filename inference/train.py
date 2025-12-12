@@ -104,7 +104,7 @@ def process_targets(target_dict):
       out.append(shape_out)
       out.append(x_out)
       out.append(y_out)
-      out = torch.stack(out)
+      out = torch.stack(out, dim=-1)
       target.append(out)
       target = torch.stack(target)
 
