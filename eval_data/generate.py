@@ -220,25 +220,42 @@ def main():
     
     logging.info("starting scenes generation...")
     
-    OOD = False
+    OOD = True
+    TRAINING_DATA = False
+    if TRAINING_DATA:
+      assert not OOD
 
     dataset_dir = "/nas-ctm01/datasets/public/CG"
     if not os.path.isdir(dataset_dir):
       os.mkdir(dataset_dir)
     
-    train_dir = os.path.join(dataset_dir, "train")
-    if not os.path.isdir(train_dir):
-      os.mkdir(train_dir)
-    
-    img_dir = os.path.join(train_dir, "images")
-    if not os.path.isdir(img_dir):
-      os.mkdir(img_dir)
-    
-    metadata_dir = os.path.join(train_dir, "metadata")
-    if not os.path.isdir(metadata_dir):
-      os.mkdir(metadata_dir)
+    if TRAINING_DATA:
+      train_dir = os.path.join(dataset_dir, "train")
+      if not os.path.isdir(train_dir):
+        os.mkdir(train_dir)
+    else:
+      train_dir = os.path.join(dataset_dir, "test")
+      if not os.path.isdir(train_dir):
+        os.mkdir(train_dir)
 
-    NSCENES = 100000
+    if not OOD:
+      img_dir = os.path.join(train_dir, "images")
+      if not os.path.isdir(img_dir):
+        os.mkdir(img_dir)
+      
+      metadata_dir = os.path.join(train_dir, "metadata")
+      if not os.path.isdir(metadata_dir):
+        os.mkdir(metadata_dir)
+    else:
+      img_dir = os.path.join(train_dir, "images_OOD")
+      if not os.path.isdir(img_dir):
+        os.mkdir(img_dir)
+      
+      metadata_dir = os.path.join(train_dir, "metadata_OOD")
+      if not os.path.isdir(metadata_dir):
+        os.mkdir(metadata_dir)
+
+    NSCENES = 5000
 
     dirs = [metadata_dir, img_dir]
     for d in dirs:

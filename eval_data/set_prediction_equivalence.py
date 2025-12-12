@@ -1,6 +1,3 @@
-import pyro
-import pyro.distributions as dist
-import pyro.poutine as poutine
 import torch
 import torch.nn as nn
 from torchvision import transforms
@@ -26,14 +23,8 @@ sys.path.append(os.path.abspath(__file__+'/../../'))
 
 main_dir = os.path.abspath(__file__+'/../../')
 
-from main import models
-from main import modifiedCSIS as mcsis
-from main import modifiedImportance as mImportance
 from utils.guide import load_trained_guide, LinearProbe
-from utils.generate import img_to_tensor, render
 from inference.guide import InvSlotAttentionGuide
-from utils.distributions import Empirical, MyNormal
-from utils.baseline import compute_AP
 from main.setup import params
 
 import logging
@@ -137,9 +128,14 @@ def process_targets(target_dict):
     return target
     
 class MyDataset(Dataset):
-    def __init__(self, images_path, count, ood):
-        self.img_path = images_path
-        self.count = count
+    def __init__(self, dataset_path, ood):
+        self.dataset_path = dataset_path
+        self.img_path = os.path.join(self.dataset_path, "images")
+        
+        if ood: self.target_path = os.path.join(self.dataset_path, "metadata_OOD")
+        else: self.target_path = os.path.join(self.dataset_path, "metadata")
+        self.nscenes = len(glob.glob(os.path.join(self.img_path, "*.png")))
+
         self.ood = ood
         self.transform = transforms.Compose([transforms.ToTensor()])
 
@@ -147,20 +143,8 @@ class MyDataset(Dataset):
         return len(self.img_path)
     
     def __getitem__(self, idx):
-        sample_id = self.img_path[idx].split('/')[-1].split('.')[0]
-
-        img = self.transform(Image.open(self.img_path[idx]))
-        
-        if params["n_edges"] == 1:
-            if len(params["latent_vars"]) == 3:
-                if self.ood: target_dict = json.load(open(os.path.abspath(f'metadata_ood/{self.count}/{sample_id}.json')))
-                else: target_dict = json.load(open(os.path.abspath(f'metadata/{self.count}/{sample_id}.json')))
-            elif len(params["latent_vars"]) == 2:
-                if self.ood: target_dict = json.load(open(os.path.abspath(f'metadata_ood_2vars/{self.count}/{sample_id}.json')))
-                else: target_dict = json.load(open(os.path.abspath(f'metadata_2vars/{self.count}/{sample_id}.json')))
-        if params["n_edges"] == 2:
-            if self.ood: target_dict = json.load(open(os.path.abspath(f'metadata_ood_2edges/{self.count}/{sample_id}.json')))
-            else: target_dict = json.load(open(os.path.abspath(f'metadata_2edges/{self.count}/{sample_id}.json')))
+        img = self.transform(Image.open(os.path.join(self.img_path, f"{str(idx).zfill(len(str(self.nscenes)))}.png")))        
+        target_dict = json.load(open(os.path.join(self.target_path, f"{str(idx).zfill(len(str(self.nscenes)))}.json")))        
         target = process_targets(target_dict)
         return img, target
 
@@ -269,7 +253,6 @@ def main():
     # if not isinstance(params["jobID"], list):
     #     params["jobID"] = [params['jobID']]
 
-    model = models.model
     L = len(params["latent_vars"])
     A = torch.zeros(L, L)
     
@@ -283,10 +266,8 @@ def main():
                         ).to(device)
     
     # GUIDE_PATH = f"{main_dir}/checkpoint-{params['jobID']}/guide_{params['guide_step']}.pth"
-    GUIDE_PATH = f"{main_dir}/checkpoint-{params['jobID']}/guide_{params['guide_step']}.pth"
-    
-    if os.path.isfile(GUIDE_PATH): guide = load_trained_guide(guide, GUIDE_PATH, stage="eval")
-    else: raise ValueError(f'{GUIDE_PATH} is not a valid path!')
+    GUIDE_PATH = f"{main_dir}/checkpoint-{params['jobID']}/guide_{params['epoch_to_load']}.pth"
+    guide.load_state_dict(torch.load(GUIDE_PATH))
     
     #logger.info(f'\n\nseed {seed}\n\n')
     logger.info(GUIDE_PATH)
@@ -308,24 +289,9 @@ def main():
             count_img_dir = os.path.join(plots_dir, str(COUNT))
             if not os.path.isdir(count_img_dir): os.mkdir(count_img_dir)
 
-            if params["n_edges"] == 1:
-                if len(params["latent_vars"]) == 3:
-                    if not OOD_EVAL: img_dir = glob.glob(os.path.abspath(f'images/{COUNT}/*.png'))
-                    else: img_dir = glob.glob(os.path.abspath(f'images_ood/{COUNT}/*.png'))
-                elif len(params["latent_vars"]) == 2:
-                    
-                    if not OOD_EVAL: img_dir = glob.glob(os.path.abspath(f'images_2vars/{COUNT}/*.png'))
-                    else: img_dir = glob.glob(os.path.abspath(f'images_ood_2vars/{COUNT}/*.png'))
-            
-            elif params["n_edges"] == 2:
-                if not OOD_EVAL: img_dir = glob.glob(os.path.abspath(f'images_2edges/{COUNT}/*.png'))
-                else: img_dir = glob.glob(os.path.abspath(f'images_ood_2edges/{COUNT}/*.png'))
+            dataset_dir = "/nas-ctm01/datasets/public/CG/test"
 
-            n_test_samples = len(img_dir)
-            
-            logger.info(img_dir[0])
-
-            dataset = MyDataset(img_dir, COUNT, OOD_EVAL)
+            dataset = MyDataset(dataset_dir, OOD_EVAL)
             dataloader = DataLoader(dataset, 64, shuffle=False, generator=torch.Generator(device='cuda'))
 
             z_noise = torch.tensor([])  
