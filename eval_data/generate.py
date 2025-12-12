@@ -220,7 +220,7 @@ def main():
     
     logging.info("starting scenes generation...")
     
-    OOD = True
+    OOD = False
     TRAINING_DATA = False
     if TRAINING_DATA:
       assert not OOD
