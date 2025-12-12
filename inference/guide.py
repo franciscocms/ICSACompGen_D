@@ -237,7 +237,6 @@ class AddDecoder(nn.Module):
         x = torch.zeros_like(img)
         for i, var_name in enumerate(params["latent_vars"]):
             out = self.net[var_name](z[:, :, i, :])
-            logger.info(out.shape)
             x = x + out
         return x/len(params["latent_vars"])
 
