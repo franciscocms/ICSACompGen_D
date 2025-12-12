@@ -199,11 +199,11 @@ for epoch in range(params["training_epochs"]):
     for name, param in guide.tc_discriminator.named_parameters():
       param.requires_grad = False
   
+  printed = False
   for img, target in train_dl:
     img = img.to(DEVICE)
     target = target.to(DEVICE)
 
-    printed = False
     batch_loss = 0.
     optimizer.zero_grad()
     
