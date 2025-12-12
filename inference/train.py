@@ -96,8 +96,8 @@ def process_targets(target_dict):
     target = []
     for i in range(n):
       out = []
-      color_out = F.one_hot(torch.tensor(color_vals[target_dict['scene_attr'][f'object_{i}']['color']]), len(color_vals)).unsqueeze(0)      
-      shape_out = F.one_hot(torch.tensor(shape_vals[target_dict['scene_attr'][f'object_{i}']['shape']]), len(shape_vals)).unsqueeze(0)
+      color_out = F.one_hot(torch.LongTensor(color_vals[target_dict['scene_attr'][f'object_{i}']['color']]), len(color_vals)).unsqueeze(0)      
+      shape_out = F.one_hot(torch.LongTensor(shape_vals[target_dict['scene_attr'][f'object_{i}']['shape']]), len(shape_vals)).unsqueeze(0)
       x_out = target_dict['scene_attr'][f'object_{i}']['initLocX'].unsqueeze(0)
       y_out = target_dict['scene_attr'][f'object_{i}']['initLocY'].unsqueeze(0)
       out.append(color_out)
