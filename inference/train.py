@@ -199,6 +199,7 @@ for epoch in range(params["training_epochs"]):
   for img, target in train_dl:
     img = img.to(DEVICE)
     target = target.to(DEVICE)
+    B = img.size(0)
 
     batch_loss = 0.
     optimizer.zero_grad()
@@ -216,7 +217,7 @@ for epoch in range(params["training_epochs"]):
       fig, ax = plt.subplots(1, 2 + params["num_slots"])
       ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
       for j in range(params["num_slots"]):                                       
-        ax[j+1].imshow(guide.attn[0, j, :, :].detach().cpu().numpy())
+        ax[j+1].imshow(guide.attn.reshape((B, params["num_slots"], 32, 32))[0, j, :, :].detach().cpu().numpy())
       ax[-1].imshow(np.transpose(recon[0].detach().cpu().numpy(), (1, 2, 0)))
       for j in range():
         ax[j].grid(False)
