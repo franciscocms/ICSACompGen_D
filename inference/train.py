@@ -182,8 +182,8 @@ for epoch in range(params["training_epochs"]):
   epoch_val_loss = 0.
 
   # update coefficients
-  yc_t = linear_scheduler(epoch, 20, params["yc_temperature"], 1.)
-  prior_coeff = exp_scheduler(epoch, 20, 0., 1.)
+  yc_t = linear_scheduler(epoch, 5, params["yc_temperature"], 1.)
+  prior_coeff = exp_scheduler(epoch, 5, 0., 1.)
   TC_coeff = params["TC_coeff"] if epoch >= prior_labels_breakin else 0.
   log_det_coeff = params["log_det_coeff"] if epoch >= prior_labels_breakin else 0.
   alpha = params["alpha"] if epoch >= prior_labels_breakin else 0.
@@ -213,6 +213,7 @@ for epoch in range(params["training_epochs"]):
 
     kl_noise = compute_e_loss(mu, logvar, e, print_mixt_params, printed, yc_t)
     batch_loss += alpha*kl_noise
+    assert not torch.isnan(kl_noise).any()
     
     if params["TC_minimization"]:
       disc_input = torch.flatten(e, -2)
@@ -220,12 +221,14 @@ for epoch in range(params["training_epochs"]):
       tc_loss = torch.square(torch.mean(D_joint[:, :1] - D_joint[:, 1:]))
       fake_z_noise, perms = permute_dims(disc_input, params["slot_dim"])
       batch_loss += TC_coeff*tc_loss
+      assert not torch.isnan(tc_loss).any()
     else:
       tc_loss = torch.tensor(0.)
       
     if params["causal_dropout_prob"] <= 1.:
       log_det = compute_log_det(guide.L_slopes)
       batch_loss -= log_det_coeff*log_det
+      assert not torch.isnan(log_det).any()
     else:
       log_det = torch.tensor(0.)
     
@@ -233,12 +236,15 @@ for epoch in range(params["training_epochs"]):
       log_det_prior = compute_log_det(guide.prior_L_slopes)
       causal_loss = compute_prior_z_loss(z, cp)
       batch_loss += prior_coeff*causal_loss - prior_coeff*log_det_coeff*log_det_prior
+      assert not torch.isnan(causal_loss).any()
+      assert not torch.isnan(log_det_prior).any()
     else:
       causal_loss = torch.tensor(0.)
       log_det_prior = torch.tensor(0.)
 
     batch_loss.backward()
     optimizer.step()
+    assert img.size(0) > 0
     epoch_train_loss += batch_loss/img.size(0) 
 
     if params["TC_minimization"]:
@@ -250,6 +256,7 @@ for epoch in range(params["training_epochs"]):
       ones = torch.ones(D_perm.size(0), dtype=torch.long, device=DEVICE)
       zeros = torch.zeros(D_perm.size(0), dtype=torch.long, device=DEVICE)
       disc_tc_loss = alpha * torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
+      assert not torch.isnan(disc_tc_loss).any()
       
       dis_optimizer.zero_grad()
       disc_tc_loss.backward()
