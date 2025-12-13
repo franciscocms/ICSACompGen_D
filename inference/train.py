@@ -1,14 +1,15 @@
-import os
-import shutil
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 
-# add project path to sys to import relative modules
+import os
+import shutil
 import json
 from PIL import Image
+import matplotlib.pyplot as plt
 import sys
 import glob
 sys.path.append(os.path.abspath(__file__+'/../../'))
@@ -211,6 +212,17 @@ for epoch in range(params["training_epochs"]):
       print_mixt_params = True
       logger.info(f"img recon loss: {recon_loss}")
       logger.info(f"slot recon loss: {slot_recon_loss}")
+
+      fig, ax = plt.subplots(1, 2 + params["num_slots"])
+      ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
+      for j in range(params["num_slots"]):                                       
+        ax[j+1].imshow(guide.attn[0, j, :, :].detach().cpu().numpy())
+      ax[-1].imshow(np.transpose(recon[0].detach().cpu().numpy(), (1, 2, 0)))
+      for j in range():
+        ax[j].grid(False)
+        ax[j].axis('off')   
+      plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_attn_recon.png")
+      plt.close()
 
     kl_noise = compute_e_loss(mu, logvar, e, print_mixt_params, printed, yc_t)
     batch_loss += alpha*kl_noise

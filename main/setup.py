@@ -42,7 +42,7 @@ params = {
     "softmax_temperature": 1.0,
     "strided_convs": True,
     "check_attn": True,
-    "jobID": 1000,  
+    "jobID": 1001,  
     "mesh_iters": 4,
     "mesh_lr": 5, 
     "mesh_noise": 1e-3,
@@ -134,8 +134,8 @@ if params["dataset"] == "clevr":
     params["batch_size"] = 64 if params["running_type"] == "train" else 1
     params["lr"] = 4e-4
 elif params["dataset"] == "2Dobjects": 
-    params["batch_size"] = 256
-    params["lr"] = 1e-4 #j221 1e-3, j222 3e-4, j223 1e-4
+    params["batch_size"] = 512 # 256 for 32
+    params["lr"] = 1e-3 # 256 with 1e-4
 else: raise ValueError(f"Dataset error: dataset named {params['dataset']} not found!")
 
 if not os.path.isdir(params['plots_dir']): os.mkdir(params['plots_dir'])
