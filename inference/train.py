@@ -219,7 +219,7 @@ for epoch in range(params["training_epochs"]):
       for j in range(params["num_slots"]):                                       
         ax[j+1].imshow(guide.attn.reshape((B, params["num_slots"], 32, 32))[0, j, :, :].detach().cpu().numpy())
       ax[-1].imshow(np.transpose(recon[0].detach().cpu().numpy(), (1, 2, 0)))
-      for j in range():
+      for j in range(2 + params["num_slots"]):
         ax[j].grid(False)
         ax[j].axis('off')   
       plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_attn_recon.png")
