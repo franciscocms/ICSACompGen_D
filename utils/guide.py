@@ -54,7 +54,7 @@ def exp_scheduler(step, total_steps, initial, final):
         return final
 
     t = step / (total_steps - 1)
-    return np.exp((step-total_steps)*0.005)*final
+    return np.exp((step-total_steps)*0.1)*final
 
 def exp_scheduler_neg(step, total_steps, initial, final):
     """Exponential scheduler"""

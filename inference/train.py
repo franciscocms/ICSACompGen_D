@@ -183,8 +183,8 @@ for epoch in range(params["training_epochs"]):
   epoch_val_loss = 0.
 
   # update coefficients
-  yc_t = linear_scheduler(epoch, 5, params["yc_temperature"], 1.)
-  prior_coeff = exp_scheduler(epoch, 5, 0., 1.)
+  yc_t = linear_scheduler(epoch, 50, params["yc_temperature"], 1.)
+  prior_coeff = exp_scheduler(epoch, 50, 0., 1.)
   TC_coeff = params["TC_coeff"] if epoch >= prior_labels_breakin else 0.
   log_det_coeff = params["log_det_coeff"] if epoch >= prior_labels_breakin else 0.
   alpha = params["alpha"] if epoch >= prior_labels_breakin else 0.

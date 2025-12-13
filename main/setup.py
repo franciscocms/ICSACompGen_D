@@ -15,7 +15,7 @@ params = {
     "resolution": (128, 128),
     "num_slots": 2,
     "training_from_scratch" : True,
-    "training_epochs": 100, 
+    "training_epochs": 200, 
     "epoch_step": 1,
     "running_type": "train", # train, debug, eval, inspect
     "epoch_to_load" : 5, 
