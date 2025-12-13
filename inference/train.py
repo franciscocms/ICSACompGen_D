@@ -205,7 +205,7 @@ for epoch in range(params["training_epochs"]):
     slots, recon, e, mu, logvar, z, slot_hat, cp = guide(img, target)
     recon_loss = recon_loss_fn(recon, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
-    batch_loss += alpha*(recon_loss + slot_recon_loss)
+    batch_loss += alpha*(recon_loss + prior_coeff*slot_recon_loss)
     
     if epoch % epoch_step == 0 and not printed:
       print_mixt_params = True
