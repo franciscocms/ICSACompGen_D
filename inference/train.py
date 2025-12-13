@@ -210,6 +210,10 @@ for epoch in range(params["training_epochs"]):
     batch_loss += alpha*(recon_loss + prior_coeff*slot_recon_loss)
     
     if epoch % epoch_step == 0 and not printed:
+
+      if not os.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
+        os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")
+
       print_mixt_params = True
       logger.info(f"img recon loss: {recon_loss}")
       logger.info(f"slot recon loss: {slot_recon_loss}")
