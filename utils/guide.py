@@ -318,6 +318,12 @@ class MixturePrior(nn.Module):
         mixt_kl = torch.mean(mixt_kl) #* 0.01
         #kl_reg = torch.mean(kl_reg)
         log_var_reg = torch.mean(log_var_reg)
+
+        assert not torch.isnan(mixt_kl).any()
+        assert not torch.isnan(kl_reg).any()
+        assert not torch.isnan(log_var_reg).any()
+        assert not torch.isnan(yc).any()
+
         
         if print_mixt_params and not printed:
             logger.info(f"mixt kl loss: {mixt_kl}")

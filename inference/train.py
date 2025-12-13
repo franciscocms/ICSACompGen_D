@@ -28,7 +28,7 @@ logger.addHandler(fh)
 
 main_dir = os.path.abspath(__file__+'/../../')
 
-torch.autograd.set_detect_anomaly(True)
+torch.autograd.detect_anomaly(check_nan=True)
 
 assert params["running_type"] == "train"
 
@@ -150,6 +150,7 @@ def compute_e_loss(mu, logvar, e, print_mixt_params, printed, yc):
     if print_mixt_params and not printed:
       logger.info(f"yc: {yc[:5]}")
       logger.info(f"yc mean: {torch.mean(yc, dim=0)}")
+      logger.info(f"pi_c: {guide.z_nets[l_to_label[i]].pi_c.tolist()}")
       logger.info(f"logvars: {torch.mean(logvar[:, i, :])}")
   
   return kl_noise
