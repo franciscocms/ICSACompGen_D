@@ -21,7 +21,6 @@ sys.path.append(os.path.abspath(__file__+'/../../'))
 
 from main import setup
 from .distributions import CategoricalVals, TruncatedNormal
-from .var import Variable
 
 params = setup.params
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -806,69 +805,6 @@ def assert_shape(actual: Union[torch.Size, Tuple[int, ...]], expected: Tuple[int
 def linear_std(step):
     if step <= 1000: return 1. - step*0.00095
     else: return 0.05
-
-def load_trained_guide(guide, GUIDE_PATH, stage=params["running_type"]):
-    
-    assert stage in ["train", "eval"]
-    
-    out_dim = 0
-    pretrained_guide = torch.load(GUIDE_PATH) if params['device'] == torch.device('cuda:0') else torch.load(GUIDE_PATH, map_location='cpu')
-    guide_dict = guide.state_dict()
-    for k, v in pretrained_guide.items():
-        
-        #logger.info(k)
-        
-        if k not in guide_dict.keys():
-            prior_distribution = None
-            proposal_distribution = None
-            name = k.split(".")[1]
-            if name == 'mask':
-                proposal_distribution = "bernoulli"
-                out_dim = 1
-            elif name in ["shape", "color", "size"]: 
-                prior_distribution = "categorical"
-                proposal_distribution = "categorical"
-                out_dim = 3
-            elif name in ["locX", "locY"]: 
-                prior_distribution = "uniform"
-                proposal_distribution = "normal"
-                out_dim = 2
-
-            # for now, instance will be set on 0!
-            var = Variable(name=name,
-                            value=None,
-                            prior_distribution=prior_distribution,
-                            proposal_distribution=proposal_distribution,
-                            address=name.split("_")[0]
-                            )
-            
-            #if prior_distribution is None: raise ValueError("Prior distribution cannot be None")
-            #if proposal_distribution is None: raise ValueError("Proposal distribution cannot be None")
-            
-            if k.split("_")[0] == "prop": 
-                if params["conditioned_classifier"]:
-                    guide.add_proposal_net(var, out_dim, child=False)
-                else:
-                    if var.name == "shape":
-                        guide.add_proposal_net(var, out_dim, child=True)
-                    else:
-                        guide.add_proposal_net(var, out_dim, child=False)
-
-                
-    guide_dict = guide.state_dict() 
-
-    #logger.info(guide)
-    
-    if stage == "train":
-        state_dict = {k: v for k, v in pretrained_guide.items() if k in guide_dict.keys() and k.split('.')[0] not in ["tc_discriminator", "prop_nets", "s_cond", "t_cond"]}
-    elif stage == "eval":
-        state_dict = {k: v for k, v in pretrained_guide.items() if k in guide_dict.keys() and k.split('.')[0] not in ["tc_discriminator"]}
-    
-    guide_dict.update(state_dict)
-    guide.load_state_dict(guide_dict)
-    #logging.info("ICSA guide successfully loaded...")
-    return guide
-
 
 from collections import deque
 

@@ -40,7 +40,7 @@ params = {
     "infer_by_prediction": False,
     "slot_dim" : 64,
     "softmax_temperature": 1.0,
-    "strided_convs": True,
+    "strided_convs": False,
     "check_attn": True,
     "jobID": 1001,  
     "mesh_iters": 4,
