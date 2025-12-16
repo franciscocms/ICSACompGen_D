@@ -8,7 +8,7 @@ import shutil
 import sys
 sys.path.append(os.path.abspath(__file__+'/../../'))
 
-from main.setup import params
+from setup import params
 
 shape_vals = params["shape_vals"]
 size_vals = params["size_vals"]
@@ -125,7 +125,7 @@ def model(scene_id, N, ood):
 
   all_locs = []
   for n in range(int(n_objects)):
-    color = color_vals[dist.Categorical(probs=torch.tensor([1/len(color_vals) for _ in range(len(color_vals))])).sample()]
+    color = color_vals[dist.Uniform(probs=torch.tensor([1/len(color_vals) for _ in range(len(color_vals))])).sample()]
     color_obj.append(color)
 
     if params["n_edges"] == 2:

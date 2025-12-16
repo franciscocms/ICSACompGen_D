@@ -20,7 +20,7 @@ import sys
 sys.path.append(os.path.abspath(__file__+'/../../'))
 
 from utils.var import Variable
-from main.setup import params
+from setup import params
 from utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape, loft, permute_dims, compute_leakage_loss, topological_order_from_G
 from utils.guide import LabelEmbeddings, MLP, MixturePrior, MMDLoss, TCDiscriminator, ShallowMLP, MultivariateCausalFlow, PriorMultivariateCausalFlow
 

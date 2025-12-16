@@ -19,7 +19,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(__file__+'/../../'))
 
-from main import setup
+from . import setup
 from .distributions import CategoricalVals, TruncatedNormal
 
 params = setup.params

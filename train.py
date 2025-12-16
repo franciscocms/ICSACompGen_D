@@ -15,7 +15,7 @@ import glob
 sys.path.append(os.path.abspath(__file__+'/../../'))
 
 from guide import InvSlotAttentionGuide
-from main.setup import params
+from setup import params
 from utils.guide import permute_dims, linear_scheduler, exp_scheduler
 
 import wandb # type: ignore

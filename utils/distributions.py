@@ -18,7 +18,7 @@ import os
 sys.path.append(os.path.abspath(__file__+'/../../'))
 
 import logging
-from main import setup
+from . import setup
 
 #logging.basicConfig(filename=setup.params["logfile_name"], level=logging.INFO)
 logger = logging.getLogger("train")

@@ -14,7 +14,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(__file__+'/../../'))
 
-from main.setup import params
+from setup import params
 
 # add project path to sys to import relative modules
 import sys
