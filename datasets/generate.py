@@ -179,8 +179,9 @@ def generate_training_dataset(params):
       json.dump(scene_dict, outfile)  
     img.save(f"{img_dir}/{str(scene_id).zfill(len(str(params["train_dataset_len"])))}.png")
   
+  logger.info(f"(train set): {scene_id} scenes stored...")
+  
   return A
-
 
 def generate_test_dataset(params, A=None):
   
@@ -198,4 +199,14 @@ def generate_test_dataset(params, A=None):
     with open(f"{metadata_dir}/{str(scene_id).zfill(len(str(params["test_dataset_len"])))}.json", "w") as outfile:
       json.dump(scene_dict, outfile)  
     img.save(f"{img_dir}/{str(scene_id).zfill(len(str(params["test_dataset_len"])))}.png")
+  logger.info(f"(test set): {scene_id} scenes stored...")
 
+if __name__ == "__main__":
+
+  if params["running_type"] == "train":
+    A = generate_training_dataset(params)
+  elif params["running_type"] == "eval":
+    A = sample_adjacency_matrix(params)
+    generate_test_dataset(params, A)
+  else:
+    raise ValueError(f"running type {params['running_type']} invalid!")

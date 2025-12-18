@@ -50,7 +50,6 @@ params = {
     "label_embeddings_mu_mult": 1., # previously 1.0 #######################################################
     "causal_dropout_prob": 0., # 0.6 for models with causal flow, 1.0 for models without
     "slot_dim" : 16,
-    "strided_convs": False,
     "check_attn": True,
     "jobID": 1,  
     "mesh_iters": 4,
