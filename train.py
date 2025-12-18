@@ -2,27 +2,25 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader
+
+from torch.utils.data import DataLoader
 
 import os
 import shutil
-import json
-from PIL import Image
 import matplotlib.pyplot as plt
 import sys
-import glob
 sys.path.append(os.path.abspath(__file__+'/../../'))
 
-from guide import InvSlotAttentionGuide
-from setup import params
+from models.guide import InvSlotAttentionGuide
+from main import params
 from utils.guide import permute_dims, linear_scheduler, exp_scheduler
+from datasets.utils import MyDataset
 
 import wandb # type: ignore
 
 import logging
 logfile_name = f"log-{params['jobID']}.log"
-logger = logging.getLogger("train")
+logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 fh = logging.FileHandler(logfile_name, mode='w')
 logger.addHandler(fh)
@@ -92,37 +90,6 @@ optimizer = torch.optim.Adam(guide.parameters(), lr=params["lr"])
 if params["TC_minimization"]:
   dis_optimizer = torch.optim.Adam(guide.tc_discriminator.parameters(), lr=params["lr"] * 0.1)
 
-def process_targets(target_dict):   
-    n = int(target_dict['scene_attr']['N'])
-    target = []
-    for i in range(n):
-      color_out = F.one_hot(torch.LongTensor([color_vals[target_dict['scene_attr'][f'object_{i}']['color']]]), len(color_vals))      
-      shape_out = F.one_hot(torch.LongTensor([shape_vals[target_dict['scene_attr'][f'object_{i}']['shape']]]), len(shape_vals))
-      x_out = torch.FloatTensor([target_dict['scene_attr'][f'object_{i}']['initLocX']]).unsqueeze(0)
-      y_out = torch.FloatTensor([target_dict['scene_attr'][f'object_{i}']['initLocY']]).unsqueeze(0)
-      out = torch.cat([color_out, shape_out, x_out, y_out], dim=-1)
-      target.append(out)
-    target = torch.stack(target).squeeze()
-    return target
-
-class MyDataset(Dataset):
-  def __init__(self, dataset_path):
-      self.dataset_path = dataset_path
-      self.img_path = os.path.join(self.dataset_path, "images")
-      self.target_path = os.path.join(self.dataset_path, "metadata")
-      self.nscenes = len(glob.glob(os.path.join(self.img_path, "*.png")))
-      self.transform = transforms.Compose([transforms.ToTensor()])
-
-  def __len__(self):
-      return self.nscenes
-  
-  def __getitem__(self, idx):
-    img = self.transform(Image.open(os.path.join(self.img_path, f"{str(idx).zfill(len(str(self.nscenes)))}.png")))
-    target_dict = json.load(open(os.path.join(self.target_path, f"{str(idx).zfill(len(str(self.nscenes)))}.json")))
-    target = process_targets(target_dict)
-    return img, torch.cat((torch.argmax(target[:, :3], dim=-1).unsqueeze(-1),
-                           torch.argmax(target[:, 3:6], dim=-1).unsqueeze(-1)), dim=-1)
-
 
 # instatiate dataset and dataloader
 dataset_dir = "/nas-ctm01/datasets/public/CG/train"
@@ -184,11 +151,11 @@ for epoch in range(params["training_epochs"]):
   epoch_val_loss = 0.
 
   # update coefficients
-  yc_t = linear_scheduler(epoch, 50, params["yc_temperature"], 1.)
-  prior_coeff = exp_scheduler(epoch, 50, 0., 1.)
-  TC_coeff = params["TC_coeff"] if epoch >= prior_labels_breakin else 0.
-  log_det_coeff = params["log_det_coeff"] if epoch >= prior_labels_breakin else 0.
-  alpha = params["alpha"] if epoch >= prior_labels_breakin else 0.
+  #prior_coeff = exp_scheduler(epoch, 50, 0., 1.)
+  prior_coeff = 1.
+  TC_coeff = params["TC_coeff"]
+  log_det_coeff = params["log_det_coeff"]
+  alpha = params["alpha"]
 
   # update gradient computation flags
   if params["TC_minimization"]:

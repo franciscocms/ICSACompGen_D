@@ -2,11 +2,7 @@ import numpy as np
 from torch import nn
 import torch
 import torch.nn.functional as F
-import pyro
-import pyro.distributions as dist
 
-from scipy.optimize import linear_sum_assignment
-from itertools import permutations, combinations
 import os
 import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
@@ -19,10 +15,9 @@ from sklearn.mixture import GaussianMixture
 import sys
 sys.path.append(os.path.abspath(__file__+'/../../'))
 
-from utils.var import Variable
-from setup import params
-from utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape, loft, permute_dims, compute_leakage_loss, topological_order_from_G
-from utils.guide import LabelEmbeddings, MLP, MixturePrior, MMDLoss, TCDiscriminator, ShallowMLP, MultivariateCausalFlow, PriorMultivariateCausalFlow
+from ..main import params
+from utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape
+from utils.guide import VAE, MMDLoss, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow
 
 import logging
 import warnings
@@ -129,7 +124,7 @@ class SlotAttention(nn.Module):
 
             slots = slots.view(b_s, n_s, self.slot_dim)
             assert_shape(slots.size(), (b_s, n_s, self.slot_dim))
-            slots = slots + self.fc2(F.relu(self.fc1(self.norm_pre_ff(slots))))
+            slots = slots + self.fc2(F.elu(self.fc1(self.norm_pre_ff(slots))))
             assert_shape(slots.size(), (b_s, n_s, self.slot_dim))    
         return slots, slot_pos.reshape((b_s, n_s, 2)), attn#, scales
 
@@ -168,18 +163,15 @@ class Encoder(nn.Module):
         
         self.encoder_sa = []
         in_channels = 3 if params['dataset'] == '2Dobjects' else 4
-        self.encoder_sa += [nn.Conv2d(in_channels, 64, 5, 1, 2), nn.ReLU(inplace=True)]
+        self.encoder_sa += [nn.Conv2d(in_channels, 64, 5, 1, 2), nn.ELU()]
         for c in range(2):
-            if params["strided_convs"]: self.encoder_sa += [nn.Conv2d(64, 64, 5, 2, 2), nn.ReLU(inplace=True)]
-            else: self.encoder_sa += [nn.Conv2d(64, 64, 5, 1, 2), nn.ReLU(inplace=True)]
-        self.encoder_sa += [nn.Conv2d(64, 64, 5, 1, 2), nn.ReLU(inplace=True)]
+            self.encoder_sa += [nn.Conv2d(64, 64, 5, 2, 2), nn.ELU()]
+        self.encoder_sa += [nn.Conv2d(64, 64, 5, 1, 2), nn.ELU()]
+        self.last_dim = self.encoder_sa[-1].out_channels
         self.encoder_sa = nn.Sequential(*self.encoder_sa)
         
         #self.encoder_pos = SoftPositionEmbed(hid_dim, resolution)
-        if params["strided_convs"]: resolution = (32, 32)
-        else: resolution = (128, 128)
-        
-        self.last_dim = 64
+        resolution = (32, 32)        
         self.encoder_pos = SoftPositionEmbed(self.last_dim, resolution)
 
 
@@ -189,56 +181,60 @@ class Encoder(nn.Module):
         x = self.encoder_pos(x)                 
         # spatial flatten -> flatten the spatial dimensions
         x = torch.flatten(x, 1, 2) # B, W*H, C -> 64 features of size w*H
-
         return x
 
+class View(nn.Module):
+    def __init__(self, size):
+        super(View, self).__init__()
+        self.size = size
+
+    def forward(self, tensor):
+        return tensor.view(self.size)
+    
 class Decoder(nn.Module):
-    def __init__(self, num_slots, dim, in_channels, W, H):
+    def __init__(self, in_dim, out_channels):
         super().__init__()
 
-        self.img_dim = [in_channels, W, H]
-        self.fc_net = nn.Sequential(
-            nn.Linear(num_slots*dim, 32*32),
-            nn.ReLU(),
-            nn.Linear(32*32, in_channels*32*32)
-        )
-        # hdim = channels * W * H (64x128x128)
-        self.conv_net = nn.Sequential(
-            nn.ConvTranspose2d(in_channels, in_channels, 3, 1, 1),
-            nn.ReLU(),
-            nn.ConvTranspose2d(in_channels, 3, 3, 1, 1),
-            nn.Sigmoid()
-        )
+        module_list = [
+            nn.Linear(in_dim, 256),
+            nn.ELU(),
+            nn.Linear(256, 256),
+            nn.ELU(),
+            nn.Linear(256, 32 * 4 * 4),
+            nn.ELU(),
+            View((-1, 32, 4, 4)),
+            nn.ConvTranspose2d(32, 32, 4, 2, 1),
+            nn.ELU(),
+            nn.ConvTranspose2d(32, 32, 4, 2, 1),
+            nn.ELU(),
+            nn.ConvTranspose2d(32, 32, 4, 2, 1),
+            nn.ELU(),
+            nn.ConvTranspose2d(32, 32, 4, 2, 1),
+            nn.ELU(),
+            nn.ConvTranspose2d(32, out_channels, 4, 2, 1),
+        ]
+        self.decoder = nn.Sequential(*module_list)
+        
 
-    def forward(self, z):
+    def forward(self, slots):
         # z [B, N, d]
-        B, N, d = z.shape
+        B, N, d = slots.shape
 
-        z = torch.flatten(z, -2) # [B, N*d]
-        x = self.fc_net(z)
-        x = x.reshape(B, self.img_dim[0], 128, 128)
-        x = self.conv_net(x)
-        return x
+        return self.decoder(slots)
 
-class AddDecoder(nn.Module):
+class AdditiveDecoder(nn.Module):
     def __init__(self):
         super().__init__()
+        self.decoder = Decoder(in_dim=params["slot_dim"], out_channels = 3)
 
-        self.net = nn.ModuleDict()
-        for var_name in params["latent_vars"]:
-            self.net[var_name] = Decoder(params["num_slots"],
-                                         dim=params["slot_dim"],
-                                         in_channels = 64,
-                                         W=128,
-                                         H=128)
-
-    def forward(self, z, img):
+    def forward(self, slots):
         # z [B, N, L, d]
-        x = torch.zeros_like(img)
-        for i, var_name in enumerate(params["latent_vars"]):
-            out = self.net[var_name](z[:, :, i, :])
-            x = x + out
-        return x/len(params["latent_vars"])
+        B, N, d = slots.shape
+        slots = slots.reshape(B*N, d)
+        recons = self.decoder(slots) 
+        recons = recons.view(B, N, recons.shape[1:])
+        img = recons.sum(1)        
+        return img
 
 
 """Slot Attention-based auto-encoder for object discovery."""
@@ -267,7 +263,7 @@ class InvSlotAttentionGuide(nn.Module):
         self.ldim = latent_dim
         self.mlp = nn.Sequential(
              nn.Linear(self.hid_dim, self.hid_dim), # used to be hid_dim, hid_dim
-             nn.ReLU(inplace=True),
+             nn.ELU(),
              nn.Linear(self.hid_dim, self.hid_dim)
         )
         self.slot_attention = SlotAttention(
@@ -277,16 +273,14 @@ class InvSlotAttentionGuide(nn.Module):
                 iters = self.num_iterations,
                 eps = 1e-8, 
                 hidden_dim = 128)
-        self.z_nets = nn.ModuleDict()
+        self.noise_nets = nn.ModuleDict()
         for var_name in params["latent_vars"]:
-            self.z_nets[var_name] = MixturePrior(label = [var_name],
-                                                num_classes_list = [3],
-                                                nin = self.ldim,
-                                                nh = self.ldim*4,
-                                                ldim = self.ldim
-                                                )
+            self.noise_nets[var_name] = VAE(nin = self.ldim,
+                                            nh = self.ldim,
+                                            nout = self.ldim
+                                            )
         
-        self.decoder = AddDecoder()
+        self.decoder = AdditiveDecoder()
         self.causal_flow = MultivariateCausalFlow(self.L, self.ldim, self.A)
         self.prior = PriorMultivariateCausalFlow(self.L, self.ldim, self.A)
         self.mmd_loss = MMDLoss()
@@ -306,12 +300,11 @@ class InvSlotAttentionGuide(nn.Module):
 
         assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
 
-
         self.img = img
         x = self.encoder_cnn(self.img)
         x = nn.LayerNorm(x.shape[1:]).to(device)(x)
         self.features_to_slots = self.mlp(x)
-        slots, self.slot_pos, attn = self.slot_attention(self.features_to_slots, num_slots=n_s)
+        slots, self.slot_pos, attn = self.slot_attention(self.features_to_slots, num_slots=n_s) # slots in [B, n_s, d]
         self.attn = attn
             
         if False:
@@ -333,94 +326,18 @@ class InvSlotAttentionGuide(nn.Module):
                                 
         z_noise, mu_noise, logvar_noise, rec_noise = [], [], [], []           
         for var in params["latent_vars"]:
-            mu, logvars, slot_hat_i, z = self.z_nets[var](slots)
-            z_noise.append(z)
+            mu, logvars, e = self.noise_nets[var].encode(slots)
+            z_noise.append(e)
             mu_noise.append(mu)
-            logvar_noise.append(logvars)
-            rec_noise.append(slot_hat_i)
-        
+            logvar_noise.append(logvars) 
         z_noise = torch.stack(z_noise).permute(1, 2, 0, 3)            # [B, N, L, d] => 'L' refers to the number of categorical latents
         mu_noise = torch.stack(mu_noise).permute(1, 2, 0, 3)          # [B, N, L, d]
         logvar_noise = torch.stack(logvar_noise).permute(1, 2, 0, 3)  # [B, N, L, d]
-        rec_noise = torch.stack(rec_noise).permute(1, 2, 0, 3)        # [B, N, L, slot_dim]
         assert z_noise.size(2) == self.L
         
-        slot_hat = torch.zeros(slots.shape)
-        for i in range(self.L):
-            slot_hat = slot_hat + rec_noise[:, :, i, :]
-        
-
-        self.u_m = torch.tensor([])            
-        for l in range(self.L):
-            self.u_m = torch.cat((self.u_m,
-                                self.embeddings_mu[l][labels.reshape(B*n_s, self.L)[:, l]].unsqueeze(-2) + params["label_embeddings_std"] * torch.randn(B*n_s, 1, self.ldim)),
-                                dim=-2)
-                
-        l_to_label = {i: l for i, l in enumerate(params["latent_vars"])}
-
-        if self.epoch < self.gmm_fit_epoch:                   
-            # collect some labels to then use for GMM fit
-            self.some_labels = torch.cat((self.some_labels, labels.reshape(B*n_s, self.L)), dim = 0)
-            
-        # fit GMM 
-        if self.epoch == self.gmm_fit_epoch:          
-            gmm_wts, gmm_means, gmm_stds = [], [], []   
-
-            some_u_m = torch.tensor([])
-            for l in range(self.L):
-                some_u_m = torch.cat((some_u_m,
-                                        self.embeddings_mu[l][self.some_labels.long()[:, l]].unsqueeze(-2) + params["label_embeddings_std"] * torch.randn(self.some_labels.size(0), 1, self.ldim)),
-                                        dim=-2) # [B*n_s, L, ldim]
-            
-            for l in range(self.L):
-                K = self.num_classes_list[l]
-                gmm = GaussianMixture(n_components=K, covariance_type='spherical')
-                gmm.fit(some_u_m[:, l, :].detach().cpu().numpy())
-                u_wts, u_means, u_vars = gmm.weights_, gmm.means_, gmm.covariances_    # [K], [K, ldim], [K]
-                preds = torch.from_numpy(gmm.predict(some_u_m[:, l, :].detach().cpu().numpy())).to(device).to(torch.float) # [B]
-
-                conf_mat = torch.zeros((K, K), dtype=torch.int32)
-                for i in range(K):
-                    for j in range(K):
-                        conf_mat[i, j] = torch.sum((preds == i) & (self.some_labels[:, l] == j))
-
-                # Apply Hungarian algorithm to maximize agreement
-                row_ind, col_ind = linear_sum_assignment(-conf_mat.cpu().numpy())  # maximize by negating
-                mapping = {row: col for row, col in zip(row_ind, col_ind)}            
-                
-                # pass to tensor
-                u_wts = torch.from_numpy(u_wts).to(device)
-                u_means = torch.from_numpy(u_means).to(device) 
-                u_vars = torch.from_numpy(u_vars).to(device)
-
-                u_wts = torch.index_select(u_wts, dim=0, index = torch.tensor(list(mapping.values())))
-                u_means = torch.index_select(u_means, dim=0, index = torch.tensor(list(mapping.values())))
-                u_vars = torch.index_select(u_vars, dim=0, index = torch.tensor(list(mapping.values())))
-
-                gmm_wts.append(u_wts)
-                gmm_means.append(u_means)
-                gmm_stds.append(torch.sqrt(u_vars))
-
-                # if self.is_train and self.step % params['step_size'] == 0:
-                #   logger.info(f"\nGMM mixture params for variable {l_to_label[l]}:")
-                #   logger.info(f"GMM wts: {u_wts}")
-                #   logger.info(f"GMM means: {u_means}")
-                #   logger.info(f"GMM vars: {u_vars}")
-            
-                # set the prior params in MixturePrior according to what is inferred by the GMM
-                self.z_nets[l_to_label[l]].pi_c = u_wts
-                self.z_nets[l_to_label[l]].mu_c = u_means
-                self.z_nets[l_to_label[l]].logvar_c = torch.log(u_vars)
-
-        else:
-            gmm_wts, gmm_means, gmm_stds = [], [], []
-            for l in range(self.L):
-                gmm_wts.append(self.z_nets[l_to_label[l]].pi_c)
-                gmm_means.append(self.z_nets[l_to_label[l]].mu_c)
-                gmm_stds.append(torch.exp(0.5 * self.z_nets[l_to_label[l]].logvar_c))
-
-        
-        self.u_m = self.u_m.reshape(B, n_s, self.L, self.ldim)
+        u_m = torch.ones(B, n_s, self.L, self.ldim)
+        for i, var in enumerate(params["latent_vars"]):
+            u_m[:, :, i] = ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])).unsqueeze(-1).expand(-1, -1, self.ldim)
         
         if params["causal_dropout_prob"] <= 1.:
             z_scm, self.L_slopes, ss, ts = self.causal_flow(z_noise)
@@ -431,23 +348,26 @@ class InvSlotAttentionGuide(nn.Module):
         z_noise = z_noise.reshape(B*n_s, self.L, self.ldim)
         mu_noise = mu_noise.reshape(B*n_s, self.L, self.ldim)
         logvar_noise = logvar_noise.reshape(B*n_s, self.L, self.ldim)
-        #rec_noise = rec_noise.reshape(B*n_s, self.L, self.slot_dim)
-        #slot_hat = slot_hat.reshape(B*n_s, self.slot_dim)
         self.logvar_noise = logvar_noise
 
-        recon = self.decoder(z_scm, img)
+        
+        slot_hat = []
+        for i, var in enumerate(params["latent_vars"]):
+            slot_hat.append(self.noise_nets[var].decode(z_scm[:, :, i, :]))
+        slot_hat = torch.sum(torch.stack(slot_hat, dim=-2), dim=-2)
+        
+        img_hat = self.decoder(slot_hat)
 
         """
         - prior won't be aligned with labels...
-        
         """
 
         if params["beta"] > 0:
-            cp, self.prior_L_slopes, prior_ss, prior_ts = self.prior(self.u_m, z_scm, labels) # [B, N, L, d]
+            cp, self.prior_L_slopes, prior_ss, prior_ts = self.prior(u_m, z_scm) # [B, N, L, d]
             self.prior_ss, self.prior_ts = prior_ss, prior_ts     
                             
         if self.stage == "eval": return z_noise.reshape(B, n_s, self.L, self.ldim)
-        return slots, recon, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, cp
+        return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, cp
         
         
         

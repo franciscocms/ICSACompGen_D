@@ -139,38 +139,18 @@ class MMDLoss(nn.Module):
         return XX - 2 * XY + YY
 
 
-class NoiseNet(nn.Module):
-    def __init__(self, input_dim, hid_dim, out_dim):
-        super().__init__()
-
-        self.fc = nn.Sequential(
-            nn.Linear(input_dim, hid_dim),
-            nn.ReLU()
-        )
-        self.fc_mean = nn.Linear(hid_dim, out_dim)
-        self.fc_var = nn.Linear(hid_dim, out_dim)
-
-    def forward(self, x):
-        x = self.fc(x)
-        mean = self.fc_mean(x)
-        logvar = self.fc_var(x)
-        assert not torch.isnan(logvar).any()
-
-        var = torch.exp(logvar)
-        return mean, var
 
 
-class MixtureEncoder(nn.Module):
+
+class Encoder(nn.Module):
     def __init__(self, nin, nh, nout):
         super().__init__()
 
         self.layers = nn.Sequential(
             nn.Linear(nin, nh),
-            nn.ReLU(),
+            nn.ELU(),
             nn.Linear(nh, nh),
-            nn.ReLU(),
-            nn.Linear(nh, nh),
-            nn.ReLU()
+            nn.ELU(),
         )
         self.means = nn.Sequential(nn.Linear(nh, nout), nn.Identity())
         self.logvars = nn.Linear(nh, nout)
@@ -179,235 +159,45 @@ class MixtureEncoder(nn.Module):
         x = self.layers(x)
         return self.means(x), self.logvars(x)
 
-class MixtureDecoder(nn.Module):
+class Decoder(nn.Module):
     def __init__(self, nin, nh, nout):
         super().__init__()
         self.layers = nn.Sequential(
             nn.Linear(nin, nh),
-            nn.ReLU(),
+            nn.ELU(),
             nn.Linear(nh, nh),
-            nn.ReLU(),
+            nn.ELU(),
             nn.Linear(nh, nout),
             #nn.Sigmoid()
         )
     def forward(self, z):
         return self.layers(z)
 
-class MixtureVAE(nn.Module):
+class VAE(nn.Module):
     def __init__(self, nin, nh, nout):
         super().__init__()
+        self.encoder = Encoder(nin, nh, nout)                # takes an embedding batch u_m 
+        self.decoder = Decoder(nin=nout, nh=nh, nout=nin)    # takes the reparameterized z to generate hat(u_m)
 
-        self.encoder = MixtureEncoder(nin, nh, nout)                # takes an embedding batch u_m 
-        self.decoder = MixtureDecoder(nin=nout, nh=nh, nout=nin)    # takes the reparameterized z to generate hat(u_m)
-
-    def forward(self, x):
-        mu, logvars = self.encoder(x)
-        assert not torch.isnan(logvars).any()
-
-        stds = torch.exp(0.5*logvars)
-        z = mu + torch.randn_like(mu)*stds # reparameterization trick
-        rec = self.decoder(z)
-        return rec, mu, logvars, z
-
-class MixturePrior(nn.Module):
-    def __init__(self, label, num_classes_list, nin = 4, nh = 128, ldim=4, step_size=1):
-        super().__init__()
-
-        self.label = label
-        n_latents = len(num_classes_list)
-        self.ldim = ldim
-
-        assert all(num_classes_list[0] == x for x in num_classes_list)
-        self.K = num_classes_list[0]
-
-        self.prior_mixt = MixtureVAE(nin, nh, self.ldim)
-        
-        # self.pi_c = nn.Parameter(torch.ones(n_latents, self.K)*0.5)
-        # self.mu_c = nn.Parameter(torch.randn(n_latents, self.K, nin))
-        # self.logvar_c = nn.Parameter(torch.ones(n_latents, self.K, nin)*-1)
-        self.pi_c = torch.ones(self.K)/self.K
-        self.mu_c = torch.randn(self.K, self.ldim)
-        self.logvar_c = torch.ones(self.K) * -1.
-
-
-        self.step = 0
-        self.step_size = step_size
-        assert self.step_size > 0
-        self.beta = 1.
-
-
-    def forward(self, x):
-        # x [B, L, d]
-        B, L, d = x.shape
-
-        # run the VaDE module correspondent to latent variable l
-        x_hat, mu, logvars, z = self.prior_mixt(x)
-        # x_ is [B, N, d]
-        # mu is [B, N, ldim]
-        # z is  [B, N, ldim]     
-        
-        return mu, logvars, x_hat, z
-    
-    def compute_yc(self, z, print_mixt_params=False, printed=False, yc_temperature=1.):
-    
-        # log q(c|x) = log p(c) + log p(z|c)
-        log_pzc = self.gaussian_pdfs_log(z, self.mu_c, self.logvar_c)  
-        if print_mixt_params and not printed:
-            logger.info(f"log p(e|c): {log_pzc[:5]}")
-
-        log_prob = torch.log(self.pi_c + 1e-10) + log_pzc # [B, K]
-        if print_mixt_params and not printed:
-            logger.info(f"log prob before temperature: {torch.mean(log_prob, dim=0).tolist()}")
-        log_prob = log_prob / yc_temperature
-        if print_mixt_params and not printed: 
-            logger.info(f"log prob after temperature: {torch.mean(log_prob, dim=0).tolist()}")
-        
-        log_prob = log_prob - torch.logsumexp(log_prob, dim=-1, keepdim=True)  # normalize
-        # if print_mixt_params:
-        #     logger.info(f"log prob after normalization: {torch.mean(log_prob, dim=0).tolist()}")
-        
-        assert not torch.isnan(log_prob).any()
-
-        yc = torch.exp(log_prob)  # [B, K]
-
-        # if print_mixt_params:
-        #     logger.info(f"log p(z|c) shape: {log_pzc.shape}") #[B*N, K]
-        #     logger.info(f"log p(z|c): {log_pzc[:2]}")
-        
-        
-        return yc
-
-    def compute_elbo(self, mu, logvars, z, print_mixt_params, printed, yc_temperature):
-        
-        # aux_v = self.logvar_c + logvars/self.logvar_c + torch.square(mu - self.mu_c)/self.logvar_c
-        # print(aux_v.shape) # [B, K, d]
-
-        yc = self.compute_yc(z, print_mixt_params, printed, yc_temperature)
-        #rec_loss = self.compute_rec_loss(x_hat, x)
-
-        B, num_comp = yc.shape
-
-        # logger.info(yc.shape)
-        # logger.info(self.logvar_c.shape)
-        # logger.info(logvars.shape)
-        # logger.info(mu.shape)
-        # logger.info(self.mu_c.shape) 
-        
-        # yc = torch.clamp(yc, 1e-3, 1.)
-       
-        # loss in j135
-        # mixt_kl = 0.5 * torch.sum(yc * torch.mean(self.logvar_c + torch.exp(logvars)/torch.exp(self.logvar_c) + torch.square(mu - self.mu_c)/torch.exp(self.logvar_c), dim=-1), dim=-1)
-        #kl_reg = torch.sum(yc * torch.log(self.pi_c/yc), dim=-1) + 0.5*torch.mean(1 + logvars, dim=-1)
-
-        mixt_kl = 0.5 * torch.sum(yc * torch.sum(self.logvar_c.unsqueeze(-1).repeat(1, self.ldim) + torch.exp(logvars)/torch.exp(self.logvar_c.unsqueeze(-1).repeat(1, self.ldim)) + torch.square(mu - self.mu_c)/torch.exp(self.logvar_c.unsqueeze(-1).repeat(1, self.ldim)), dim=-1), dim=-1)
-        #kl_reg = torch.sum(yc * torch.log(self.pi_c/yc), dim=-1) 
-        #kl_reg = torch.sum(yc * torch.log(yc), dim=-1)
-        
-        
-        uniform = torch.full_like(torch.mean(yc, dim=0), 1.0 / num_comp)
-        kl_uni = (torch.mean(yc, dim=0) * (torch.log(torch.mean(yc, dim=0) + 1e-12) - torch.log(uniform))).sum()        
-        kl_reg = -torch.mean(torch.sum(yc * torch.log(yc + 1e-12), dim=-1)) + kl_uni
-        
-        
-        log_var_reg = 0.5*torch.sum(1 + logvars, dim=-1)
-        #log_var_reg = 0.5*torch.sum(0.5 + logvars, dim=-1)
-        #log_var_reg = 0.5*torch.sum(0.1 + logvars, dim=-1)
-
-
-        mixt_kl = torch.mean(mixt_kl) #* 0.01
-        #kl_reg = torch.mean(kl_reg)
-        log_var_reg = torch.mean(log_var_reg)
-
-        assert not torch.isnan(mixt_kl).any()
-        assert not torch.isnan(kl_reg).any()
-        assert not torch.isnan(log_var_reg).any()
-        assert not torch.isnan(yc).any()
-
-        
-        if print_mixt_params and not printed:
-            logger.info(f"mixt kl loss: {mixt_kl}")
-            #logger.info(f"(mu - mu_c) shape: {torch.square(mu - self.mu_c).shape}") # [B*N, L, d]
-            logger.info(f"(mu - mu_c): {torch.sum(torch.square(mu - self.mu_c), dim=-1)[:5]}")
-            logger.info(f"yc * (mu - mu_c): {(yc * torch.sum(torch.square(mu - self.mu_c), dim=-1))[:5]}")
-            #logger.info(f"(mu - mu_c)/var_c: {torch.mean(torch.sum(torch.sum(torch.square(mu - self.mu_c)/torch.exp(self.logvar_c), dim=-1), dim=-1))}")
-
-            logger.info(f"kl uni: {kl_uni}")
-            logger.info(f"kl reg: {kl_reg}")
-            logger.info(f"logvar reg: {log_var_reg}")
-
-            # logger.info(f"\nmu: {mu}")
-            # logger.info(f"mu_c: {self.mu_c}")
-            # logger.info(f"mu-mu_c: {torch.square(mu-self.mu_c)}")
-            # logger.info(f"(mu-mu_c)/exp(logvar_c): {torch.square(mu-self.mu_c)/torch.exp(self.logvar_c)}\n")
-        
-        return mixt_kl, kl_reg, log_var_reg, yc
+    def compute_kl_loss(self, mu, logvars):
+        kl_div = -0.5 * torch.sum(1 + logvars - mu**2 - torch.exp(logvars), dim=-1)
+        return kl_div
     
     def compute_rec_loss(self, rec, target):
         criterion = nn.MSELoss()
         return criterion(rec, target)
+
+    def encode(self, x):
+        mu, logvars = self.encoder(x)
+        assert not torch.isnan(logvars).any()
+        stds = torch.exp(0.5*logvars)
+        z = mu + torch.randn_like(mu)*stds # reparameterization trick
+        return mu, logvars, z
     
-    def gaussian_pdfs_log(self, x , mus, log_sigma2s):
-        """
-        x:              [B, d]
-        mus:            [K, d]
-        log_sigma2s:    [K]
-        """
+    def decode(self, z):
+        rec = self.decoder(z)
+        return rec
 
-
-        G=[]
-        for c in range(self.K):
-            G.append(self.gaussian_pdf_log(x, mus[c:c+1, :], log_sigma2s[c:c+1]).view(-1,1))
-        return torch.cat(G,1)
-
-    def gaussian_pdf_log(self, x, mu, log_sigma2):
-        assert not torch.isnan(log_sigma2).any()
-
-        return -0.5*(torch.sum(math.log(math.pi*2) + log_sigma2 + torch.square(x-mu)/torch.exp(log_sigma2), 1))
-    
-    def kl_div_mixt(self, logvar, prior_logvar):
-        B, d = logvar.shape
-        K = prior_logvar.shape[0] # [K, d]
-
-        # Expand for broadcasting
-        logvar = logvar[:, None, :]         # [B, 1, d]
-        prior_logvar = prior_logvar[None, :, :]  # [1, K, d]
-
-        # Compute KL divergence for each (B, K) pair
-        kl = 0.5 * (prior_logvar - logvar + torch.exp(logvar - prior_logvar) - 1)
-        return kl.sum(-1)  # sum over feature dimension -> [B, K]
-
-
-class LabelEmbeddings(nn.Module):
-  def __init__(self, num_classes_list, latent_dim):
-    """
-    num_classes_list: List of number of categories for each discrete variable (e.g. [2, 3] for shape and color)
-    latent_dim: Dimensionality of the latent space
-    """
-    super().__init__()
-    self.embeddings = nn.ModuleList([
-        nn.Sequential(nn.Embedding(num_classes, latent_dim), nn.Identity()) for num_classes in num_classes_list
-    ])
-    self.latent_dim = latent_dim
-    self.eps = 1e-1
-
-  def forward(self, labels):
-    """
-    labels: Tensor of shape [batch_size, num_discrete_variables] with categorical indices
-    Returns:
-        mean, var: Prior mean and variance for each latent variable
-    """
-
-    #logger.info(labels.shape)
-
-    batch_size, num_vars = labels.shape
-    #vars = torch.ones(batch_size, 1, self.latent_dim).to(labels.device)  # Keep variance constant
-    means = torch.tensor([])
-    for j in range(num_vars): 
-        embedding = self.embeddings[j](labels[:, j]).unsqueeze(-2) + torch.randn(batch_size, 1, self.latent_dim) * params["label_embeddings_std"]
-        means = torch.cat((means, embedding), dim=-2) # [B, L, d]
-        
-    return means#, vars # [B, L, d]
-  
 class MLP(nn.Module):
     """ a simple 4-layer MLP """
 
@@ -415,9 +205,9 @@ class MLP(nn.Module):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(nin, nh),
-            nn.LeakyReLU(),
+            nn.ELU(),
             nn.Linear(nh, nh),
-            nn.LeakyReLU(),
+            nn.ELU(),
             nn.Linear(nh, nout),
         )
         if f_act == "softmax": self.f_act = nn.Softmax(dim=-1)
@@ -432,19 +222,6 @@ class MLP(nn.Module):
         else:
             return self.f_act(self.net(x * mask))
         
-class ShallowMLP(nn.Module):
-    def __init__(self, nin, nout, nh, f_act="identity"):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(nin, nout)
-        )
-        if f_act == "softmax": self.f_act = nn.Softmax(dim=-1)
-        elif f_act == "sigmoid": self.f_act = nn.Sigmoid()
-        elif f_act == "tanh": self.f_act = nn.Tanh()
-        else: self.f_act = nn.Identity()
-
-    def forward(self, x):
-        return self.f_act(self.net(x))
 
 class LinearProbe(nn.Module):
     def __init__(self, nin, nout):
@@ -454,23 +231,16 @@ class LinearProbe(nn.Module):
             nn.ReLU(),
             nn.Linear(nin, nout)
         )
-
     def forward(self, x):
         return self.net(x)
 
 class Flow(nn.Module):
-    def __init__(self, L, ldim, A=None, net_class=MLP, nh=100, prior=False, f_act="identity"):
+    def __init__(self, L, ldim, A=None, net_class=MLP, nh=100, f_act="identity"):
         super().__init__()
 
-        if not prior: 
-            self.s_cond = net_class(L*ldim, ldim, nh, f_act=f_act)
-            self.t_cond = net_class(L*ldim, ldim, nh, f_act=f_act)
-            self.total_dims = L*ldim
-        else:
-            self.s_cond = net_class(L*2*ldim, ldim, nh, f_act=f_act)
-            self.t_cond = net_class(L*2*ldim, ldim, nh, f_act=f_act)
-            self.total_dims = L*2*ldim
-        self.prior = prior
+        self.s_cond = net_class(L*ldim, ldim, nh, f_act=f_act)
+        self.t_cond = net_class(L*ldim, ldim, nh, f_act=f_act)
+        self.total_dims = L*ldim
         
         self.L, self.ldim = L, ldim
 
@@ -526,12 +296,11 @@ class PriorMultivariateCausalFlow(nn.Module):
         self.L, self.ldim, self.A = L, ldim, A
         self.nf = nn.ModuleDict()
         for i in range(L):
-            self.nf[str(i)] = Flow(L, ldim, A, prior=True, f_act="tanh") # instead of "tanh"
+            self.nf[str(i)] = Flow(L, ldim, A, f_act="tanh") # instead of "tanh"
         
-        self.embeddings = nn.ModuleList([nn.Embedding(3, ldim) for _ in range(self.L)])
 
     
-    def forward(self, u_m, z=None, gt_labels=None):
+    def forward(self, u_m, z):
 
         # e:      [B, N, L, d]  ->  label embeddings
         # latent: [B, N, L, d]  ->  z_scm
@@ -541,80 +310,18 @@ class PriorMultivariateCausalFlow(nn.Module):
 
         assert z.shape == u_m.shape
 
-        """
-        - the label embeddings have preserved the object order that is initially sampled
-        - z_scm have an object order that comes from the arbitrary structure of slots (slots -> z_noise -> z_scm)
-        - how to align both??? or at least, account for the disalignment like in a matching loss?
-        - 
-        """
-
-        # assert preds != None
-
-        # probs_exp = preds[:, :, None, :, :]  # [B, N, 1, L, K]
-        # labels_exp = gt_labels[:, None, :, :]                # [B, 1, N, L]
-        # labels_exp = labels_exp.expand(-1, N, -1, -1)      # [B, N, N, L]
-        # labels_exp = labels_exp.unsqueeze(-1)             # [B, N, N, L, 1]
-
-        # # Step 2: Compute log-probs
-        # log_probs = (probs_exp + 1e-9).log()         # [B, N, 1, L, K]
-        # log_probs = log_probs.expand(-1, -1, N, -1, -1)   # [B, N, N, L, K]
-
-        # # Step 3: Gather NLL loss at GT label positions
-        # nll = -log_probs.gather(dim=-1, index=labels_exp).squeeze(-1)  # [B, N, N, L]
-
-        # # Step 4: Aggregate across latent variables (mean or sum)
-        # class_cost = nll.mean(dim=-1)  # Final cost: [B, N, N]
-
-        # # if is_train and step % params["step_size"] == 0:
-        # #     logger.info(f"\npreds: {preds[:5]}")
-        # #     logger.info(f"labels: {gt_labels[:5]}")
-        # #     logger.info(f"cost: {class_cost}")
-        
-        # a, b = torch.tensor([1.]), torch.tensor([1.])
-        # #attn_logits = torch.cdist(e.reshape(B, N, L*d), latent.reshape(B, N, L*d)) 
-        # #attn_logits = torch.cdist(e.reshape(B, N, L*d), latent.reshape(B, N, L*d)) + class_cost
-        # attn_logits = class_cost
-        # # logger.info(attn_logits.shape)    [B, N, N]   
-        # attn_logits, p, q = minimize_entropy_of_sinkhorn(attn_logits, a, b, mesh_lr=3, n_mesh_iters=3) 
-        # # logger.info(attn_logits.shape)    [B, N, N]
-        # attn, _, _ = sinkhorn(attn_logits, a, b, u=p, v=q)
-        # # logger.info(attn.shape)           [B, N, N]
-
-        # # if is_train and step % params["step_size"] == 0:
-        # #     logger.info(f"align attn: {attn[:5]}")
-        
-        # u_m = torch.matmul(attn, u_m.reshape(B, N, L*d)).reshape(B, N, L, d)
     
         cp_m = torch.zeros_like(u_m).to(device)
         L_slopes = torch.tensor([]).to(device)
         ss = torch.tensor([])
         ts = torch.tensor([])
 
-        self.embeddings_stack = torch.tensor([])
-        for j in range(L): 
-            embedding = self.embeddings[j](gt_labels[:, :, j].long()).unsqueeze(-2)
-            self.embeddings_stack = torch.cat((self.embeddings_stack, embedding), dim=-2) # [B, N, L, d]
-
-        #self.embeddings_stack = torch.matmul(attn, self.embeddings_stack.reshape(B, N, L*d)).reshape(B, N, L, d)
-        z = torch.cat((z, self.embeddings_stack), dim=-1) # [B, N, L, d+d]
-        
-        """
-        I need to condition on z and on the responsibilities
-        - take gt_labels [B, N, L] and transform to embeddings for [B, N, d]
-        - different set of embeddings for different variables!!!!
-        - align the embeddings just like I align u_m above
-        - concat these embeddings on z, so that each element in z has the class embedding 
-        """
-
         total_dims = self.L*self.ldim
         for i in range(self.L):
             if 1 in self.A[i, :]: # shape
-                mask = torch.cat((self.A[i, :].repeat(self.ldim, 1).T.reshape(total_dims).to(device), (1. - self.A[i, :].repeat(self.ldim, 1).T.reshape(total_dims)).to(device)), dim=0)
+                mask = self.A[i, :].repeat(self.ldim, 1).T.reshape(total_dims).to(device)
             else: # color
-                mask = torch.cat((torch.zeros(total_dims).to(device), torch.ones(total_dims//2).to(device), torch.zeros(total_dims//2).to(device)), dim=0)
-            
-            # logger.info(f"var {i} mask: {mask.shape} - {mask}")
-            # logger.info(f"z: {z.shape} - {z}")
+                mask = torch.zeros(total_dims).to(device)
             
             cp_m[:, :, i, :], s, t = self.nf[str(i)](u_m[:, :, i, :], z, mask)
             L_slopes = torch.cat((L_slopes, s.unsqueeze(-2)), dim=-2)
@@ -623,62 +330,6 @@ class PriorMultivariateCausalFlow(nn.Module):
             ts = torch.cat((ts, t.unsqueeze(-2)), dim=-2)
 
         return cp_m, L_slopes, ss, ts
-
-def loft(s, tau = params["slope_constraint"]):
-    tau = torch.tensor(tau, dtype=s.dtype, device=device)
-    return torch.sign(s) * (torch.log(torch.maximum(torch.abs(s) - tau, torch.tensor(0.)) + 1) + torch.minimum(torch.abs(s), tau))
-
-def old_compute_leakage_loss(logits, labels):
-    B, N, K = logits.shape
-    loss = 0.0
-    for b in range(B):
-        cost_matrix = torch.zeros(N, N)
-        for i in range(N):  # predicted slot
-            for j in range(N):  # label slot
-                # Compute CE between predicted logit and label[j]
-                ce = F.cross_entropy(logits[b, i], labels[b, j], reduction='none')
-                cost_matrix[i, j] = ce
-        
-        cost_matrix_np = cost_matrix.detach().cpu().numpy()
-        row_ind, col_ind = linear_sum_assignment(cost_matrix_np)
-
-        matched_logits = logits[b, row_ind]           # [N, K]
-        matched_labels = labels[b, col_ind]           # [N]
-        ce_loss = F.cross_entropy(
-            matched_logits,
-            matched_labels,
-            reduction='sum'
-        )
-        loss += ce_loss
-
-    loss = loss / B
-    return loss  # negative CE = leakage loss to maximize for disentanglement
-
-def compute_leakage_loss(logits, labels):
-    B, N, K = logits.shape
-    loss = 0.0
-    logits_exp = logits.unsqueeze(2).expand(-1, -1, N, -1)       # [B, N, N, K]
-    labels_exp = labels.unsqueeze(1).expand(-1, N, -1)           # [B, N, N]
-
-    # Compute cross-entropy per element: flatten to batch for CE
-    ce_loss_matrix = F.cross_entropy(
-        logits_exp.reshape(-1, K),           # [B*N*N, K]
-        labels_exp.reshape(-1),              # [B*N*N]
-        reduction='none'
-    ).reshape(B, N, N)  # [B, N, N]
-
-    for b in range(B):
-        cost = ce_loss_matrix[b].detach().cpu().numpy()
-        row_ind, col_ind = linear_sum_assignment(cost)
-        
-        matched_logits = logits[b, row_ind]        # [N, K]
-        matched_labels = labels[b, col_ind]        # [N]
-        ce = F.cross_entropy(matched_logits, matched_labels, reduction='sum')
-        loss += ce
-    
-    loss = loss / B
-    return loss  # negative CE = leakage loss to maximize for disentanglement
-
 
 
 class TCDiscriminator(nn.Module):
@@ -710,40 +361,6 @@ def permute_dims(z, d):
 
     return perm_z, perms
 
-
-
-
-
-
-class GaussianNet(nn.Module):
-    def __init__(self, input_dim, hid_dim, out_dim, activ):
-        super().__init__()
-
-        self.fc = nn.Sequential(
-            nn.Linear(input_dim, hid_dim),
-            nn.ReLU()
-        )
-        self.fc_mean = nn.Linear(hid_dim, out_dim)
-        self.fc_logvar = nn.Linear(hid_dim, out_dim)
-        self.activ = activ
-
-    def forward(self, x):
-        x = self.fc(x)
-        mean = self.activ(self.fc_mean(x))
-        logvar = self.fc_logvar(x)
-        return mean, logvar
-
-
-def get_pretrained_wts(guide, path):
-    # loading the pre-trained weights from the density map estimator
-    pretrained_estimator = torch.load(path)
-    guide_encoder_dict = guide.encoder_cnn.state_dict()
-    for key in guide_encoder_dict:
-        if key in pretrained_estimator.keys():
-            guide_encoder_dict[key] = pretrained_estimator[key]
-            logging.info(f"...{key} loaded")
-    guide.encoder_cnn.load_state_dict(guide_encoder_dict)
-    return guide
 
 @torch.jit.script
 def sinkhorn(C: Tensor, a: Tensor, b: Tensor, n_sh_iters: int = 5, temperature: float = 1, u: Union[Tensor, None] = None, v: Union[Tensor, None] = None) -> Tuple[Tensor, Tensor, Tensor]:
