@@ -6,8 +6,13 @@ import matplotlib
 
 from ..main import params
 
+import logging
+logger = logging.getLogger(params["running_type"])
+
 def hsv_to_rgb(hsv):
-  return (matplotlib.colors.hsv_to_rgb(hsv)*255).astype(int)
+  hsv = (matplotlib.colors.hsv_to_rgb(hsv)*255).astype(int)
+  logger.info(hsv)
+  return hsv
 
 def img_to_tensor(image):
   img_transform = transforms.Compose([transforms.ToTensor()])
