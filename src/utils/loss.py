@@ -1,10 +1,12 @@
 import torch
 
-from ..main import params
-
+import sys
 import logging
-logger = logging.getLogger(params["running_type"])
+sys.path.insert(0, '../..') # add parent-parent dir
 
+from src.main import params
+
+logger = logging.getLogger(params["running_type"])
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def compute_log_det(L_slopes):
