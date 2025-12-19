@@ -83,8 +83,7 @@ class SlotAttention(nn.Module):
         inputs = self.norm_input(inputs)      
         k, v = self.to_k(inputs), self.to_v(inputs) # 'k' and 'v' have shape (1, 16384, 64)
 
-        if params["strided_convs"]: latent_resolution = (32, 32)
-        else: latent_resolution = (128, 128)
+        latent_resolution = (32, 32)
         
         x_pos, y_pos = build_coords(1, latent_resolution)
         grid = torch.cat([x_pos, y_pos], dim=-1)
@@ -306,7 +305,7 @@ class InvSlotAttentionGuide(nn.Module):
             
         if False:
         #if self.is_train and self.step % params['step_size_img_sv'] == 0:
-            aux_attn = attn.reshape((B, n_s, 128, 128)) if not params["strided_convs"] else attn.reshape((B, n_s, 32, 32))
+            aux_attn = attn.reshape((B, n_s, 32, 32))
             fig, ax = plt.subplots(ncols=n_s)
             for j in range(n_s):                                       
                     im = ax[j].imshow(aux_attn[0, j, :, :].detach().cpu().numpy())
