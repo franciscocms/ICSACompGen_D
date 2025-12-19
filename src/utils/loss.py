@@ -27,5 +27,8 @@ def compute_prior_z_loss(z, cp):
   var = torch.zeros(cp.shape).to(device)
   causal_loss = 0.
   for i in range(len(params["latent_vars"])):
-    causal_loss += torch.mean(torch.sum(0.5 * (torch.log(var) - torch.log(var) + var / var + (z[:, i, :] - cp[:, i, :]).pow(2) / var - 1), dim=-1))
+    temp = torch.sum(0.5 * (torch.log(var) - torch.log(var) + var / var + (z[:, i, :] - cp[:, i, :]).pow(2) / var - 1), dim=-1)
+    logger.info(temp.shape)
+    
+    causal_loss += torch.mean(temp)
   return causal_loss
