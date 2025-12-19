@@ -119,7 +119,6 @@ for epoch in range(params["training_epochs"]):
   #prior_coeff = exp_scheduler(epoch, 50, 0., 1.)
   prior_coeff = 1.
   TC_coeff = params["TC_coeff"]
-  log_det_coeff = params["log_det_coeff"]
   alpha = params["alpha"]
 
   # update gradient computation flags
@@ -176,22 +175,20 @@ for epoch in range(params["training_epochs"]):
       
     if params["causal_dropout_prob"] <= 1.:
       log_det = compute_log_det(guide.L_slopes)
-      batch_loss -= log_det_coeff*log_det
       assert not torch.isnan(log_det).any()
     else:
       log_det = torch.tensor(0.)
-    
     batch_loss += alpha * (kl_noise - log_det)
     
     if params["beta"] > 0:
       log_det_prior = compute_log_det(guide.prior_L_slopes)
       causal_loss = compute_prior_z_loss(z, cp)
-      batch_loss += (causal_loss - log_det_prior)
       assert not torch.isnan(causal_loss).any()
       assert not torch.isnan(log_det_prior).any()
     else:
       causal_loss = torch.tensor(0.)
       log_det_prior = torch.tensor(0.)
+    batch_loss += alpha * (causal_loss - log_det_prior)
 
     batch_loss.backward()
     optimizer.step()
@@ -228,6 +225,7 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["causal_loss"] = causal_loss
   dict_to_log["log_det"] = log_det
   dict_to_log["kl_noise"] = kl_noise
+  dict_to_log["alpha"] = params["alpha"]
   if params["beta"] > 0:
     dict_to_log["prior_coeff"] = prior_coeff
     dict_to_log["prior_s"] = guide.prior_ss

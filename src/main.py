@@ -36,16 +36,10 @@ params = {
     "epoch_to_load" : 5, 
     "ood_eval": False,
     "TC_minimization": False, # usually True
-    "alpha": 1., # usually 1.
+    "alpha": 0.01, # usually 1.
     "beta": 1., 
     "TC_coeff": 10., # usually 10
-    "log_det_coeff": 0.01, # previously 0.01
     "normalized_logdet": False,
-    "mixt_kl_coeff": 0.01, # previosuly 0.01
-    "logvar_reg_coeff": 0.01, # prev 0.001
-    "yc_temperature": 10, # previosuly 10
-    "label_embeddings_std": 1.,  # previously 1.0
-    "label_embeddings_mu_mult": 1., # previously 1.0 #######################################################
     "causal_dropout_prob": 0., # 0.6 for models with causal flow, 1.0 for models without
     "slot_dim" : 16,
     "check_attn": True,
