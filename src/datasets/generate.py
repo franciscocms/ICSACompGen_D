@@ -112,10 +112,10 @@ def generate_scene(params, scene_id=0, A=None):
 
   for n in range(int(n_objects)):
     scene_dict["scene_attr"]["object_" + str(n)] = {
-      "scale":  attributes_list[n][0],
-      "color":  attributes_list[n][1],
-      "x_pos":  attributes_list[n][2],
-      "y_pos":  attributes_list[n][3]
+      "scale":  attributes_list[n][0].item(),
+      "color":  attributes_list[n][1].item(),
+      "x_pos":  attributes_list[n][2].item(),
+      "y_pos":  attributes_list[n][3].item()
       }
 
   #img = pillowrender.render(shape_obj, size_obj, color_obj, locx_obj, locy_obj, BACKGROUND_COLOR)
