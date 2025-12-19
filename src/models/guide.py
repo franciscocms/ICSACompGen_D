@@ -274,7 +274,7 @@ class InvSlotAttentionGuide(nn.Module):
                                             nout = self.ldim
                                             )
         self.causal_decs = nn.ModuleDict()
-        for i in range(self.num_slots):
+        for i in range(params["num_slots"]):
             self.causal_decs[str(i)] = CausalDecoder(nin = self.ldim,
                                             nh = self.ldim,
                                             nout = self.ldim
@@ -351,9 +351,9 @@ class InvSlotAttentionGuide(nn.Module):
 
         
         slot_hat = []
-        for i in range(self.num_slots):
+        for i in range(n_s):
             slot_hat_i = self.causal_decs[str(i)](z_scm[:, i, :, :])
-            logger.info(slot_hat_i.shape)
+            #logger.info(slot_hat_i.shape)
             slot_hat.append(slot_hat_i) # N, B, L, d
         slot_hat = torch.sum(torch.stack(slot_hat, dim=1), dim=-2) # [B, N, L, d] -> [B, N, d]
         
