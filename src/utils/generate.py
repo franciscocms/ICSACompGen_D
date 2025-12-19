@@ -10,7 +10,7 @@ import logging
 logger = logging.getLogger(params["running_type"])
 
 def hsv_to_rgb(hsv):
-  rgb = ((matplotlib.colors.hsv_to_rgb(hsv)*255).astype(int))
+  rgb = tuple((matplotlib.colors.hsv_to_rgb(hsv)*255).astype(int))
   logger.info(rgb)
   return rgb
 
