@@ -23,9 +23,9 @@ sys.path.append(os.path.abspath(__file__+'/../../'))
 
 main_dir = os.path.abspath(__file__+'/../../')
 
-from utils.guide import load_trained_guide, LinearProbe
+from utils.guide import LinearProbe
 from models.guide import InvSlotAttentionGuide
-from setup import params
+from main import params
 
 import logging
 logfile_name = f"eval-{params['jobID']}.log"

@@ -16,7 +16,6 @@ import os
 sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
-from .distributions import CategoricalVals, TruncatedNormal
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
