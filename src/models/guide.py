@@ -352,7 +352,9 @@ class InvSlotAttentionGuide(nn.Module):
         
         slot_hat = []
         for i in range(self.num_slots):
-            slot_hat.append(self.causal_decs[str(i)](z_scm[:, i, :, :])) # N, B, L, d
+            slot_hat_i = self.causal_decs[str(i)](z_scm[:, i, :, :])
+            logger.info(slot_hat_i.shape)
+            slot_hat.append(slot_hat_i) # N, B, L, d
         slot_hat = torch.sum(torch.stack(slot_hat, dim=1), dim=-2) # [B, N, L, d] -> [B, N, d]
         
         img_hat = self.decoder(slot_hat)
