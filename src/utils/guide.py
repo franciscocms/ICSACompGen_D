@@ -194,7 +194,7 @@ class CausalDecoder(nn.Module):
         super().__init__()
         self.decoder = Decoder(nin=nout, nh=nh, nout=nin)    # takes the reparameterized z to generate hat(u_m)
 
-    def decode(self, z):
+    def forward(self, z):
         rec = self.decoder(z)
         return rec
 
