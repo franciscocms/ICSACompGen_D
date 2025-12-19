@@ -3,8 +3,8 @@ import torch.distributions as dist
 import json 
 import os
 
-from utils.generate import render, norm
-from ..main import params
+from src.utils.generate import render, norm
+from src.main import params
 
 import logging
 logfile_name = f"generate.log"
