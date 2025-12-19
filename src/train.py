@@ -170,8 +170,8 @@ for epoch in range(params["training_epochs"]):
     target = target.to(DEVICE)
     B = img.size(0)
 
-    logger.info(img.is_cuda())
-    logger.info(target.is_cuda())
+    logger.info(img.is_cuda)
+    logger.info(target.is_cuda)
     
 
     batch_loss = 0.
