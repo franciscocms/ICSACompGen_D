@@ -101,7 +101,7 @@ target_dir = os.path.join(dataset_dir, "metadata")
 train_ds = MyDataset(dataset_dir)
 logger.info(len(train_ds))
 
-train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, num_workers=8, generator=torch.Generator(device='cuda'))
+train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, num_workers=8)
 
 def compute_e_loss(mu, logvar, e, print_mixt_params, printed, yc):
   kl_noise = 0.
