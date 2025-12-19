@@ -43,5 +43,6 @@ class MyDataset(Dataset):
     target_dict = json.load(open(os.path.join(self.target_path, f"{str(idx).zfill(len(str(self.nscenes)))}.json")))
     target = process_targets(target_dict)
 
-    return img, torch.cat((torch.argmax(target[:, :3], dim=-1).unsqueeze(-1),
-                           torch.argmax(target[:, 3:6], dim=-1).unsqueeze(-1)), dim=-1)
+    logger.info(target)
+
+    return img, target

@@ -178,104 +178,104 @@ for epoch in range(params["training_epochs"]):
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
     batch_loss += alpha*(recon_loss + prior_coeff*slot_recon_loss)
     
-  #   if epoch % epoch_step == 0 and not printed:
+    if epoch % epoch_step == 0 and not printed:
 
-  #     if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
-  #       os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")
+      if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
+        os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")
 
-  #     print_mixt_params = True
-  #     logger.info(f"img recon loss: {recon_loss}")
-  #     logger.info(f"slot recon loss: {slot_recon_loss}")
+      print_mixt_params = True
+      logger.info(f"img recon loss: {recon_loss}")
+      logger.info(f"slot recon loss: {slot_recon_loss}")
 
-  #     fig, ax = plt.subplots(1, 2 + params["num_slots"])
-  #     ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
-  #     for j in range(params["num_slots"]):                                       
-  #       ax[j+1].imshow(guide.attn.reshape((B, params["num_slots"], 32, 32))[0, j, :, :].detach().cpu().numpy())
-  #     ax[-1].imshow(np.transpose(recon[0].detach().cpu().numpy(), (1, 2, 0)))
-  #     for j in range(2 + params["num_slots"]):
-  #       ax[j].grid(False)
-  #       ax[j].axis('off')   
-  #     plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_attn_recon.png")
-  #     plt.close()
+      fig, ax = plt.subplots(1, 2 + params["num_slots"])
+      ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
+      for j in range(params["num_slots"]):                                       
+        ax[j+1].imshow(guide.attn.reshape((B, params["num_slots"], 32, 32))[0, j, :, :].detach().cpu().numpy())
+      ax[-1].imshow(np.transpose(recon[0].detach().cpu().numpy(), (1, 2, 0)))
+      for j in range(2 + params["num_slots"]):
+        ax[j].grid(False)
+        ax[j].axis('off')   
+      plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_attn_recon.png")
+      plt.close()
 
-  #   kl_noise = compute_e_loss(mu, logvar, e, print_mixt_params, printed)
-  #   batch_loss += alpha*kl_noise
-  #   assert not torch.isnan(kl_noise).any()
+    kl_noise = compute_e_loss(mu, logvar, e, print_mixt_params, printed)
+    batch_loss += alpha*kl_noise
+    assert not torch.isnan(kl_noise).any()
     
-  #   if params["TC_minimization"]:
-  #     disc_input = torch.flatten(e, -2)
-  #     D_joint = guide.tc_discriminator(disc_input)
-  #     tc_loss = torch.square(torch.mean(D_joint[:, :1] - D_joint[:, 1:]))
-  #     fake_z_noise, perms = permute_dims(disc_input, params["slot_dim"])
-  #     batch_loss += TC_coeff*tc_loss
-  #     assert not torch.isnan(tc_loss).any()
-  #   else:
-  #     tc_loss = torch.tensor(0.)
+    if params["TC_minimization"]:
+      disc_input = torch.flatten(e, -2)
+      D_joint = guide.tc_discriminator(disc_input)
+      tc_loss = torch.square(torch.mean(D_joint[:, :1] - D_joint[:, 1:]))
+      fake_z_noise, perms = permute_dims(disc_input, params["slot_dim"])
+      batch_loss += TC_coeff*tc_loss
+      assert not torch.isnan(tc_loss).any()
+    else:
+      tc_loss = torch.tensor(0.)
       
-  #   if params["causal_dropout_prob"] <= 1.:
-  #     log_det = compute_log_det(guide.L_slopes)
-  #     batch_loss -= log_det_coeff*log_det
-  #     assert not torch.isnan(log_det).any()
-  #   else:
-  #     log_det = torch.tensor(0.)
+    if params["causal_dropout_prob"] <= 1.:
+      log_det = compute_log_det(guide.L_slopes)
+      batch_loss -= log_det_coeff*log_det
+      assert not torch.isnan(log_det).any()
+    else:
+      log_det = torch.tensor(0.)
     
-  #   if params["beta"] > 0:
-  #     log_det_prior = compute_log_det(guide.prior_L_slopes)
-  #     causal_loss = compute_prior_z_loss(z, cp)
-  #     batch_loss += prior_coeff*causal_loss - prior_coeff*log_det_coeff*log_det_prior
-  #     assert not torch.isnan(causal_loss).any()
-  #     assert not torch.isnan(log_det_prior).any()
-  #   else:
-  #     causal_loss = torch.tensor(0.)
-  #     log_det_prior = torch.tensor(0.)
+    if params["beta"] > 0:
+      log_det_prior = compute_log_det(guide.prior_L_slopes)
+      causal_loss = compute_prior_z_loss(z, cp)
+      batch_loss += prior_coeff*causal_loss - prior_coeff*log_det_coeff*log_det_prior
+      assert not torch.isnan(causal_loss).any()
+      assert not torch.isnan(log_det_prior).any()
+    else:
+      causal_loss = torch.tensor(0.)
+      log_det_prior = torch.tensor(0.)
 
-  #   batch_loss.backward()
-  #   optimizer.step()
-  #   assert img.size(0) > 0
-  #   epoch_train_loss += batch_loss/img.size(0) 
+    batch_loss.backward()
+    optimizer.step()
+    assert img.size(0) > 0
+    epoch_train_loss += batch_loss/img.size(0) 
 
-  #   if params["TC_minimization"]:
-  #     for name, param in guide.tc_discriminator.named_parameters():
-  #       param.requires_grad = True
+    if params["TC_minimization"]:
+      for name, param in guide.tc_discriminator.named_parameters():
+        param.requires_grad = True
       
-  #     D_perm = guide.tc_discriminator(fake_z_noise.detach())
-  #     D_joint = guide.tc_discriminator(disc_input.detach())
-  #     ones = torch.ones(D_perm.size(0), dtype=torch.long, device=DEVICE)
-  #     zeros = torch.zeros(D_perm.size(0), dtype=torch.long, device=DEVICE)
-  #     disc_tc_loss = alpha * torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
-  #     assert not torch.isnan(disc_tc_loss).any()
+      D_perm = guide.tc_discriminator(fake_z_noise.detach())
+      D_joint = guide.tc_discriminator(disc_input.detach())
+      ones = torch.ones(D_perm.size(0), dtype=torch.long, device=DEVICE)
+      zeros = torch.zeros(D_perm.size(0), dtype=torch.long, device=DEVICE)
+      disc_tc_loss = alpha * torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
+      assert not torch.isnan(disc_tc_loss).any()
       
-  #     dis_optimizer.zero_grad()
-  #     disc_tc_loss.backward()
-  #     dis_optimizer.step()
+      dis_optimizer.zero_grad()
+      disc_tc_loss.backward()
+      dis_optimizer.step()
 
-  #     if epoch % epoch_step == 0 and not printed:
-  #       logger.info(f"real batches pred: {torch.mean(D_joint)}")
-  #       logger.info(f"fake batches pred: {torch.mean(D_perm)}")
-  #   else:
-  #     disc_tc_loss = torch.tensor(0.)
+      if epoch % epoch_step == 0 and not printed:
+        logger.info(f"real batches pred: {torch.mean(D_joint)}")
+        logger.info(f"fake batches pred: {torch.mean(D_perm)}")
+    else:
+      disc_tc_loss = torch.tensor(0.)
     
-  #   printed = True
+    printed = True
     
-  # if epoch % epoch_step == 0:
-  #   logger.info(f"epoch {epoch} - train_loss: {epoch_train_loss}")  
+  if epoch % epoch_step == 0:
+    logger.info(f"epoch {epoch} - train_loss: {epoch_train_loss}")  
 
-  # dict_to_log = {'train_loss': epoch_train_loss}
-  # dict_to_log["causal_loss"] = causal_loss
-  # dict_to_log["log_det"] = log_det
-  # dict_to_log["kl_noise"] = kl_noise
-  # if params["beta"] > 0:
-  #   dict_to_log["prior_coeff"] = prior_coeff
-  #   dict_to_log["prior_s"] = guide.prior_ss
-  #   dict_to_log["prior_t"] = guide.prior_ts
-  # dict_to_log["causal_dropout_prob"] = params["causal_dropout_prob"]
-  # if params["TC_minimization"]:
-  #   dict_to_log["latent_TC"] = tc_loss
-  #   dict_to_log["latent_TC_disc"] = disc_tc_loss
-  # dict_to_log["log_det_prior"] = log_det_prior
+  dict_to_log = {'train_loss': epoch_train_loss}
+  dict_to_log["causal_loss"] = causal_loss
+  dict_to_log["log_det"] = log_det
+  dict_to_log["kl_noise"] = kl_noise
+  if params["beta"] > 0:
+    dict_to_log["prior_coeff"] = prior_coeff
+    dict_to_log["prior_s"] = guide.prior_ss
+    dict_to_log["prior_t"] = guide.prior_ts
+  dict_to_log["causal_dropout_prob"] = params["causal_dropout_prob"]
+  if params["TC_minimization"]:
+    dict_to_log["latent_TC"] = tc_loss
+    dict_to_log["latent_TC_disc"] = disc_tc_loss
+  dict_to_log["log_det_prior"] = log_det_prior
   
-  # torch.save(guide.state_dict(), GUIDE_PATH+'/guide_'+str(epoch)+'.pth')
-  # run.log(dict_to_log)
+  torch.save(guide.state_dict(), GUIDE_PATH+'/guide_'+str(epoch)+'.pth')
+  run.log(dict_to_log)
 
 logger.info("\ntraining ended...")
 wandb.finish()
