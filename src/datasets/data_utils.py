@@ -42,7 +42,4 @@ class MyDataset(Dataset):
     img = self.transform(Image.open(os.path.join(self.img_path, f"{str(idx).zfill(len(str(self.nscenes)))}.png")))
     target_dict = json.load(open(os.path.join(self.target_path, f"{str(idx).zfill(len(str(self.nscenes)))}.json")))
     target = process_targets(target_dict)
-
-    logger.info(target)
-
     return img, target

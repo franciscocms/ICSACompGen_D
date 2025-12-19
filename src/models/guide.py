@@ -216,9 +216,6 @@ class Decoder(nn.Module):
         
 
     def forward(self, slots):
-        # z [B, N, d]
-        B, N, d = slots.shape
-
         return self.decoder(slots)
 
 class AdditiveDecoder(nn.Module):
