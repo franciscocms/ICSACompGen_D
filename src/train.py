@@ -119,7 +119,7 @@ for epoch in range(params["training_epochs"]):
   #prior_coeff = exp_scheduler(epoch, 50, 0., 1.)
   prior_coeff = 1.
   TC_coeff = params["TC_coeff"]
-  alpha = params["alpha"]
+  alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
 
   # update gradient computation flags
   if params["TC_minimization"]:
@@ -139,7 +139,7 @@ for epoch in range(params["training_epochs"]):
     slots, recon, e, mu, logvar, z, slot_hat, cp = guide(img, target)
     recon_loss = recon_loss_fn(recon, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
-    batch_loss += alpha*(recon_loss + prior_coeff*slot_recon_loss)
+    batch_loss += recon_loss + slot_recon_loss
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):

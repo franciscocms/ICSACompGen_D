@@ -17,7 +17,7 @@ sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
 from src.utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape
-from src.utils.guide import VAE, MMDLoss, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow
+from src.utils.guide import NoiseEncoder, CausalDecoder, MMDLoss, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow
 
 import logging
 import warnings
@@ -269,7 +269,13 @@ class InvSlotAttentionGuide(nn.Module):
                 hidden_dim = 128)
         self.noise_nets = nn.ModuleDict()
         for var_name in params["latent_vars"]:
-            self.noise_nets[var_name] = VAE(nin = self.ldim,
+            self.noise_nets[var_name] = NoiseEncoder(nin = self.ldim,
+                                            nh = self.ldim,
+                                            nout = self.ldim
+                                            )
+        self.causal_decs = nn.ModuleDict()
+        for i in range(self.num_slots):
+            self.causal_decs[str(i)] = CausalDecoder(nin = self.ldim,
                                             nh = self.ldim,
                                             nout = self.ldim
                                             )
@@ -345,9 +351,9 @@ class InvSlotAttentionGuide(nn.Module):
 
         
         slot_hat = []
-        for i, var in enumerate(params["latent_vars"]):
-            slot_hat.append(self.noise_nets[var].decode(z_scm[:, :, i, :]))
-        slot_hat = torch.sum(torch.stack(slot_hat, dim=-2), dim=-2)
+        for i in range(self.num_slots):
+            slot_hat.append(self.causal_decs[str(i)](z_scm[:, i, :, :])) # N, B, L, d
+        slot_hat = torch.sum(torch.stack(slot_hat, dim=1), dim=-2) # [B, N, L, d] -> [B, N, d]
         
         img_hat = self.decoder(slot_hat)
 

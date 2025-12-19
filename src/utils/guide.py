@@ -167,11 +167,10 @@ class Decoder(nn.Module):
     def forward(self, z):
         return self.layers(z)
 
-class VAE(nn.Module):
+class NoiseEncoder(nn.Module):
     def __init__(self, nin, nh, nout):
         super().__init__()
         self.encoder = Encoder(nin, nh, nout)                # takes an embedding batch u_m 
-        self.decoder = Decoder(nin=nout, nh=nh, nout=nin)    # takes the reparameterized z to generate hat(u_m)
 
     def compute_kl_loss(self, mu, logvars):
         assert len(mu.shape) == len(logvars.shape) == 2
@@ -189,6 +188,12 @@ class VAE(nn.Module):
         z = mu + torch.randn_like(mu)*stds # reparameterization trick
         return mu, logvars, z
     
+  
+class CausalDecoder(nn.Module):
+    def __init__(self, nin, nh, nout):  
+        super().__init__()
+        self.decoder = Decoder(nin=nout, nh=nh, nout=nin)    # takes the reparameterized z to generate hat(u_m)
+
     def decode(self, z):
         rec = self.decoder(z)
         return rec
