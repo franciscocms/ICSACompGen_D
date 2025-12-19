@@ -11,13 +11,13 @@ params = {
     "dataset_path": "/nas-ctm01/datasets/public/CG",
     "latent_vars": ["scale", "color", "x_pos", "y_pos"],
     "factor_ranges": {
-        "scale": [0.2 , 1.  ],
+        "scale": [0.5 , 1.  ],
         "color": [0.  , 1.  ],
         "x_pos": [0.15, 0.85],
         "y_pos": [0.15, 0.85]
     },
     "factor_scaling": {
-        "scale": 15,
+        "scale": 20,
         "color": 360,
         "x_pos": 128,
         "y_pos": 128
