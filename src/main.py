@@ -3,8 +3,6 @@ import logging
 import os
 import random
 
-from datasets.generate import generate_training_dataset
-
 main_dir = os.path.abspath(__file__+'/../../')
 
 params = {
@@ -60,29 +58,5 @@ params = {
 }
 
 if not os.path.isdir(params['plots_dir']): os.mkdir(params['plots_dir'])
-
-if not os.path.isdir(params["dataset_path"]):
-    
-    adj_matrix = generate_training_dataset(params)
-
-    
-
-
-
-
-params["color_vals"] = ["red", "green", "blue"]
-params["shape_vals"] = ["ball", "square", "triangle"]
-if "size" in params["latent_vars"]:
-    params["size_vals"] = ["small", "medium", "large"]
-else: params["size_vals"] = ["large"]
-
-# set job split settings for inference
-JOB_SPLIT = {
-            'id': 4,
-            'total': 4
-            }
-
-
-
 
 if params["check_attn"]: params["check_attn_folder"] = f"{main_dir}/check_imgs_{params['jobID']}"
