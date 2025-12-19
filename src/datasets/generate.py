@@ -79,7 +79,8 @@ def generate_scene(params, scene_id=0, A=None):
         parent = (A[i, :] == 1).nonzero(as_tuple=False)
         # specify the new range according to the causal dependency
         if len(parent) == 1:
-          factor_min, factor_max = attributes_list[parent] - 0.2, attributes_list[parent] + 0.2
+          norm_parent = norm(object_attributes[parent], params["factor_ranges"][params["latent_vars"][parent]][0], params["factor_ranges"][params["latent_vars"][parent]][1])
+          factor_min, factor_max = norm_parent - 0.2, norm_parent + 0.2
           if factor_min < params["factor_ranges"][factor][0]: factor_min = params["factor_ranges"][factor][0]
           if factor_max > params["factor_ranges"][factor][1]: factor_max = params["factor_ranges"][factor][1]
       # sample the value
@@ -99,7 +100,7 @@ def generate_scene(params, scene_id=0, A=None):
         # specify the new range according to the causal dependency
         if len(parent) == 1:
           # normalize parent value
-          norm_parent = factor_min = norm(attributes_list[parent], params["factor_ranges"][params["latent_vars"][parent]][0], params["factor_ranges"][params["latent_vars"][parent]][1])
+          norm_parent = norm(attributes_list[parent], params["factor_ranges"][params["latent_vars"][parent]][0], params["factor_ranges"][params["latent_vars"][parent]][1])
           factor_min, factor_max = norm_parent - 0.2, norm_parent + 0.2
 
           if factor_min < params["factor_ranges"][factor][0]: factor_min = params["factor_ranges"][factor][0]
