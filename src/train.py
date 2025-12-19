@@ -51,14 +51,15 @@ training_epochs = params["training_epochs"]
 epoch_step = params["epoch_step"]
 L = len(params["latent_vars"])
 
-shape_vals = {v: params["shape_vals"].index(v) for v in params["shape_vals"]}
-size_vals = {v: params["size_vals"].index(v) for v in params["size_vals"]}
-color_vals = {v: params["color_vals"].index(v) for v in params["color_vals"]}
-
 logger.info(params)
 
 l_to_label = {i: l for i, l in enumerate(params["latent_vars"])}
-A = params["adj_matrix"]
+A = torch.tensor([
+    [0., 0., 0., 0.],
+    [1., 0., 0., 0.],
+    [0., 0., 0., 0.],
+    [0., 0., 0., 0.],
+  ])
 logger.info(f"\nA: {A}\n")
 torch.manual_seed(params["random_seed"])
 
