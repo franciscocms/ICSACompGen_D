@@ -357,7 +357,7 @@ class InvSlotAttentionGuide(nn.Module):
             slot_hat.append(slot_hat_i) # N, B, L, d
         slot_hat = torch.sum(torch.stack(slot_hat, dim=1), dim=-2) # [B, N, L, d] -> [B, N, d]
         
-        img_hat = self.decoder(slot_hat)
+        img_hat = self.decoder(slots)
 
         """
         - prior won't be aligned with labels...
