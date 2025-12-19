@@ -167,7 +167,7 @@ class Encoder(nn.Module):
         for c in range(2):
             self.encoder_sa += [nn.Conv2d(64, 64, 5, 2, 2), nn.ELU()]
         self.encoder_sa += [nn.Conv2d(64, 64, 5, 1, 2), nn.ELU()]
-        self.last_dim = self.encoder_sa[-1].out_channels
+        self.last_dim = self.encoder_sa[-2].out_channels
         self.encoder_sa = nn.Sequential(*self.encoder_sa)
         
         #self.encoder_pos = SoftPositionEmbed(hid_dim, resolution)
