@@ -13,11 +13,11 @@ from sklearn.mixture import GaussianMixture
 
 # add project path to sys to import relative modules
 import sys
-sys.path.append(os.path.abspath(__file__+'/../../'))
+sys.path.insert(0, '../..') # add parent-parent dir
 
-from ..main import params
-from utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape
-from utils.guide import VAE, MMDLoss, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow
+from src.main import params
+from src.utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape
+from src.utils.guide import VAE, MMDLoss, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow
 
 import logging
 import warnings
