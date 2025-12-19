@@ -255,8 +255,6 @@ class InvSlotAttentionGuide(nn.Module):
         assert self.stage in ["train", "eval"], "stage must be either 'train' or 'eval'"
         self.L = nlatents
         self.A = A
-        self.num_classes_list = [len(params[f"{v}_vals"]) for v in params["latent_vars"]]
-        self.num_classes_dict = {v: len(params[f"{v}_vals"]) for v in params["latent_vars"]}
 
         self.encoder_cnn = Encoder(self.resolution)
         self.hid_dim = self.encoder_cnn.last_dim
@@ -284,7 +282,6 @@ class InvSlotAttentionGuide(nn.Module):
         self.causal_flow = MultivariateCausalFlow(self.L, self.ldim, self.A)
         self.prior = PriorMultivariateCausalFlow(self.L, self.ldim, self.A)
         self.mmd_loss = MMDLoss()
-        self.embeddings_mu = torch.randn(self.L, self.num_classes_list[0], self.ldim) * params["label_embeddings_mu_mult"]
         if params["TC_minimization"]: self.tc_discriminator = TCDiscriminator(self.L*self.ldim, self.L*self.ldim*4)
         
 
