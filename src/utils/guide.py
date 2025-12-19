@@ -249,9 +249,9 @@ class Flow(nn.Module):
         assert not torch.isnan(s).any()
         assert not torch.isnan(t).any()
 
-        logger.info(s.dtype)
-        logger.info(t.dtype)
-        logger.info(eps.dtype)
+        logger.info(f"s {s.is_cuda()}")
+        logger.info(f"t {t.is_cuda()}")
+        logger.info(f"eps {eps.is_cuda()}")
         
         z_i = torch.exp(s) * eps + t
 
