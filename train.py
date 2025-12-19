@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(__file__+'/../../'))
 from models.guide import InvSlotAttentionGuide
 from main import params
 from utils.guide import permute_dims, linear_scheduler, exp_scheduler
-from datasets.utils import MyDataset
+from datasets.data_utils import MyDataset
 
 import wandb # type: ignore
 

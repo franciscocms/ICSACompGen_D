@@ -1,16 +1,10 @@
 import torch
 import torch.distributions as dist
-from torchvision import transforms
 import json 
-from PIL import Image, ImageDraw
 import os
-import shutil
-import sys
 
 from utils.generate import render, norm
 from ..main import params
-
-sys.path.append(os.path.abspath(__file__+'/../'))
 
 import logging
 logfile_name = f"generate.log"
