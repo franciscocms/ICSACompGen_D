@@ -175,9 +175,9 @@ def generate_training_dataset(params):
   for scene_id in range(params["train_dataset_len"]): 
     img, scene_dict = generate_scene(params, scene_id, A)
     # save scenes
-    with open(f"{metadata_dir}/{str(scene_id).zfill(len(str(params["train_dataset_len"])))}.json", "w") as outfile:
+    with open(f"{metadata_dir}/{str(scene_id).zfill(len(str(params['train_dataset_len'])))}.json", "w") as outfile:
       json.dump(scene_dict, outfile)  
-    img.save(f"{img_dir}/{str(scene_id).zfill(len(str(params["train_dataset_len"])))}.png")
+    img.save(f"{img_dir}/{str(scene_id).zfill(len(str(params['train_dataset_len'])))}.png")
   
   logger.info(f"(train set): {scene_id} scenes stored...")
   
@@ -196,9 +196,9 @@ def generate_test_dataset(params, A=None):
   for scene_id in range(params["test_dataset_len"]): 
     img, scene_dict = generate_scene(params, scene_id)
     # save scenes
-    with open(f"{metadata_dir}/{str(scene_id).zfill(len(str(params["test_dataset_len"])))}.json", "w") as outfile:
+    with open(f"{metadata_dir}/{str(scene_id).zfill(len(str(params['test_dataset_len'])))}.json", "w") as outfile:
       json.dump(scene_dict, outfile)  
-    img.save(f"{img_dir}/{str(scene_id).zfill(len(str(params["test_dataset_len"])))}.png")
+    img.save(f"{img_dir}/{str(scene_id).zfill(len(str(params['test_dataset_len'])))}.png")
   logger.info(f"(test set): {scene_id} scenes stored...")
 
 if __name__ == "__main__":
