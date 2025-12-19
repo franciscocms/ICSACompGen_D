@@ -26,8 +26,8 @@ def render(scene, resolution = (128, 128)):
     
     scale *= params["factor_scaling"]["scale"]
     #color *= params["factor_scaling"]["color"] # color remains between [0., 1.]
-    x *= params["factor_scaling"]["x"]
-    y *= params["factor_scaling"]["y"]
+    x *= params["factor_scaling"]["x_pos"]
+    y *= params["factor_scaling"]["y_pos"]
     
     draw.ellipse(
         [x - scale//2, y - scale//2, x + scale//2, y + scale//2],
