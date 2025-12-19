@@ -9,7 +9,8 @@ import os
 import shutil
 import matplotlib.pyplot as plt
 import sys
-sys.path.append(os.path.abspath(__file__+'/../../'))
+
+sys.path.insert(0, '..') # add parent dir
 
 from models.guide import InvSlotAttentionGuide
 from main import params
@@ -25,7 +26,7 @@ logger.setLevel(logging.INFO)
 fh = logging.FileHandler(logfile_name, mode='w')
 logger.addHandler(fh)
 
-main_dir = os.path.abspath(__file__+'/../../')
+main_dir = os.path.abspath(__file__+'/../')
 
 torch.autograd.detect_anomaly(check_nan=True)
 
