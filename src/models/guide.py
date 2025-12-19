@@ -228,7 +228,7 @@ class AdditiveDecoder(nn.Module):
         B, N, d = slots.shape
         slots = slots.reshape(B*N, d)
         recons = self.decoder(slots) 
-        recons = recons.view(B, N, recons.shape[1:])
+        recons = recons.view(B, N, *recons.shape[1:])
         img = recons.sum(1)        
         return img
 
