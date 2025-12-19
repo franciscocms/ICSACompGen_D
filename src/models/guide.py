@@ -162,7 +162,7 @@ class Encoder(nn.Module):
         super().__init__()
         
         self.encoder_sa = []
-        in_channels = 3 if params['dataset'] == '2Dobjects' else 4
+        in_channels = 3 
         self.encoder_sa += [nn.Conv2d(in_channels, 64, 5, 1, 2), nn.ELU()]
         for c in range(2):
             self.encoder_sa += [nn.Conv2d(64, 64, 5, 2, 2), nn.ELU()]
