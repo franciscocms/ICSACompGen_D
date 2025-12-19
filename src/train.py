@@ -222,6 +222,8 @@ for epoch in range(params["training_epochs"]):
     logger.info(f"epoch {epoch} - train_loss: {epoch_train_loss}")  
 
   dict_to_log = {'train_loss': epoch_train_loss}
+  dict_to_log["rec_loss"] = recon_loss
+  dict_to_log["slot_rec_loss"] = slot_recon_loss
   dict_to_log["causal_loss"] = causal_loss
   dict_to_log["log_det"] = log_det
   dict_to_log["kl_noise"] = kl_noise
