@@ -3,6 +3,9 @@ import torch.distributions as dist
 import json 
 import os
 
+import sys
+sys.path.insert(0, '../../..') # add parent-parent-parent dir
+
 from src.utils.generate import render, norm
 from src.main import params
 
