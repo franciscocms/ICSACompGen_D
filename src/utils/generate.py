@@ -10,9 +10,9 @@ import logging
 logger = logging.getLogger(params["running_type"])
 
 def hsv_to_rgb(hsv):
-  hsv = (matplotlib.colors.hsv_to_rgb(hsv)*255).astype(int)
-  logger.info(hsv)
-  return hsv
+  rgb = ((matplotlib.colors.hsv_to_rgb(hsv)*255).astype(int))
+  logger.info(rgb)
+  return rgb
 
 def img_to_tensor(image):
   img_transform = transforms.Compose([transforms.ToTensor()])
