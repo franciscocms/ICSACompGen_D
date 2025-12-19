@@ -15,6 +15,7 @@ sys.path.insert(0, '..') # add parent dir
 from models.guide import InvSlotAttentionGuide
 from main import params
 from utils.guide import permute_dims, linear_scheduler, exp_scheduler
+from utils.loss import compute_log_det, compute_prior_z_loss
 from datasets.data_utils import MyDataset
 
 import wandb # type: ignore
@@ -103,44 +104,6 @@ logger.info(len(train_ds))
 
 train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, num_workers=8)
 
-def compute_e_loss(mu, logvar, e, print_mixt_params, printed, yc):
-  kl_noise = 0.
-  for i in range(L):
-    if print_mixt_params and not printed:
-      logger.info(f"\nGMMVAE losses for variable {l_to_label[i]}:")
-    
-    mixt_kl, kl_reg, logvar_reg, yc = guide.z_nets[l_to_label[i]].compute_elbo(mu[:, i, :].unsqueeze(-2),
-                                                                                logvar[:, i, :].unsqueeze(-2),
-                                                                                e[:, i, :],
-                                                                                print_mixt_params=print_mixt_params,
-                                                                                printed=printed,
-                                                                                yc_temperature=yc)
-    kl_noise += params["mixt_kl_coeff"] * mixt_kl + kl_reg - params["logvar_reg_coeff"]*logvar_reg
-
-    if print_mixt_params and not printed:
-      logger.info(f"yc: {yc[:5]}")
-      logger.info(f"yc mean: {torch.mean(yc, dim=0)}")
-      logger.info(f"pi_c: {guide.z_nets[l_to_label[i]].pi_c.tolist()}")
-      logger.info(f"logvars: {torch.mean(logvar[:, i, :])}")
-  
-  return kl_noise
-
-def compute_log_det(L_slopes):
-  log_det = 0.
-  for i in range(L):
-    s = L_slopes[:, :, i, :]
-    if params["normalized_logdet"]: log_det += torch.sum(s, dim=-1)/s.size(-1)
-    else: log_det += torch.sum(s, dim=-1)
-  log_det = torch.mean(log_det)
-  return log_det
-
-def compute_prior_z_loss(z, cp):
-  B, n_s, _, _ = z.shape
-  causal_loss = 0.
-  for i in range(L):
-    causal_loss += guide.mmd_loss(z[:, :, i, :].reshape(B*n_s, -1), cp[:, :, i, :].reshape(B*n_s, -1))
-  return causal_loss
-
 recon_loss_fn = nn.L1Loss()
 slot_rec_loss_crit = nn.L1Loss()
 prior_labels_breakin = 1
@@ -170,11 +133,8 @@ for epoch in range(params["training_epochs"]):
     target = target.to(DEVICE)
     B = img.size(0)
 
-    logger.info(img.is_cuda)
-    logger.info(target.is_cuda)
-    
-
     batch_loss = 0.
+    kl_noise = 0.
     optimizer.zero_grad()
     
     slots, recon, e, mu, logvar, z, slot_hat, cp = guide(img, target)
@@ -183,7 +143,6 @@ for epoch in range(params["training_epochs"]):
     batch_loss += alpha*(recon_loss + prior_coeff*slot_recon_loss)
     
     if epoch % epoch_step == 0 and not printed:
-
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
         os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")
 
@@ -202,9 +161,8 @@ for epoch in range(params["training_epochs"]):
       plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_attn_recon.png")
       plt.close()
 
-    kl_noise = compute_e_loss(mu, logvar, e, print_mixt_params, printed)
-    batch_loss += alpha*kl_noise
-    assert not torch.isnan(kl_noise).any()
+    for i, var_name in enumerate(params["latent_vars"]):
+      kl_noise += guide.noise_nets[var_name].compute_kl_loss(mu[:, i, :], logvar[:, i, :])
     
     if params["TC_minimization"]:
       disc_input = torch.flatten(e, -2)
@@ -223,10 +181,12 @@ for epoch in range(params["training_epochs"]):
     else:
       log_det = torch.tensor(0.)
     
+    batch_loss += alpha * (kl_noise - log_det)
+    
     if params["beta"] > 0:
       log_det_prior = compute_log_det(guide.prior_L_slopes)
       causal_loss = compute_prior_z_loss(z, cp)
-      batch_loss += prior_coeff*causal_loss - prior_coeff*log_det_coeff*log_det_prior
+      batch_loss += (causal_loss - log_det_prior)
       assert not torch.isnan(causal_loss).any()
       assert not torch.isnan(log_det_prior).any()
     else:
