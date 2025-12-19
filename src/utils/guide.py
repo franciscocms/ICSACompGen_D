@@ -307,8 +307,8 @@ class PriorMultivariateCausalFlow(nn.Module):
     
         cp_m = torch.zeros_like(u_m).to(device)
         L_slopes = torch.tensor([]).to(device)
-        ss = torch.tensor([])
-        ts = torch.tensor([])
+        ss = torch.tensor([]).to(device)
+        ts = torch.tensor([]).to(device)
 
         total_dims = self.L*self.ldim
         for i in range(self.L):
