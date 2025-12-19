@@ -9,20 +9,15 @@ from einops import reduce
 import math
 from scipy.optimize import linear_sum_assignment
 
-import pyro.poutine as poutine
-from pyro.poutine.runtime import apply_stack
-from pyro.infer import TracePosterior
-import pyro.distributions as dist
 
 # add project path to sys to import relative modules
 import sys
 import os
-sys.path.append(os.path.abspath(__file__+'/../../'))
+sys.path.insert(0, '../..') # add parent-parent dir
 
-from . import setup
+from src.main import params
 from .distributions import CategoricalVals, TruncatedNormal
 
-params = setup.params
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 import logging
