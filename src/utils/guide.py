@@ -265,8 +265,8 @@ class MultivariateCausalFlow(nn.Module):
     def forward(self, eps):
         z = torch.zeros_like(eps).to(device)
         L_slopes = torch.tensor([]).to(device)
-        ss = torch.tensor([])
-        ts = torch.tensor([])
+        ss = torch.tensor([]).to(device)
+        ts = torch.tensor([]).to(device)
 
         total_dims = self.L*self.ldim
         for i in range(self.L):

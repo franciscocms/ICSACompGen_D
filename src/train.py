@@ -170,6 +170,10 @@ for epoch in range(params["training_epochs"]):
     target = target.to(DEVICE)
     B = img.size(0)
 
+    logger.info(img.dtype)
+    logger.info(target.dtype)
+    logger.info(target.shape)
+
     batch_loss = 0.
     optimizer.zero_grad()
     
