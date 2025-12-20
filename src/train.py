@@ -104,9 +104,8 @@ logger.info(len(train_ds))
 
 train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, num_workers=8)
 
-recon_loss_fn = nn.L1Loss()
-slot_rec_loss_crit = nn.L1Loss()
-prior_labels_breakin = 1
+recon_loss_fn = nn.MSELoss()
+slot_rec_loss_crit = nn.MSELoss()
 
 guide.train()
 for epoch in range(params["training_epochs"]):
@@ -119,7 +118,8 @@ for epoch in range(params["training_epochs"]):
   #prior_coeff = exp_scheduler(epoch, 50, 0., 1.)
   prior_coeff = 1.
   TC_coeff = params["TC_coeff"]
-  alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
+  #alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
+  alpha = 0.
 
   # update gradient computation flags
   if params["TC_minimization"]:
@@ -127,6 +127,7 @@ for epoch in range(params["training_epochs"]):
       param.requires_grad = False
   
   printed = False
+  num_iters = 0
   for img, target in train_dl:
     img = img.to(DEVICE)
     target = target.to(DEVICE)
@@ -193,7 +194,8 @@ for epoch in range(params["training_epochs"]):
     batch_loss.backward()
     optimizer.step()
     assert img.size(0) > 0
-    epoch_train_loss += batch_loss/img.size(0) 
+    epoch_train_loss += batch_loss 
+    num_iters += 1
 
     if params["TC_minimization"]:
       for name, param in guide.tc_discriminator.named_parameters():
@@ -218,6 +220,7 @@ for epoch in range(params["training_epochs"]):
     
     printed = True
     
+  epoch_train_loss /= num_iters
   if epoch % epoch_step == 0:
     logger.info(f"epoch {epoch} - train_loss: {epoch_train_loss}")  
 
