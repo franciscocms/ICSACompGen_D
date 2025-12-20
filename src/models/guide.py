@@ -211,6 +211,7 @@ class Decoder(nn.Module):
             nn.ConvTranspose2d(32, 32, 4, 2, 1),
             nn.ELU(),
             nn.ConvTranspose2d(32, out_channels, 4, 2, 1),
+            nn.Sigmoid()
         ]
         self.decoder = nn.Sequential(*module_list)
         
