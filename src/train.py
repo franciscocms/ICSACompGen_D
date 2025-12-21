@@ -143,7 +143,8 @@ for epoch in range(params["training_epochs"]):
     
     """  SHOULD I DETACH SLOTS HERE??? """
 
-    slot_recon_loss = slot_rec_loss_crit(slot_hat, slots.detach_()) 
+    slots = slots.detach()
+    slot_recon_loss = slot_rec_loss_crit(slot_hat, slots) 
     batch_loss += recon_loss + alpha*slot_recon_loss
     
     if epoch % epoch_step == 0 and not printed:
