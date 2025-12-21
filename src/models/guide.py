@@ -313,6 +313,8 @@ class InvSlotAttentionGuide(nn.Module):
         recon_figures = output_dict["reconstructed_figures"]
         slots = output_dict["predicted_latents"]
 
+        slots = slots.detach()
+
         z_noise, mu_noise, logvar_noise = [], [], []           
         for var in params["latent_vars"]:
             mu, logvars, e = self.noise_nets[var].encode(slots)

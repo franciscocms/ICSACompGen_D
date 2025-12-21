@@ -140,10 +140,6 @@ for epoch in range(params["training_epochs"]):
     #slots, recon, e, mu, logvar, z, slot_hat, cp = guide(img, target)
     slots, recon, e, mu, logvar, z, slot_hat, cp= guide(img, target)
     recon_loss = recon_loss_fn(recon, img)
-    
-    """  SHOULD I DETACH SLOTS HERE??? """
-
-    slots = slots.detach()
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots) 
     batch_loss += recon_loss + alpha*slot_recon_loss
     
