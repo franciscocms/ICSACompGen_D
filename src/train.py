@@ -143,7 +143,7 @@ for epoch in range(params["training_epochs"]):
     
     """  SHOULD I DETACH SLOTS HERE??? """
 
-    slot_recon_loss = slot_rec_loss_crit(slot_hat, slots) 
+    slot_recon_loss = slot_rec_loss_crit(slot_hat, slots.detach_()) 
     batch_loss += recon_loss + alpha*slot_recon_loss
     
     if epoch % epoch_step == 0 and not printed:
@@ -239,20 +239,20 @@ for epoch in range(params["training_epochs"]):
 
   dict_to_log = {'train_loss': epoch_train_loss}
   dict_to_log["rec_loss"] = recon_loss
-  # dict_to_log["slot_rec_loss"] = slot_recon_loss
-  # dict_to_log["causal_loss"] = causal_loss
-  # dict_to_log["log_det"] = log_det
-  # dict_to_log["kl_noise"] = kl_noise
-  # dict_to_log["alpha"] = params["alpha"]
-  # if params["beta"] > 0:
-  #   dict_to_log["prior_coeff"] = prior_coeff
-  #   dict_to_log["prior_s"] = guide.prior_ss
-  #   dict_to_log["prior_t"] = guide.prior_ts
-  # dict_to_log["causal_dropout_prob"] = params["causal_dropout_prob"]
-  # if params["TC_minimization"]:
-  #   dict_to_log["latent_TC"] = tc_loss
-  #   dict_to_log["latent_TC_disc"] = disc_tc_loss
-  # dict_to_log["log_det_prior"] = log_det_prior
+  dict_to_log["slot_rec_loss"] = slot_recon_loss
+  dict_to_log["causal_loss"] = causal_loss
+  dict_to_log["log_det"] = log_det
+  dict_to_log["kl_noise"] = kl_noise
+  dict_to_log["alpha"] = params["alpha"]
+  if params["beta"] > 0:
+    dict_to_log["prior_coeff"] = prior_coeff
+    dict_to_log["prior_s"] = guide.prior_ss
+    dict_to_log["prior_t"] = guide.prior_ts
+  dict_to_log["causal_dropout_prob"] = params["causal_dropout_prob"]
+  if params["TC_minimization"]:
+    dict_to_log["latent_TC"] = tc_loss
+    # dict_to_log["latent_TC_disc"] = disc_tc_loss
+  dict_to_log["log_det_prior"] = log_det_prior
   
   torch.save(guide.state_dict(), GUIDE_PATH+'/guide_'+str(epoch)+'.pth')
   run.log(dict_to_log)
