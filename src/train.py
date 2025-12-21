@@ -149,18 +149,18 @@ for epoch in range(params["training_epochs"]):
 
       print_mixt_params = True
       logger.info(f"img recon loss: {recon_loss}")
-      #logger.info(f"slot recon loss: {slot_recon_loss}")
-
-      fig, ax = plt.subplots(1, 2 + params["num_slots"])
-      ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
-      for j in range(params["num_slots"]):                                       
-        ax[j+1].imshow(guide.attn.reshape((B, params["num_slots"], 32, 32))[0, j, :, :].detach().cpu().numpy())
-      ax[-1].imshow(np.transpose(recon[0].detach().cpu().numpy(), (1, 2, 0)))
-      for j in range(2 + params["num_slots"]):
-        ax[j].grid(False)
-        ax[j].axis('off')   
-      plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_attn_recon.png")
-      plt.close()
+      #logger.info(f"slot recon loss: {slot_recon_loss}")      
+      
+      # fig, ax = plt.subplots(1, 2 + params["num_slots"])
+      # ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
+      # for j in range(params["num_slots"]):                                       
+      #   ax[j+1].imshow(guide.attn.reshape((B, params["num_slots"], 32, 32))[0, j, :, :].detach().cpu().numpy())
+      # ax[-1].imshow(np.transpose(recon[0].detach().cpu().numpy(), (1, 2, 0)))
+      # for j in range(2 + params["num_slots"]):
+      #   ax[j].grid(False)
+      #   ax[j].axis('off')   
+      # plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_attn_recon.png")
+      # plt.close()
 
     # for i, var_name in enumerate(params["latent_vars"]):
     #   kl_noise += guide.noise_nets[var_name].compute_kl_loss(mu[:, i, :], logvar[:, i, :])
@@ -196,6 +196,16 @@ for epoch in range(params["training_epochs"]):
     optimizer.step()
     epoch_train_loss += batch_loss 
     num_iters += 1
+
+    if epoch % epoch_step == 0 and not printed:
+      fig, ax = plt.subplots(1, 2)
+      ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
+      ax[1].imshow(np.transpose(recon[0].detach().cpu().numpy(), (1, 2, 0)))
+      for j in range(2):
+        ax[j].grid(False)
+        ax[j].axis('off')   
+      plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
+      plt.close()
 
     # if params["TC_minimization"]:
     #   for name, param in guide.tc_discriminator.named_parameters():
