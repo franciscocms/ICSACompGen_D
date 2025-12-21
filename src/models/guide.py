@@ -309,7 +309,51 @@ class InvSlotAttentionGuide(nn.Module):
         assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
 
         output_dict = self.model(img)
-        return output_dict["reconstructed_image"], output_dict["predicted_latents"], output_dict["reconstructed_figures"]
+        img_hat = output_dict["reconstructed_image"]
+        recon_figures = output_dict["reconstructed_figures"]
+        slots = output_dict["predicted_latents"]
+
+        z_noise, mu_noise, logvar_noise = [], [], []           
+        for var in params["latent_vars"]:
+            mu, logvars, e = self.noise_nets[var].encode(slots)
+            z_noise.append(e)
+            mu_noise.append(mu)
+            logvar_noise.append(logvars) 
+        z_noise = torch.stack(z_noise).permute(1, 2, 0, 3)            # [B, N, L, d] => 'L' refers to the number of categorical latents
+        mu_noise = torch.stack(mu_noise).permute(1, 2, 0, 3)          # [B, N, L, d]
+        logvar_noise = torch.stack(logvar_noise).permute(1, 2, 0, 3)  # [B, N, L, d]
+        assert z_noise.size(2) == self.L
+        
+        u_m = torch.ones(B, n_s, self.L, self.ldim).to(device)
+        for i, var in enumerate(params["latent_vars"]):
+            u_m[:, :, i] = ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])).unsqueeze(-1).expand(-1, -1, self.ldim)
+        
+        if params["causal_dropout_prob"] <= 1.:
+            z_scm, self.L_slopes, ss, ts = self.causal_flow(z_noise)
+            self.ss, self.ts = ss, ts
+        else:
+            z_scm = z_noise 
+
+        z_noise = z_noise.reshape(B*n_s, self.L, self.ldim)
+        mu_noise = mu_noise.reshape(B*n_s, self.L, self.ldim)
+        logvar_noise = logvar_noise.reshape(B*n_s, self.L, self.ldim)
+        self.logvar_noise = logvar_noise
+        
+        slot_hat = []
+        for i in range(n_s):
+            slot_hat_i = self.causal_decs[str(i)](z_scm[:, i, :, :])
+            #logger.info(slot_hat_i.shape)
+            slot_hat.append(slot_hat_i) # N, B, L, d
+        slot_hat = torch.sum(torch.stack(slot_hat, dim=1), dim=-2) # [B, N, L, d] -> [B, N, d]
+        
+        if params["beta"] > 0:
+            cp, self.prior_L_slopes, prior_ss, prior_ts = self.prior(u_m, z_scm) # [B, N, L, d]
+            self.prior_ss, self.prior_ts = prior_ss, prior_ts     
+                            
+        if self.stage == "eval": return z_noise.reshape(B, n_s, self.L, self.ldim)
+        return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, cp
+        
+
 
 
 
@@ -320,23 +364,6 @@ class InvSlotAttentionGuide(nn.Module):
         # self.features_to_slots = self.mlp(x)
         # slots, self.slot_pos, attn = self.slot_attention(self.features_to_slots, num_slots=n_s) # slots in [B, n_s, d]
         # self.attn = attn
-            
-        # if False:
-        # #if self.is_train and self.step % params['step_size_img_sv'] == 0:
-        #     aux_attn = attn.reshape((B, n_s, 32, 32))
-        #     fig, ax = plt.subplots(ncols=n_s)
-        #     for j in range(n_s):                                       
-        #             im = ax[j].imshow(aux_attn[0, j, :, :].detach().cpu().numpy())
-        #             ax[j].grid(False)
-        #             ax[j].axis('off')        
-        #     plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/attn.png")
-        #     plt.close()
-
-        #     plot_img = np.transpose(self.img[0].detach().cpu().numpy(), (1, 2, 0))
-        #     plt.imshow(np.clip(plot_img, 0., 1.))
-        #     plt.axis('off')
-        #     plt.savefig(f"{params['check_attn_folder']}/attn-step-{self.step}/img.png")
-        #     plt.close()
                                 
         # z_noise, mu_noise, logvar_noise, rec_noise = [], [], [], []           
         # for var in params["latent_vars"]:

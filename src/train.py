@@ -118,8 +118,8 @@ for epoch in range(params["training_epochs"]):
   #prior_coeff = exp_scheduler(epoch, 50, 0., 1.)
   prior_coeff = 1.
   TC_coeff = params["TC_coeff"]
-  #alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
-  alpha = 0.
+  alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
+  #alpha = 0.
 
   # update gradient computation flags
   if params["TC_minimization"]:
@@ -138,10 +138,13 @@ for epoch in range(params["training_epochs"]):
     optimizer.zero_grad()
     
     #slots, recon, e, mu, logvar, z, slot_hat, cp = guide(img, target)
-    recon, _, _ = guide(img, target)
+    slots, recon, e, mu, logvar, z, slot_hat, cp= guide(img, target)
     recon_loss = recon_loss_fn(recon, img)
-    # slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
-    batch_loss += recon_loss #+ alpha*slot_recon_loss
+    
+    """  SHOULD I DETACH SLOTS HERE??? """
+
+    slot_recon_loss = slot_rec_loss_crit(slot_hat, slots) 
+    batch_loss += recon_loss + alpha*slot_recon_loss
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
@@ -162,35 +165,35 @@ for epoch in range(params["training_epochs"]):
       # plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_attn_recon.png")
       # plt.close()
 
-    # for i, var_name in enumerate(params["latent_vars"]):
-    #   kl_noise += guide.noise_nets[var_name].compute_kl_loss(mu[:, i, :], logvar[:, i, :])
+    for i, var_name in enumerate(params["latent_vars"]):
+      kl_noise += guide.noise_nets[var_name].compute_kl_loss(mu[:, i, :], logvar[:, i, :])
     
-    # if params["TC_minimization"]:
-    #   disc_input = torch.flatten(e, -2)
-    #   D_joint = guide.tc_discriminator(disc_input)
-    #   tc_loss = torch.square(torch.mean(D_joint[:, :1] - D_joint[:, 1:]))
-    #   fake_z_noise, perms = permute_dims(disc_input, params["slot_dim"])
-    #   batch_loss += TC_coeff*tc_loss
-    #   assert not torch.isnan(tc_loss).any()
-    # else:
-    #   tc_loss = torch.tensor(0.)
+    if params["TC_minimization"]:
+      disc_input = torch.flatten(e, -2)
+      D_joint = guide.tc_discriminator(disc_input)
+      tc_loss = torch.square(torch.mean(D_joint[:, :1] - D_joint[:, 1:]))
+      fake_z_noise, perms = permute_dims(disc_input, params["slot_dim"])
+      batch_loss += TC_coeff*tc_loss
+      assert not torch.isnan(tc_loss).any()
+    else:
+      tc_loss = torch.tensor(0.)
       
-    # if params["causal_dropout_prob"] <= 1.:
-    #   log_det = compute_log_det(guide.L_slopes)
-    #   assert not torch.isnan(log_det).any()
-    # else:
-    #   log_det = torch.tensor(0.)
-    # batch_loss += alpha * (kl_noise - log_det)
+    if params["causal_dropout_prob"] <= 1.:
+      log_det = compute_log_det(guide.L_slopes)
+      assert not torch.isnan(log_det).any()
+    else:
+      log_det = torch.tensor(0.)
+    batch_loss += alpha * (kl_noise - log_det)
     
-    # if params["beta"] > 0:
-    #   log_det_prior = compute_log_det(guide.prior_L_slopes)
-    #   causal_loss = compute_prior_z_loss(z, cp)
-    #   assert not torch.isnan(causal_loss).any()
-    #   assert not torch.isnan(log_det_prior).any()
-    # else:
-    #   causal_loss = torch.tensor(0.)
-    #   log_det_prior = torch.tensor(0.)
-    # batch_loss += alpha * (causal_loss - log_det_prior)
+    if params["beta"] > 0:
+      log_det_prior = compute_log_det(guide.prior_L_slopes)
+      causal_loss = compute_prior_z_loss(z, cp)
+      assert not torch.isnan(causal_loss).any()
+      assert not torch.isnan(log_det_prior).any()
+    else:
+      causal_loss = torch.tensor(0.)
+      log_det_prior = torch.tensor(0.)
+    batch_loss += alpha * (causal_loss - log_det_prior)
 
     batch_loss.backward()
     optimizer.step()
