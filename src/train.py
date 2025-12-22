@@ -192,7 +192,7 @@ for epoch in range(params["training_epochs"]):
       D_joint = guide.tc_discriminator(disc_input)
       ones = torch.ones(D_perm.size(0), dtype=torch.long, device=DEVICE)
       zeros = torch.zeros(D_perm.size(0), dtype=torch.long, device=DEVICE)
-      disc_tc_loss = alpha * torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
+      disc_tc_loss = torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
       assert not torch.isnan(disc_tc_loss).any()
       
       dis_optimizer.zero_grad()

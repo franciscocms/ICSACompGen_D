@@ -50,7 +50,7 @@ def sample_adjacency_matrix(params):
   return A
 
 
-def generate_scene(params, scene_id=0, A=None):
+def generate_scene(params, scene_id=0, A=None, train_set=True):
 
   assert A != None
   
@@ -80,9 +80,26 @@ def generate_scene(params, scene_id=0, A=None):
         # specify the new range according to the causal dependency
         if len(parent) == 1:
           norm_parent = norm(object_attributes[parent], params["factor_ranges"][params["latent_vars"][parent]][0], params["factor_ranges"][params["latent_vars"][parent]][1])
-          factor_min, factor_max = norm_parent - 0.2, norm_parent + 0.2
+          
+          if train_set:
+            factor_min, factor_max = norm_parent - 0.2, norm_parent + 0.2
+          
+          else:
+            if norm_parent - 0.2 < 0:
+                factor_min, factor_max = norm_parent + 0.2, 1.
+            elif norm_parent + 0.2 > 1.:
+                factor_min, factor_max = 0., norm_parent - 0.2
+            else:
+                sample_below_flag = torch.distributions.Bernoulli(0.5).sample()
+                if sample_below_flag:
+                    factor_min, factor_max = 0., norm_parent - 0.2
+                else:
+                    factor_min, factor_max = norm_parent + 0.2, 1.
+          
           if factor_min < params["factor_ranges"][factor][0]: factor_min = params["factor_ranges"][factor][0]
           if factor_max > params["factor_ranges"][factor][1]: factor_max = params["factor_ranges"][factor][1]
+          
+      
       # sample the value
       sampled_value = dist.Uniform(factor_min, factor_max).sample()
       object_attributes.append(sampled_value)
@@ -192,7 +209,7 @@ def generate_test_dataset(params, A=None):
     
   # generate scenes
   for scene_id in range(params["test_dataset_len"]): 
-    img, scene_dict = generate_scene(params, scene_id)
+    img, scene_dict = generate_scene(params, scene_id, train_set=False)
     # save scenes
     with open(f"{metadata_dir}/{str(scene_id).zfill(len(str(params['test_dataset_len'])))}.json", "w") as outfile:
       json.dump(scene_dict, outfile)  
