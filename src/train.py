@@ -117,7 +117,7 @@ for epoch in range(params["training_epochs"]):
   # update coefficients
   TC_coeff = params["TC_coeff"]
   alpha = linear_scheduler(epoch, 100, 0., params["alpha"])
-  #alpha = 0.
+
 
   # update gradient computation flags
   if params["TC_minimization"]:
@@ -225,7 +225,7 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["causal_loss"] = causal_loss
   dict_to_log["log_det"] = log_det
   dict_to_log["kl_noise"] = kl_noise
-  dict_to_log["alpha"] = params["alpha"]
+  dict_to_log["alpha"] = alpha
   if params["beta"] > 0:
     dict_to_log["prior_s"] = guide.prior_ss
     dict_to_log["prior_t"] = guide.prior_ts
