@@ -233,7 +233,9 @@ class LinearProbe(nn.Module):
             nn.Sigmoid()
         )
     def forward(self, x):
-        return self.net(x)
+        out = self.net(x)
+        if out.size(-1) == 1: out = out.squeeze(-1)
+        return out
 
 class Flow(nn.Module):
     def __init__(self, L, ldim, A=None, net_class=MLP, nh=100, f_act="identity"):
