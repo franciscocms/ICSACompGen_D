@@ -186,8 +186,10 @@ for epoch in range(params["training_epochs"]):
       for name, param in guide.tc_discriminator.named_parameters():
         param.requires_grad = True
       
-      D_perm = guide.tc_discriminator(fake_z_noise.detach())
-      D_joint = guide.tc_discriminator(disc_input.detach())
+      fake_z_noise = fake_z_noise.detach()
+      disc_input = disc_input.detach()
+      D_perm = guide.tc_discriminator(fake_z_noise)
+      D_joint = guide.tc_discriminator(disc_input)
       ones = torch.ones(D_perm.size(0), dtype=torch.long, device=DEVICE)
       zeros = torch.zeros(D_perm.size(0), dtype=torch.long, device=DEVICE)
       disc_tc_loss = alpha * torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
