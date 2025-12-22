@@ -242,10 +242,10 @@ def main():
                     t = t.to(device)
                     preds = model(z)
 
-                    logger.info(f"preds: {preds[:5, :].item()}")
-                    logger.info(f"target: {t[:5, :].item()}")
+                    logger.info(f"preds: {preds[:5, :]}")
+                    logger.info(f"target: {t[:5, :]}")
                     r2_score = hungarian_r2_score(preds, t)
-                    logger.info(f"r2: {r2_score[:5].item()}")
+                    logger.info(f"r2: {r2_score[:5]}")
 
 
             logger.info(f"test r2 score: {torch.mean(r2_score)}")
