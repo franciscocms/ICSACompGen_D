@@ -352,7 +352,7 @@ class InvSlotAttentionGuide(nn.Module):
             cp, self.prior_L_slopes, prior_ss, prior_ts = self.prior(u_m, z_scm) # [B, N, L, d]
             self.prior_ss, self.prior_ts = prior_ss, prior_ts     
                             
-        if self.stage == "eval": return z_noise.reshape(B, n_s, self.L, self.ldim)
+        if params["running_type"] == "eval": return z_noise.reshape(B, n_s, self.L, self.ldim)
         return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, cp
         
 
