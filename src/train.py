@@ -117,6 +117,7 @@ for epoch in range(params["training_epochs"]):
   # update coefficients
   TC_coeff = params["TC_coeff"]
   alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
+  log_det_coeff = 0.001
 
 
   # update gradient computation flags
@@ -163,7 +164,7 @@ for epoch in range(params["training_epochs"]):
       assert not torch.isnan(log_det).any()
     else:
       log_det = torch.tensor(0.)
-    batch_loss += alpha * (kl_noise - log_det)
+    batch_loss += alpha*kl_noise - log_det_coeff*log_det
     
     if params["beta"] > 0:
       log_det_prior = compute_log_det(guide.prior_L_slopes)
@@ -173,7 +174,7 @@ for epoch in range(params["training_epochs"]):
     else:
       causal_loss = torch.tensor(0.)
       log_det_prior = torch.tensor(0.)
-    batch_loss += alpha * (causal_loss - log_det_prior)
+    batch_loss += alpha*causal_loss - log_det_coeff*log_det_prior
 
     batch_loss.backward()
     optimizer.step()
@@ -233,7 +234,7 @@ for epoch in range(params["training_epochs"]):
   if params["TC_minimization"]:
     dict_to_log["latent_TC"] = tc_loss
     dict_to_log["latent_TC_disc"] = disc_tc_loss
-  dict_to_log["log_det_prior"] = log_det_prior
+  dict_to_log["log_det_coeff"] = log_det_coeff
   
   torch.save(guide.state_dict(), GUIDE_PATH+'/guide_'+str(epoch)+'.pth')
   run.log(dict_to_log)
