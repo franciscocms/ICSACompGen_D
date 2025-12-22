@@ -139,7 +139,7 @@ def main():
         shutil.rmtree(plots_dir)
         os.mkdir(plots_dir)
 
-    for OOD_EVAL in [True]:
+    for OOD_EVAL in [False, True]:
 
         logger.info(f"\nOOD: {OOD_EVAL}\n")
 
