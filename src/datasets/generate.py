@@ -144,7 +144,7 @@ def create_dirs(params, stage):
   if stage == "train":
     subdir = "train"
   elif stage == "eval":
-    subdir = "test"
+    subdir = "eval"
   else:
     raise ValueError(f"stage {stage} is not valid!") 
 
@@ -205,7 +205,7 @@ def generate_test_dataset(params, A=None):
 
   logger.info("starting test scenes generation...")
 
-  img_dir, metadata_dir = create_dirs(params, stage="test")
+  img_dir, metadata_dir = create_dirs(params, stage="eval")
     
   # generate scenes
   for scene_id in range(params["test_dataset_len"]): 
