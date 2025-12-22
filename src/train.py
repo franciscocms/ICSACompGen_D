@@ -116,7 +116,7 @@ for epoch in range(params["training_epochs"]):
 
   # update coefficients
   TC_coeff = params["TC_coeff"]
-  alpha = linear_scheduler(epoch, 100, 0., params["alpha"])
+  alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
 
 
   # update gradient computation flags

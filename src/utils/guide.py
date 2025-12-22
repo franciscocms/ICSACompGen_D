@@ -257,6 +257,8 @@ class Flow(nn.Module):
         
         assert not torch.isnan(s).any()
         assert not torch.isnan(t).any()
+
+        s = loft(s, 0.1)
         
         z_i = torch.exp(s) * eps + t
 
@@ -269,7 +271,7 @@ class MultivariateCausalFlow(nn.Module):
         self.L, self.ldim, self.A = L, ldim, A
         self.nf = nn.ModuleDict()
         for i in range(L):
-            self.nf[str(i)] = Flow(L, ldim, A, f_act="tanh") # instead of "tanh"
+            self.nf[str(i)] = Flow(L, ldim, A, f_act="identity") # instead of "tanh"
 
     def forward(self, eps):
         z = torch.zeros_like(eps).to(device)
@@ -299,7 +301,7 @@ class PriorMultivariateCausalFlow(nn.Module):
         self.L, self.ldim, self.A = L, ldim, A
         self.nf = nn.ModuleDict()
         for i in range(L):
-            self.nf[str(i)] = Flow(L, ldim, A, f_act="tanh") # instead of "tanh"
+            self.nf[str(i)] = Flow(L, ldim, A, f_act="identity") # instead of "tanh"
         
 
     
@@ -364,6 +366,9 @@ def permute_dims(z, d):
 
     return perm_z, perms
 
+def loft(s, tau = params["slope_constraint"]):
+    tau = torch.tensor(tau, dtype=s.dtype, device=device)
+    return torch.sign(s) * (torch.log(torch.maximum(torch.abs(s) - tau, torch.tensor(0.)) + 1) + torch.minimum(torch.abs(s), tau))
 
 @torch.jit.script
 def sinkhorn(C: Tensor, a: Tensor, b: Tensor, n_sh_iters: int = 5, temperature: float = 1, u: Union[Tensor, None] = None, v: Union[Tensor, None] = None) -> Tuple[Tensor, Tensor, Tensor]:

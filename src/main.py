@@ -30,7 +30,7 @@ params = {
     "batch_size": 512, # 256 for 32GB
     "lr": 1e-3, # 256 with 1e-4
     "training_from_scratch" : True,
-    "training_epochs": 200, 
+    "training_epochs": 100, 
     "epoch_step": 10,
     "running_type": "train", # train, debug, eval, inspect
     "epoch_to_load" : 90, 
@@ -43,7 +43,7 @@ params = {
     "causal_dropout_prob": 0., # 0.6 for models with causal flow, 1.0 for models without
     "slot_dim" : 16,
     "check_attn": True,
-    "jobID": 10,  
+    "jobID": 11,  
     "mesh_iters": 4,
     "mesh_lr": 5, 
     "mesh_noise": 1e-3,
