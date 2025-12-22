@@ -28,10 +28,15 @@ def process_targets(target_dict):
     return target
 
 class MyDataset(Dataset):
-  def __init__(self, dataset_path):
+  def __init__(self, dataset_path, ood=False):
       self.dataset_path = dataset_path
-      self.img_path = os.path.join(self.dataset_path, "images")
-      self.target_path = os.path.join(self.dataset_path, "metadata")
+      if not ood:
+        self.img_path = os.path.join(self.dataset_path, "images")
+        self.target_path = os.path.join(self.dataset_path, "metadata")
+      else:
+        self.img_path = os.path.join(self.dataset_path, "images_OOD")
+        self.target_path = os.path.join(self.dataset_path, "metadata_OOD")
+         
       self.nscenes = len(glob.glob(os.path.join(self.img_path, "*.png")))
       self.transform = transforms.Compose([transforms.ToTensor()])
 
@@ -43,3 +48,17 @@ class MyDataset(Dataset):
     target_dict = json.load(open(os.path.join(self.target_path, f"{str(idx).zfill(len(str(self.nscenes)))}.json")))
     target = process_targets(target_dict)
     return img, target
+
+class ProbeDataset(Dataset):
+    def __init__(self, noise, target, var_idx, split):
+        self.noise = noise
+        self.target = target
+        self.var_idx = var_idx
+
+        logger.info(f"# of samples for {split} split: {self.noise.size(0)}")
+
+    def __len__(self):
+        return len(self.noise)
+    
+    def __getitem__(self, idx):
+        return self.noise[idx], self.target[idx, :, self.var_idx]

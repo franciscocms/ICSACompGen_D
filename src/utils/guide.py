@@ -229,7 +229,8 @@ class LinearProbe(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(nin, nin),
             nn.ReLU(),
-            nn.Linear(nin, nout)
+            nn.Linear(nin, nout),
+            nn.Sigmoid()
         )
     def forward(self, x):
         return self.net(x)
