@@ -231,7 +231,7 @@ def main():
                     logger.info(f"... val loss: {epoch_val_loss}")
 
             # testing
-            model = LinearProbe(z_noise.size(-1), 3).to(device) 
+            model = LinearProbe(z_noise.size(-1), 1).to(device) 
             model.load_state_dict(torch.load('pred_model.pth')) 
             model.eval()
             with torch.no_grad():
