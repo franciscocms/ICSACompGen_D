@@ -366,7 +366,7 @@ def permute_dims(z, d):
 
     return perm_z, perms
 
-def loft(s, tau = params["slope_constraint"]):
+def loft(s, tau = 0.1):
     tau = torch.tensor(tau, dtype=s.dtype, device=device)
     return torch.sign(s) * (torch.log(torch.maximum(torch.abs(s) - tau, torch.tensor(0.)) + 1) + torch.minimum(torch.abs(s), tau))
 
