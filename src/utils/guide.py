@@ -350,7 +350,7 @@ def permute_dims(z, d):
     assert z.dim() == 2
 
     B, _ = z.size()
-    perm_z = torch.tensor([])
+    perm_z = torch.tensor([]).to(device)
     perms = []
     for z_j in z.split(d, 1):
         #print(z_j.shape)
