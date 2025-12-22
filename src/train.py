@@ -115,10 +115,8 @@ for epoch in range(params["training_epochs"]):
   epoch_val_loss = 0.
 
   # update coefficients
-  #prior_coeff = exp_scheduler(epoch, 50, 0., 1.)
-  prior_coeff = 1.
   TC_coeff = params["TC_coeff"]
-  alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
+  alpha = linear_scheduler(epoch, 100, 0., params["alpha"])
   #alpha = 0.
 
   # update gradient computation flags
@@ -138,7 +136,7 @@ for epoch in range(params["training_epochs"]):
     optimizer.zero_grad()
     
     #slots, recon, e, mu, logvar, z, slot_hat, cp = guide(img, target)
-    slots, recon, e, mu, logvar, z, slot_hat, cp= guide(img, target)
+    slots, recon, e, mu, logvar, z, slot_hat, cp = guide(img, target)
     recon_loss = recon_loss_fn(recon, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots) 
     batch_loss += recon_loss + alpha*slot_recon_loss
@@ -229,7 +227,6 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["kl_noise"] = kl_noise
   dict_to_log["alpha"] = params["alpha"]
   if params["beta"] > 0:
-    dict_to_log["prior_coeff"] = prior_coeff
     dict_to_log["prior_s"] = guide.prior_ss
     dict_to_log["prior_t"] = guide.prior_ts
   dict_to_log["causal_dropout_prob"] = params["causal_dropout_prob"]
