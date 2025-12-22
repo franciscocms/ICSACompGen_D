@@ -73,7 +73,7 @@ def hungarian_huber_loss(predictions, targets):
         loss: Scalar tensor representing the mean loss over the batch.
     """
     B, N, L = predictions.shape
-    assert predictions.shape == targets.shape
+    assert predictions.shape == targets.shape, f"{predictions.shape} is different from {targets.shape}!"
     
     # 1. Compute Pairwise Cost Matrix [B, N, N]
     # We use MSE as the cost for matching. 
