@@ -61,50 +61,46 @@ def hungarian_r2_score(pred, target):
     # ---- 5. Average over batch ----
     return torch.tensor(r2_scores) #/ B
 
-def hungarian_huber_loss(predictions, targets):
+def hungarian_matching_loss_scalar(predictions, targets, loss_type='mse'):
     """
-    Computes set-based loss using the Hungarian Algorithm for object matching.
+    Computes set-based loss for a single variable across N objects.
     
     Args:
-        predictions: Tensor of shape [B, N, L] (Sigmoid activated)
-        targets: Tensor of shape [B, N, L] (Continuous scalars)
+        predictions: Tensor [B, N] - Sigmoid activated model outputs.
+        targets: Tensor [B, N] - Ground truth continuous scalars.
+        loss_type: 'mse' or 'huber'.
         
     Returns:
-        loss: Scalar tensor representing the mean loss over the batch.
+        loss: Mean scalar loss across the batch.
     """
-    B, N, L = predictions.shape
-    assert predictions.shape == targets.shape, f"{predictions.shape} is different from {targets.shape}!"
+    B, N = predictions.shape
+    device = predictions.device
     
     # 1. Compute Pairwise Cost Matrix [B, N, N]
-    # We use MSE as the cost for matching. 
-    # Use broadcasting: (B, N, 1, L) - (B, 1, N, L) -> (B, N, N, L)
-    preds_expanded = predictions.unsqueeze(2)  # [B, N, 1, L]
-    targets_expanded = targets.unsqueeze(1)    # [B, 1, N, L]
-    
-    # Calculate squared difference for all possible pairs
-    cost_matrix = torch.sum((preds_expanded - targets_expanded) ** 2, dim=-1) # [B, N, N]
+    # We use the absolute difference as the cost for matching
+    # (B, N, 1) - (B, 1, N) -> (B, N, N)
+    cost_matrix = torch.abs(predictions.unsqueeze(2) - targets.unsqueeze(1))
     
     # 2. Hungarian Matching (Batch-wise)
-    # linear_sum_assignment runs on CPU and is not vectorized over batches.
-    # We move the cost matrix to CPU to perform the matching.
+    # We move to CPU because Scipy is a CPU-based library
     cost_matrix_cpu = cost_matrix.detach().cpu().numpy()
     
-    indices = [linear_sum_assignment(cost_matrix_cpu[b]) for b in range(B)]
+    # To keep this fast, we reorder the targets to match the prediction order
+    matched_targets = torch.zeros_like(targets)
     
-    # 3. Reorder Predictions based on matching
-    # We create a reordered prediction tensor to keep the computation graph alive
-    matched_preds = torch.zeros_like(predictions)
-    
-    for b, (row_idx, col_idx) in enumerate(indices):
-        # row_idx represents the prediction slots [0...N-1]
-        # col_idx represents the assigned target slots
-        matched_preds[b] = predictions[b, row_idx]
-        targets[b] = targets[b, col_idx] # Reorder targets to match row_idx ordering
+    for b in range(B):
+        # row_ind: indices of predictions [0...N-1]
+        # col_ind: the indices of targets that best match the predictions
+        row_ind, col_ind = linear_sum_assignment(cost_matrix_cpu[b])
+        matched_targets[b] = targets[b, col_ind]
 
-    # 4. Final Loss Calculation
-    # Now that they are aligned, we can compute the standard MSE (or Huber) loss
-    loss = F.mse_loss(matched_preds, targets)
-    
+    # 3. Final Loss Calculation
+    # Now predictions[b, i] is aligned with matched_targets[b, i]
+    if loss_type == 'huber':
+        loss = F.smooth_l1_loss(predictions, matched_targets)
+    else:
+        loss = F.mse_loss(predictions, matched_targets)
+        
     return loss
 
 def main():    
@@ -205,10 +201,10 @@ def main():
 
                     optimizer.zero_grad()
                     
-                    preds = model(z) # [B, N, L]
+                    preds = model(z) # [B, N]
                     
                     # loss must be computed under a matching algorithm
-                    loss = hungarian_huber_loss(preds, t)
+                    loss = hungarian_matching_loss_scalar(preds, t)
 
                     loss.backward()
                     optimizer.step()
@@ -220,7 +216,8 @@ def main():
                         z = z.to(device)
                         t = t.to(device)                        
                         
-                        loss = hungarian_huber_loss(model(z), t)
+                        preds = model(z)
+                        loss = hungarian_matching_loss_scalar(preds, t)
                         epoch_val_loss += loss/z.size(0)
                 
                 if epoch_val_loss < best_loss:
