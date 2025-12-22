@@ -209,7 +209,7 @@ def generate_test_dataset(params, A=None):
     
   # generate scenes
   for scene_id in range(params["test_dataset_len"]): 
-    img, scene_dict = generate_scene(params, scene_id, train_set=False)
+    img, scene_dict = generate_scene(params, scene_id, A, train_set=False)
     # save scenes
     with open(f"{metadata_dir}/{str(scene_id).zfill(len(str(params['test_dataset_len'])))}.json", "w") as outfile:
       json.dump(scene_dict, outfile)  
