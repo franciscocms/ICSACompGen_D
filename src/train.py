@@ -145,22 +145,7 @@ for epoch in range(params["training_epochs"]):
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
-        os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")
-
-      print_mixt_params = True
-      logger.info(f"img recon loss: {recon_loss}")
-      #logger.info(f"slot recon loss: {slot_recon_loss}")      
-      
-      # fig, ax = plt.subplots(1, 2 + params["num_slots"])
-      # ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
-      # for j in range(params["num_slots"]):                                       
-      #   ax[j+1].imshow(guide.attn.reshape((B, params["num_slots"], 32, 32))[0, j, :, :].detach().cpu().numpy())
-      # ax[-1].imshow(np.transpose(recon[0].detach().cpu().numpy(), (1, 2, 0)))
-      # for j in range(2 + params["num_slots"]):
-      #   ax[j].grid(False)
-      #   ax[j].axis('off')   
-      # plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_attn_recon.png")
-      # plt.close()
+        os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
 
     for i, var_name in enumerate(params["latent_vars"]):
       kl_noise += guide.noise_nets[var_name].compute_kl_loss(mu[:, i, :], logvar[:, i, :])
@@ -196,7 +181,28 @@ for epoch in range(params["training_epochs"]):
     optimizer.step()
     epoch_train_loss += batch_loss 
     num_iters += 1
+    
+    if params["TC_minimization"]:
+      for name, param in guide.tc_discriminator.named_parameters():
+        param.requires_grad = True
+      
+      D_perm = guide.tc_discriminator(fake_z_noise.detach())
+      D_joint = guide.tc_discriminator(disc_input.detach())
+      ones = torch.ones(D_perm.size(0), dtype=torch.long, device=DEVICE)
+      zeros = torch.zeros(D_perm.size(0), dtype=torch.long, device=DEVICE)
+      disc_tc_loss = alpha * torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
+      assert not torch.isnan(disc_tc_loss).any()
+      
+      dis_optimizer.zero_grad()
+      disc_tc_loss.backward()
+      dis_optimizer.step()
 
+      if epoch % epoch_step == 0 and not printed:
+        logger.info(f"real batches pred: {torch.mean(D_joint)}")
+        logger.info(f"fake batches pred: {torch.mean(D_perm)}")
+    else:
+      disc_tc_loss = torch.tensor(0.)
+    
     if epoch % epoch_step == 0 and not printed:
       fig, ax = plt.subplots(1, 2)
       ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
@@ -207,27 +213,6 @@ for epoch in range(params["training_epochs"]):
       plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
       plt.close()
 
-    # if params["TC_minimization"]:
-    #   for name, param in guide.tc_discriminator.named_parameters():
-    #     param.requires_grad = True
-      
-    #   D_perm = guide.tc_discriminator(fake_z_noise.detach())
-    #   D_joint = guide.tc_discriminator(disc_input.detach())
-    #   ones = torch.ones(D_perm.size(0), dtype=torch.long, device=DEVICE)
-    #   zeros = torch.zeros(D_perm.size(0), dtype=torch.long, device=DEVICE)
-    #   disc_tc_loss = alpha * torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
-    #   assert not torch.isnan(disc_tc_loss).any()
-      
-    #   dis_optimizer.zero_grad()
-    #   disc_tc_loss.backward()
-    #   dis_optimizer.step()
-
-    #   if epoch % epoch_step == 0 and not printed:
-    #     logger.info(f"real batches pred: {torch.mean(D_joint)}")
-    #     logger.info(f"fake batches pred: {torch.mean(D_perm)}")
-    # else:
-    #   disc_tc_loss = torch.tensor(0.)
-    
     printed = True
     
   epoch_train_loss /= num_iters
@@ -248,7 +233,7 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["causal_dropout_prob"] = params["causal_dropout_prob"]
   if params["TC_minimization"]:
     dict_to_log["latent_TC"] = tc_loss
-    # dict_to_log["latent_TC_disc"] = disc_tc_loss
+    dict_to_log["latent_TC_disc"] = disc_tc_loss
   dict_to_log["log_det_prior"] = log_det_prior
   
   torch.save(guide.state_dict(), GUIDE_PATH+'/guide_'+str(epoch)+'.pth')

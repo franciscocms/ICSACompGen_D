@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
-from src.utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape
+from src.utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape, permute_dims
 from src.utils.guide import NoiseEncoder, CausalDecoder, MMDLoss, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow
 from src.models.architectures import SlotEncoder, SlotMLPAdditiveDecoder, SlotMLPAdditive
 
@@ -347,6 +347,15 @@ class InvSlotAttentionGuide(nn.Module):
             #logger.info(slot_hat_i.shape)
             slot_hat.append(slot_hat_i) # N, B, L, d
         slot_hat = torch.sum(torch.stack(slot_hat, dim=1), dim=-2) # [B, N, L, d] -> [B, N, d]
+        
+        if params["TC_minimization"]:
+            for name, param in self.tc_discriminator.named_parameters():
+                assert param.requires_grad == False
+            
+            self.disc_input = torch.flatten(z_noise, -2)
+            self.D_joint = self.tc_discriminator(self.disc_input)
+            self.tc_loss = torch.square(torch.mean(self.D_joint[:, :1] - self.D_joint[:, 1:]))
+            self.fake_z_noise, perms = permute_dims(self.disc_input, self.ldim)
         
         if params["beta"] > 0:
             cp, self.prior_L_slopes, prior_ss, prior_ts = self.prior(u_m, z_scm) # [B, N, L, d]

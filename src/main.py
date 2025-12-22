@@ -35,15 +35,15 @@ params = {
     "running_type": "train", # train, debug, eval, inspect
     "epoch_to_load" : 5, 
     "ood_eval": False,
-    "TC_minimization": False, # usually True
+    "TC_minimization": True, # usually True
     "alpha": 0.01, # usually 1.
     "beta": 1., 
-    "TC_coeff": 10., # usually 10
+    "TC_coeff": 1., # usually 10
     "normalized_logdet": False,
     "causal_dropout_prob": 0., # 0.6 for models with causal flow, 1.0 for models without
     "slot_dim" : 16,
     "check_attn": True,
-    "jobID": 8,  
+    "jobID": 9,  
     "mesh_iters": 4,
     "mesh_lr": 5, 
     "mesh_noise": 1e-3,
