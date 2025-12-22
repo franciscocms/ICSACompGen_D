@@ -81,7 +81,7 @@ def generate_scene(params, scene_id=0, A=None, train_set=True):
         if len(parent) == 1:
           norm_parent = norm(object_attributes[parent], params["factor_ranges"][params["latent_vars"][parent]][0], params["factor_ranges"][params["latent_vars"][parent]][1])
           
-          if train_set:
+          if train_set or not params["ood_eval"]:
             factor_min, factor_max = norm_parent - 0.2, norm_parent + 0.2
           
           else:

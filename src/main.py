@@ -34,7 +34,7 @@ params = {
     "epoch_step": 10,
     "running_type": "eval", # train, debug, eval, inspect
     "epoch_to_load" : 90, 
-    "ood_eval": True,
+    "ood_eval": False,
     "TC_minimization": True, # usually True
     "alpha": 0.01, # usually 1.
     "beta": 1., 
