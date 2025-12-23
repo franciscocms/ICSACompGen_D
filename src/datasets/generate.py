@@ -86,9 +86,9 @@ def generate_scene(params, scene_id=0, A=None, train_set=True):
             sampled_value, _, _ = sample_identifiable_bounded_(norm_parent)
           else:
             sampled_value = sample_ood(norm_parent, params["factor_ranges"][factor])
-        else:
-          # sample the value
-          sampled_value = dist.Uniform(factor_min, factor_max).sample()
+      else:
+        # sample the value
+        sampled_value = dist.Uniform(factor_min, factor_max).sample()
 
       object_attributes.append(sampled_value)
     attributes_list.append(object_attributes)

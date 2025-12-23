@@ -11,7 +11,6 @@ logger = logging.getLogger(params["running_type"])
 
 def hsv_to_rgb(hsv):
   rgb = tuple((matplotlib.colors.hsv_to_rgb(hsv)*255).astype(int))
-  logger.info(rgb)
   return rgb
 
 def img_to_tensor(image):
