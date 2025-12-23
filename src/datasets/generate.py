@@ -8,6 +8,7 @@ sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.utils.generate import render, norm
 from src.main import params
+from src.datasets.data_utils import sample_identifiable_bounded_, sample_ood
 
 import logging
 logfile_name = f"generate.log"
@@ -82,26 +83,13 @@ def generate_scene(params, scene_id=0, A=None, train_set=True):
           norm_parent = norm(object_attributes[parent], params["factor_ranges"][params["latent_vars"][parent]][0], params["factor_ranges"][params["latent_vars"][parent]][1])
           
           if train_set or not params["ood_eval"]:
-            factor_min, factor_max = norm_parent - 0.2, norm_parent + 0.2
-          
+            sampled_value, _, _ = sample_identifiable_bounded_(norm_parent)
           else:
-            if norm_parent - 0.2 < 0:
-                factor_min, factor_max = norm_parent + 0.2, 1.
-            elif norm_parent + 0.2 > 1.:
-                factor_min, factor_max = 0., norm_parent - 0.2
-            else:
-                sample_below_flag = torch.distributions.Bernoulli(0.5).sample()
-                if sample_below_flag:
-                    factor_min, factor_max = 0., norm_parent - 0.2
-                else:
-                    factor_min, factor_max = norm_parent + 0.2, 1.
-          
-          if factor_min < params["factor_ranges"][factor][0]: factor_min = params["factor_ranges"][factor][0]
-          if factor_max > params["factor_ranges"][factor][1]: factor_max = params["factor_ranges"][factor][1]
-          
-      
-      # sample the value
-      sampled_value = dist.Uniform(factor_min, factor_max).sample()
+            sampled_value = sample_ood(norm_parent, params["factor_ranges"][factor])
+        else:
+          # sample the value
+          sampled_value = dist.Uniform(factor_min, factor_max).sample()
+
       object_attributes.append(sampled_value)
     attributes_list.append(object_attributes)
   

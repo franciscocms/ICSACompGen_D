@@ -4,15 +4,64 @@ import json
 from PIL import Image
 
 import torch
+import torch.distributions as dist
 from torchvision import transforms
 from torch.utils.data import Dataset
+import numpy as np
+
 
 import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
+from src.utils.generate import norm
 import logging
 logger = logging.getLogger(params["running_type"])
+
+def sample_identifiable_bounded_(parent):
+  """
+  Samples z_hue in (0, 1) using a Logit-Normal approach.
+  Satisfies Condition 4 (heteroscedasticity) and Condition 3 (diffeomorphism).
+  """
+  # 1. Define Mean and Sigma in 'Logit Space'
+  # We use values that, when passed through sigmoid, center around 0.5
+  # mu_y will range roughly from -2.0 to 2.0
+  mu_y = 4.0 * (parent - 0.5) 
+  
+  # Heteroscedasticity: Variance changes with scale
+  # We keep sigma_y large enough to move lambda_2, 
+  # but small enough that we don't always hit the sigmoid's flat ends
+  sigma_y = 0.2 + 0.5 * torch.abs(torch.sin(np.pi * parent))
+  
+  # 2. Sample in unbounded space (Pre-latent y)
+  epsilon = torch.randn_like(parent)
+  y = mu_y + sigma_y * epsilon
+  
+  # 3. Diffeomorphic Squashing to (0, 1)
+  child = torch.sigmoid(y)
+  
+  return child, mu_y, sigma_y**2
+
+def sample_ood(parent, child_boundaries, threshold=4.):
+  """
+  Returns only combinations (scale, hue) that were NOT seen in training.
+  """
+  is_ood = False
+  while not is_ood:
+    uniform_child = dist.Uniform(child_boundaries[0], child_boundaries[1]).sample()
+    clamped_child = torch.clamp(uniform_child, 1e-6, 1-1e-6)
+    y_proposal = torch.log(clamped_child / (1 - clamped_child))
+    
+    # 3. Check against the training mechanism
+    _, mu_y, sigma_y = sample_identifiable_bounded_(parent)
+    
+    # Distance in standard deviations
+    z_score = torch.abs(y_proposal - mu_y) / sigma_y
+    
+    # 4. Keep only those outside the threshold (the 'Gap')
+    is_ood = z_score > threshold
+  
+  return uniform_child
 
 def process_targets(target_dict):   
     n = int(target_dict['scene_attr']['N'])
