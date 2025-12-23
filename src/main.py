@@ -32,7 +32,7 @@ params = {
     "training_from_scratch" : True,
     "training_epochs": 100, 
     "epoch_step": 10,
-    "running_type": "train", # train, debug, eval, inspect
+    "running_type": "eval", # train, debug, eval, inspect
     "epoch_to_load" : 90, 
     "ood_eval": False,
     "TC_minimization": True, # usually True
