@@ -27,7 +27,7 @@ params = {
     "test_dataset_len": 5000,
     "resolution": (128, 128),
     "num_slots": 2,
-    "batch_size": 64, # 256 for 32GB
+    "batch_size": 256, # 256 for 32GB
     "lr": 1e-4, # 256 with 1e-4 -- 512 for 1e-3
     "training_from_scratch" : True,
     "training_epochs": 100, 
@@ -36,14 +36,14 @@ params = {
     "epoch_to_load" : 90, 
     "ood_eval": False,
     "TC_minimization": True, # usually True
-    "alpha": 0.1, # usually 1.
+    "alpha": 0.01, # usually 1.
     "beta": 1., 
     "TC_coeff": 1., # usually 10
     "normalized_logdet": False,
     "causal_dropout_prob": 0., # 0.6 for models with causal flow, 1.0 for models without
     "slot_dim" : 16,
     "check_attn": True,
-    "jobID": 14,  
+    "jobID": 15,  
     "mesh_iters": 4,
     "mesh_lr": 5, 
     "mesh_noise": 1e-3,
