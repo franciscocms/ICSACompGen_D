@@ -51,7 +51,7 @@ class InvSlotAttentionGuide(nn.Module):
         self.model = SlotMLPAdditive(
             in_channels = 3,
             n_slots = 2,
-            n_slot_latents = 16,
+            n_slot_latents = self.slot_dim,
         ).to(device)
 
 
