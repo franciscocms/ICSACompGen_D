@@ -17,7 +17,7 @@ sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
 from src.utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape
-from src.models.architectures import SlotEncoder, SlotMLPAdditiveDecoder, SlotMLPAdditive, NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow
+from src.models.architectures import SlotMLPAdditive, NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow
 
 import logging
 import warnings
@@ -28,214 +28,9 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 
-def build_coords(b_s, resolution=(128, 128)):
-    # x-cor and y-cor setting
-    nx, ny = resolution
-    x = np.linspace(0, 1, nx)
-    y = np.linspace(0, 1, ny)
-    xv, yv = np.meshgrid(x, y)
-    xv = torch.from_numpy(np.reshape(xv, [b_s, nx, nx, 1])).to(device, dtype=torch.float32)
-    yv = torch.from_numpy(np.reshape(yv, [b_s, ny, ny, 1])).to(device, dtype=torch.float32)
-    return xv, yv
-
-class SlotAttention(nn.Module):
-    def __init__(self, num_slots, slot_dim = 64, dim = 64, iters = 3, eps = 1e-8, hidden_dim = 128):
-        super().__init__()
-        self.num_slots = num_slots
-        self.iters = iters
-        self.eps = eps
-        self.scale = dim ** -0.5
-
-        self.slot_dim = slot_dim
-        
-        self.slots_mu = nn.Parameter(torch.randn(1, 1, slot_dim))
-        self.slots_sigma = nn.Parameter(torch.rand(1, 1, slot_dim))
-
-        self.to_q = nn.Linear(slot_dim, dim, bias=False)
-        self.to_k = nn.Linear(dim, dim, bias=False)
-        self.to_v = nn.Linear(dim, dim, bias=False)
-
-        self.gru = nn.GRUCell(dim, slot_dim)
-
-        hidden_dim = max(dim, hidden_dim)
-
-        self.fc1 = nn.Linear(slot_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, slot_dim)
-
-        self.norm_input  = nn.LayerNorm(dim)
-        self.norm_slots  = nn.LayerNorm(slot_dim)
-        self.norm_pre_ff = nn.LayerNorm(slot_dim)
-
-        self.mlp_weight_input = nn.Linear(dim, 1)
-        self.mlp_weight_slots = nn.Linear(slot_dim, 1)
-        
-        self.eps = torch.tensor(1e-8, device=device)
-
-    def forward(self, inputs, num_slots = None):
-        
-        b_s, n, d = inputs.shape # 'inputs' have shape (b_s, W*H, dim)
-        n_s = num_slots if num_slots is not None else self.num_slots
-        
-        mu = self.slots_mu.expand(b_s, n_s, -1)
-        sigma = self.slots_sigma.expand(b_s, n_s, -1)
-        slots = torch.distributions.Normal(mu, torch.abs(sigma) + self.eps).rsample() # 'slots' have shape (1, n_s, slot_dim=64)
- 
-        inputs = self.norm_input(inputs)      
-        k, v = self.to_k(inputs), self.to_v(inputs) # 'k' and 'v' have shape (1, 16384, 64)
-
-        latent_resolution = (32, 32)
-        
-        x_pos, y_pos = build_coords(1, latent_resolution)
-        grid = torch.cat([x_pos, y_pos], dim=-1)
-        grid = torch.flatten(grid, -3, -2) # 'grid' has shape (1, 16384, 2)
-        #grid_per_slot = grid.unsqueeze(-3).repeat(1, n_s, 1, 1) # 'grid_per_slot' has shape (1, n_s, 16384, 2)
-
-        a = self.mlp_weight_input(inputs).squeeze(-1).softmax(-1) * n_s # 'a' shape (b_s, W*H)
-
-        for iteration in range(self.iters):
-
-            if params["running_type"] == "inspect": logging.info(f"\nSA iteration {iteration}")
-            
-            slots_prev = slots
-            slots = self.norm_slots(slots) # 'slots' shape (b_s, n_s, slot_dim)
-            b = self.mlp_weight_slots(slots).squeeze(-1).softmax(-1) * n_s  # 'b' shape (b_s, n_s)
-            
-            q = self.to_q(slots) # 'q' shape (1, n_s, 64)
-
-            attn_logits = torch.cdist(k, q)      
-            attn_logits, p, q = minimize_entropy_of_sinkhorn(attn_logits, a, b, mesh_lr=params["mesh_lr"], n_mesh_iters=params["mesh_iters"]) 
-                    
-            attn, _, _ = sinkhorn(attn_logits, a, b, u=p, v=q) # 'attn' shape (1, n, n_s)
-            attn = attn.permute(0, 2, 1) # 'attn' shape (1, n_s, n)
-            updates = torch.matmul(attn, v)
-
-            # Compute the center of mass of each slot attention mask.
-            # 'attn' has shape (1, n_s, 16384)
-            # 'grid' has shape (1, 16384, 2)
-            # 'slot_pos' has shape (1, n_s, 2)
-            slot_pos = torch.einsum("...qk,...kd->...qd", attn, grid)
-            slot_pos = slot_pos.unsqueeze(-2)  
-
-            slots = self.gru(
-                    updates.view(b_s * n_s, d),
-                    slots_prev.view(b_s * n_s, self.slot_dim),
-            )
-
-            slots = slots.view(b_s, n_s, self.slot_dim)
-            assert_shape(slots.size(), (b_s, n_s, self.slot_dim))
-            slots = slots + self.fc2(F.elu(self.fc1(self.norm_pre_ff(slots))))
-            assert_shape(slots.size(), (b_s, n_s, self.slot_dim))    
-        return slots, slot_pos.reshape((b_s, n_s, 2)), attn#, scales
-
-def build_grid(resolution):
-    ranges = [np.linspace(0., 1., num=res) for res in resolution]
-    grid = np.meshgrid(*ranges, sparse=False, indexing="ij")
-    grid = np.stack(grid, axis=-1)
-    grid = np.reshape(grid, [resolution[0], resolution[1], -1])
-    grid = np.expand_dims(grid, axis=0) # (1, 2, 128, 128)
-    grid = grid.astype(np.float32)
-    grid = torch.from_numpy(np.concatenate([grid, 1.0 - grid], axis=-1)).to(device)
-    return grid
-
-"""Adds soft positional embedding with learnable projection."""
-class SoftPositionEmbed(nn.Module):
-    def __init__(self, hidden_size, resolution):
-        """Builds the soft position embedding layer.
-        Args:
-        hidden_size: Size of input feature dimension.
-        resolution: Tuple of integers specifying width and height of grid.
-        """
-        super().__init__()        
-        self.embedding = nn.Linear(4, hidden_size, bias=True)
-        self.grid = build_grid(resolution)        
-
-    def forward(self, inputs):
-        grid = self.embedding(self.grid)
-        #logging.info(inputs.shape) # (1, 128, 128, 64)
-        #logging.info(grid.shape)   # (1, 128, 128, 8)
-        new_embd = inputs + grid
-        return new_embd
-
-class Encoder(nn.Module):
-    def __init__(self, resolution):
-        super().__init__()
-        
-        self.encoder_sa = []
-        in_channels = 3 
-        self.encoder_sa += [nn.Conv2d(in_channels, 64, 5, 1, 2), nn.ELU()]
-        for c in range(2):
-            self.encoder_sa += [nn.Conv2d(64, 64, 5, 2, 2), nn.ELU()]
-        self.encoder_sa += [nn.Conv2d(64, 64, 5, 1, 2), nn.ELU()]
-        self.last_dim = self.encoder_sa[-2].out_channels
-        self.encoder_sa = nn.Sequential(*self.encoder_sa)
-        
-        #self.encoder_pos = SoftPositionEmbed(hid_dim, resolution)
-        resolution = (32, 32)        
-        self.encoder_pos = SoftPositionEmbed(self.last_dim, resolution)
-
-
-    def forward(self, x):
-        x = self.encoder_sa(x)
-        x = x.permute(0,2,3,1) # B, W, H, C -> put C in last dimension
-        x = self.encoder_pos(x)                 
-        # spatial flatten -> flatten the spatial dimensions
-        x = torch.flatten(x, 1, 2) # B, W*H, C -> 64 features of size w*H
-        return x
-
-class View(nn.Module):
-    def __init__(self, size):
-        super(View, self).__init__()
-        self.size = size
-
-    def forward(self, tensor):
-        return tensor.view(self.size)
-    
-class Decoder(nn.Module):
-    def __init__(self, in_dim, out_channels):
-        super().__init__()
-
-        module_list = [
-            nn.Linear(in_dim, 256),
-            nn.ELU(),
-            nn.Linear(256, 256),
-            nn.ELU(),
-            nn.Linear(256, 32 * 4 * 4),
-            nn.ELU(),
-            View((-1, 32, 4, 4)),
-            nn.ConvTranspose2d(32, 32, 4, 2, 1),
-            nn.ELU(),
-            nn.ConvTranspose2d(32, 32, 4, 2, 1),
-            nn.ELU(),
-            nn.ConvTranspose2d(32, 32, 4, 2, 1),
-            nn.ELU(),
-            nn.ConvTranspose2d(32, 32, 4, 2, 1),
-            nn.ELU(),
-            nn.ConvTranspose2d(32, out_channels, 4, 2, 1)
-        ]
-        self.decoder = nn.Sequential(*module_list)
-        
-
-    def forward(self, slots):
-        return self.decoder(slots)
-
-class AdditiveDecoder(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.decoder = Decoder(in_dim=params["slot_dim"], out_channels = 3)
-
-    def forward(self, slots):
-        # z [B, N, L, d]
-        B, N, d = slots.shape
-        slots = slots.reshape(B*N, d)
-        recons = self.decoder(slots) 
-        recons = recons.view(B, N, *recons.shape[1:])
-        img = recons.sum(1)        
-        return img
-
-
 """Slot Attention-based auto-encoder for object discovery."""
 class InvSlotAttentionGuide(nn.Module):
-    def __init__(self, resolution, num_iterations, slot_dim, latent_dim, nlatents, A, stage):
+    def __init__(self, resolution, num_iterations, latent_dim, nlatents, A, stage):
         """Builds the Slot Attention-based auto-encoder.
         Args:
         resolution: Tuple of integers specifying width and height of input image.
@@ -243,7 +38,6 @@ class InvSlotAttentionGuide(nn.Module):
         num_iterations: Number of iterations in Slot Attention.
         """
         super().__init__()
-        self.slot_dim = slot_dim
         self.resolution = resolution
         self.num_slots = 0
         self.num_iterations = num_iterations
@@ -251,22 +45,8 @@ class InvSlotAttentionGuide(nn.Module):
         assert self.stage in ["train", "eval"], "stage must be either 'train' or 'eval'"
         self.L = nlatents
         self.A = A
-
-        # self.encoder_cnn = Encoder(self.resolution)
-        # self.hid_dim = self.encoder_cnn.last_dim
         self.ldim = latent_dim
-        # self.mlp = nn.Sequential(
-        #      nn.Linear(self.hid_dim, self.hid_dim), # used to be hid_dim, hid_dim
-        #      nn.ELU(),
-        #      nn.Linear(self.hid_dim, self.hid_dim)
-        # )
-        # self.slot_attention = SlotAttention(
-        #         num_slots=self.num_slots,
-        #         slot_dim = self.slot_dim,
-        #         dim=self.hid_dim,
-        #         iters = self.num_iterations,
-        #         eps = 1e-8, 
-        #         hidden_dim = 128)
+        self.slot_dim = self.L*self.ldim
 
         self.model = SlotMLPAdditive(
             in_channels = 3,
@@ -277,18 +57,15 @@ class InvSlotAttentionGuide(nn.Module):
 
         self.noise_nets = nn.ModuleDict()
         for var_name in params["latent_vars"]:
-            self.noise_nets[var_name] = NoiseEncoder(nin = self.ldim,
+            self.noise_nets[var_name] = NoiseEncoder(nin = self.slot_dim,
                                             nh = self.ldim,
                                             nout = self.ldim
                                             )
-        self.causal_decs = nn.ModuleDict()
-        for i in range(params["num_slots"]):
-            self.causal_decs[str(i)] = CausalDecoder(nin = self.ldim,
-                                            nh = self.ldim,
-                                            nout = self.ldim
-                                            )
+        self.causal_decoder = CausalDecoder(nin = self.slot_dim,
+                                        nh = self.slot_dim,
+                                        nout = self.slot_dim
+                                        )
         
-        # self.decoder = AdditiveDecoder()
         self.causal_flow = MultivariateCausalFlow(self.L, self.ldim, self.A)
         self.prior = PriorMultivariateCausalFlow(self.L, self.ldim, self.A)
         if params["TC_minimization"]: self.tc_discriminator = TCDiscriminator(self.L*self.ldim, self.L*self.ldim*4)
@@ -334,13 +111,8 @@ class InvSlotAttentionGuide(nn.Module):
         mu_noise = mu_noise.reshape(B*n_s, self.L, self.ldim)
         logvar_noise = logvar_noise.reshape(B*n_s, self.L, self.ldim)
         self.logvar_noise = logvar_noise
-        
-        slot_hat = []
-        for i in range(n_s):
-            slot_hat_i = self.causal_decs[str(i)](z_scm[:, i, :, :])
-            #logger.info(slot_hat_i.shape)
-            slot_hat.append(slot_hat_i) # N, B, L, d
-        slot_hat = torch.sum(torch.stack(slot_hat, dim=1), dim=-2) # [B, N, L, d] -> [B, N, d]
+
+        slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
         
         if params["beta"] > 0:
             cp, self.prior_L_slopes, prior_ss, prior_ts = self.prior(u_m, z_scm) # [B, N, L, d]

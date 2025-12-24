@@ -66,8 +66,7 @@ torch.manual_seed(params["random_seed"])
 
 guide = InvSlotAttentionGuide(resolution = params['resolution'],
                               num_iterations = 3,
-                              slot_dim = params["slot_dim"],
-                              latent_dim = params["slot_dim"],
+                              latent_dim = params["latent_dim"],
                               nlatents = len(params["latent_vars"]),
                               A = A,
                               stage="train"
@@ -154,7 +153,7 @@ for epoch in range(params["training_epochs"]):
       disc_input = torch.flatten(e, -2)
       D_joint = guide.tc_discriminator(disc_input)
       tc_loss = torch.square(torch.mean(D_joint[:, :1] - D_joint[:, 1:]))
-      fake_z_noise, perms = permute_dims(disc_input, params["slot_dim"])
+      fake_z_noise, perms = permute_dims(disc_input, guide.slot_dim)
       batch_loss += TC_coeff*tc_loss
       assert not torch.isnan(tc_loss).any()
     else:
