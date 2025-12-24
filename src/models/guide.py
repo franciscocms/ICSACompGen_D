@@ -17,7 +17,7 @@ sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
 from src.utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape
-from src.models.architectures import SlotEncoder, SlotMLPAdditiveDecoder, SlotMLPAdditive, NoiseEncoder, CausalDecoder, MMDLoss, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow
+from src.models.architectures import SlotEncoder, SlotMLPAdditiveDecoder, SlotMLPAdditive, NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow
 
 import logging
 import warnings
