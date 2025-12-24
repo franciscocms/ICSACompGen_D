@@ -16,7 +16,7 @@ sys.path.insert(0, '..') # add parent dir
 from models.guide import InvSlotAttentionGuide
 from main import params
 from datasets.data_utils import MyDataset, ProbeDataset
-from utils.guide import LinearProbe
+from models.architectures import LinearProbe
 
 import logging
 logfile_name = f"eval-{params['jobID']}.log"

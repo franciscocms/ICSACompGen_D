@@ -17,8 +17,7 @@ sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
 from src.utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape
-from src.utils.guide import NoiseEncoder, CausalDecoder, MMDLoss, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow
-from src.models.architectures import SlotEncoder, SlotMLPAdditiveDecoder, SlotMLPAdditive
+from src.models.architectures import SlotEncoder, SlotMLPAdditiveDecoder, SlotMLPAdditive, NoiseEncoder, CausalDecoder, MMDLoss, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow
 
 import logging
 import warnings
@@ -292,12 +291,7 @@ class InvSlotAttentionGuide(nn.Module):
         # self.decoder = AdditiveDecoder()
         self.causal_flow = MultivariateCausalFlow(self.L, self.ldim, self.A)
         self.prior = PriorMultivariateCausalFlow(self.L, self.ldim, self.A)
-        self.mmd_loss = MMDLoss()
         if params["TC_minimization"]: self.tc_discriminator = TCDiscriminator(self.L*self.ldim, self.L*self.ldim*4)
-        
-
-        self.some_labels = torch.tensor([])
-        self.gmm_fit_epoch = 20 if params["alpha"] > 0. else 0. # 200
         self.epoch = 0
         
     

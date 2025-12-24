@@ -4,6 +4,9 @@ import torch.nn as nn
 from contextlib import nullcontext
 from typing import Any, Dict
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+
 """
 Encoder and decoder architectures used in our AE model, the same as in https://arxiv.org/abs/2310.05327.
 
@@ -44,7 +47,6 @@ def get_encoder(in_channels, out_dim):
 
     encoder = nn.Sequential(*modules_list)
     return encoder
-
 
 def get_decoder(in_dim, out_channels):
     """
@@ -169,3 +171,210 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         image = figures.sum(dim=1)
 
         return image, figures
+    
+class Encoder(nn.Module):
+    def __init__(self, nin, nh, nout):
+        super().__init__()
+
+        self.layers = nn.Sequential(
+            nn.Linear(nin, nh),
+            nn.ELU(),
+            nn.Linear(nh, nh),
+            nn.ELU(),
+        )
+        self.means = nn.Sequential(nn.Linear(nh, nout), nn.Identity())
+        self.logvars = nn.Linear(nh, nout)
+    
+    def forward(self, x):
+        x = self.layers(x)
+        return self.means(x), self.logvars(x)
+
+class Decoder(nn.Module):
+    def __init__(self, nin, nh, nout):
+        super().__init__()
+        self.layers = nn.Sequential(
+            nn.Linear(nin, nh),
+            nn.ELU(),
+            nn.Linear(nh, nh),
+            nn.ELU(),
+            nn.Linear(nh, nout),
+            #nn.Sigmoid()
+        )
+    def forward(self, z):
+        return self.layers(z)
+
+class NoiseEncoder(nn.Module):
+    def __init__(self, nin, nh, nout):
+        super().__init__()
+        self.encoder = Encoder(nin, nh, nout)                # takes an embedding batch u_m 
+
+    # def compute_kl_loss(self, mu, logvars):
+    #     assert len(mu.shape) == len(logvars.shape) == 2
+    #     kl_div = torch.mean(-0.5 * torch.sum(1 + logvars - mu**2 - torch.exp(logvars), dim=-1))
+    #     return kl_div
+    
+    def compute_rec_loss(self, rec, target):
+        criterion = nn.MSELoss()
+        return criterion(rec, target)
+
+    def encode(self, x):
+        mu, logvars = self.encoder(x)
+        assert not torch.isnan(logvars).any()
+        stds = torch.exp(0.5*logvars)
+        z = mu + torch.randn_like(mu)*stds # reparameterization trick
+        return mu, logvars, z
+    
+class CausalDecoder(nn.Module):
+    def __init__(self, nin, nh, nout):  
+        super().__init__()
+        self.decoder = Decoder(nin=nout, nh=nh, nout=nin)    # takes the reparameterized z to generate hat(u_m)
+
+    def forward(self, z):
+        rec = self.decoder(z)
+        return rec
+
+class MLP(nn.Module):
+    """ a simple 4-layer MLP """
+
+    def __init__(self, nin, nout, nh, f_act="identity"):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(nin, nh),
+            nn.ELU(),
+            nn.Linear(nh, nh),
+            nn.ELU(),
+            nn.Linear(nh, nout),
+        )
+        if f_act == "softmax": self.f_act = nn.Softmax(dim=-1)
+        elif f_act == "sigmoid": self.f_act = nn.Sigmoid()
+        elif f_act == "tanh": self.f_act = nn.Tanh()
+        elif f_act == "identity": self.f_act = nn.Identity()
+        elif f_act == "softplus": self.f_act = nn.Softplus()
+
+    def forward(self, x, mask=None):
+        if mask == None: 
+            return self.f_act(self.net(x))
+        else:
+            return self.f_act(self.net(x * mask))
+        
+
+class LinearProbe(nn.Module):
+    def __init__(self, nin, nout):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(nin, nin),
+            nn.ReLU(),
+            nn.Linear(nin, nout),
+            nn.Sigmoid()
+        )
+    def forward(self, x):
+        out = self.net(x)
+        if out.size(-1) == 1: out = out.squeeze(-1)
+        return out
+
+class Flow(nn.Module):
+    def __init__(self, L, ldim, A=None, net_class=MLP, nh=100, f_act="identity"):
+        super().__init__()
+
+        self.s_cond = net_class(L*ldim, ldim, nh, f_act=f_act)
+        self.t_cond = net_class(L*ldim, ldim, nh, f_act=f_act)
+        self.total_dims = L*ldim
+        
+        self.L, self.ldim = L, ldim
+
+    def forward(self, eps, z, mask):
+        B, n_s, _ = eps.shape
+
+        s = self.s_cond(z.reshape(-1, self.total_dims), mask).reshape(B, n_s, self.ldim) # slope
+        t = self.t_cond(z.reshape(-1, self.total_dims), mask).reshape(B, n_s, self.ldim) # offset
+        
+        assert not torch.isnan(s).any()
+        assert not torch.isnan(t).any()
+        
+        z_i = torch.exp(s) * eps + t
+
+        return z_i, s, t
+        
+class MultivariateCausalFlow(nn.Module):
+    def __init__(self, L, ldim, A):
+        super().__init__()
+        
+        self.L, self.ldim, self.A = L, ldim, A
+        self.nf = nn.ModuleDict()
+        for i in range(L):
+            self.nf[str(i)] = Flow(L, ldim, A, f_act="tanh") # instead of "tanh"
+
+    def forward(self, eps):
+        z = torch.zeros_like(eps).to(device)
+        L_slopes = torch.tensor([]).to(device)
+        ss = torch.tensor([]).to(device)
+        ts = torch.tensor([]).to(device)
+
+        total_dims = self.L*self.ldim
+        for i in range(self.L):
+            if 1 in self.A[i, :]:
+                mask = self.A[i, :].repeat(self.ldim, 1).T.reshape(total_dims).to(device)                        
+            else:
+                mask = torch.zeros(total_dims).to(device)
+            
+            z[:, :, i, :], s, t = self.nf[str(i)](eps[:, :, i, :], z, mask)
+            L_slopes = torch.cat((L_slopes, s.unsqueeze(-2)), dim=-2)
+            
+            ss = torch.cat((ss, s.unsqueeze(-2)), dim=-2)
+            ts = torch.cat((ts, t.unsqueeze(-2)), dim=-2)
+
+        return z, L_slopes, ss, ts
+
+class PriorMultivariateCausalFlow(nn.Module):
+    def __init__(self, L, ldim, A):
+        super().__init__()
+        
+        self.L, self.ldim, self.A = L, ldim, A
+        self.nf = nn.ModuleDict()
+        for i in range(L):
+            self.nf[str(i)] = Flow(L, ldim, A, f_act="tanh") # instead of "tanh"
+        
+    def forward(self, u_m, z):
+
+        # e:      [B, N, L, d]  ->  label embeddings
+        # latent: [B, N, L, d]  ->  z_scm
+        """ r [B*N, L, K] are the responsibilities to guarantee identifiability """
+
+        B, N, L, d = z.shape
+
+        assert z.shape == u_m.shape
+
+    
+        cp_m = torch.zeros_like(u_m).to(device)
+        L_slopes = torch.tensor([]).to(device)
+        ss = torch.tensor([]).to(device)
+        ts = torch.tensor([]).to(device)
+
+        total_dims = self.L*self.ldim
+        for i in range(self.L):
+            if 1 in self.A[i, :]: # shape
+                mask = self.A[i, :].repeat(self.ldim, 1).T.reshape(total_dims).to(device)
+            else: # color
+                mask = torch.zeros(total_dims).to(device)
+            
+            cp_m[:, :, i, :], s, t = self.nf[str(i)](u_m[:, :, i, :], z, mask)
+            L_slopes = torch.cat((L_slopes, s.unsqueeze(-2)), dim=-2)
+            
+            ss = torch.cat((ss, s.unsqueeze(-2)), dim=-2)
+            ts = torch.cat((ts, t.unsqueeze(-2)), dim=-2)
+
+        return cp_m, L_slopes, ss, ts
+
+class TCDiscriminator(nn.Module):
+    def __init__(self, input_dim, hidden_dim=128):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.LeakyReLU(0.2, True),
+            nn.Linear(hidden_dim, 2),
+            #nn.LeakyReLU(0.2, True),
+            #nn.Linear(hidden_dim, 2),
+        )
+
+    def forward(self, x):
+        return self.net(x).squeeze()
