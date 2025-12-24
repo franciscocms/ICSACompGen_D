@@ -43,7 +43,7 @@ params = {
     "causal_dropout_prob": 0., # 0.6 for models with causal flow, 1.0 for models without
     "latent_dim" : 16,
     "check_attn": True,
-    "jobID": 19,  
+    "jobID": 20,  
     "mesh_iters": 4,
     "mesh_lr": 5, 
     "mesh_noise": 1e-3,
