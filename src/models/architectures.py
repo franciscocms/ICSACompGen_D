@@ -181,8 +181,12 @@ class Encoder(nn.Module):
             nn.ELU(),
             nn.Linear(nh, nh),
             nn.ELU(),
+            nn.Linear(nh, nh),
+            nn.ELU(),
+            nn.Linear(nh, nh),
+            nn.ELU(),
         )
-        self.means = nn.Sequential(nn.Linear(nh, nout), nn.Identity())
+        self.means = nn.Linear(nh, nout)
         self.logvars = nn.Linear(nh, nout)
     
     def forward(self, x):
@@ -194,6 +198,10 @@ class Decoder(nn.Module):
         super().__init__()
         self.layers = nn.Sequential(
             nn.Linear(nin, nh),
+            nn.ELU(),
+            nn.Linear(nh, nh),
+            nn.ELU(),
+            nn.Linear(nh, nh),
             nn.ELU(),
             nn.Linear(nh, nh),
             nn.ELU(),

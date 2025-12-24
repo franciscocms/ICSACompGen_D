@@ -229,6 +229,8 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["log_det_prior"] = log_det_prior
   dict_to_log["kl_noise"] = kl_noise
   dict_to_log["alpha"] = alpha
+  for i in range(L):
+    dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.sum(logvar[:, i, :], dim=-1))
   if params["beta"] > 0:
     dict_to_log["prior_s"] = guide.prior_ss
     dict_to_log["prior_t"] = guide.prior_ts
