@@ -15,7 +15,7 @@ sys.path.insert(0, '..') # add parent dir
 from models.guide import InvSlotAttentionGuide
 from main import params
 from utils.guide import permute_dims, linear_scheduler, exp_scheduler
-from utils.loss import compute_log_det, compute_prior_z_loss
+from utils.loss import compute_log_det, compute_prior_z_loss, compute_kl_loss
 from datasets.data_utils import MyDataset
 
 import wandb # type: ignore
@@ -133,7 +133,7 @@ for epoch in range(params["training_epochs"]):
     B = img.size(0)
 
     batch_loss = 0.
-    kl_noise = 0.
+    #kl_noise = 0.
     optimizer.zero_grad()
     
     #slots, recon, e, mu, logvar, z, slot_hat, cp = guide(img, target)
@@ -146,8 +146,9 @@ for epoch in range(params["training_epochs"]):
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
         os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
 
-    for i, var_name in enumerate(params["latent_vars"]):
-      kl_noise += guide.noise_nets[var_name].compute_kl_loss(mu[:, i, :], logvar[:, i, :])
+    # for i, var_name in enumerate(params["latent_vars"]):
+    #   kl_noise += guide.noise_nets[var_name].compute_kl_loss(mu[:, i, :], logvar[:, i, :])
+    kl_noise = compute_kl_loss(torch.flatten(mu, -2), torch.flatten(logvar, -2))
     
     if params["TC_minimization"]:
       disc_input = torch.flatten(e, -2)

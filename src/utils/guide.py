@@ -172,10 +172,10 @@ class NoiseEncoder(nn.Module):
         super().__init__()
         self.encoder = Encoder(nin, nh, nout)                # takes an embedding batch u_m 
 
-    def compute_kl_loss(self, mu, logvars):
-        assert len(mu.shape) == len(logvars.shape) == 2
-        kl_div = torch.mean(-0.5 * torch.sum(1 + logvars - mu**2 - torch.exp(logvars), dim=-1))
-        return kl_div
+    # def compute_kl_loss(self, mu, logvars):
+    #     assert len(mu.shape) == len(logvars.shape) == 2
+    #     kl_div = torch.mean(-0.5 * torch.sum(1 + logvars - mu**2 - torch.exp(logvars), dim=-1))
+    #     return kl_div
     
     def compute_rec_loss(self, rec, target):
         criterion = nn.MSELoss()

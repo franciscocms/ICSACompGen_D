@@ -9,6 +9,11 @@ from src.main import params
 logger = logging.getLogger(params["running_type"])
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+def compute_kl_loss(self, mu, logvars):
+  assert len(mu.shape) == len(logvars.shape) == 2
+  kl_div = torch.mean(-0.5 * torch.sum(1 + logvars - mu**2 - torch.exp(logvars), dim=-1))
+  return kl_div
+
 def compute_log_det(L_slopes):
   log_det = 0.
   for i in range(len(params["latent_vars"])):
