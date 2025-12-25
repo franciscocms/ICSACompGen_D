@@ -1,4 +1,7 @@
 import torch
+import torch.nn.functional as F
+from scipy.optimize import linear_sum_assignment
+import numpy as np
 
 import sys
 import logging
@@ -8,6 +11,30 @@ from src.main import params
 
 logger = logging.getLogger(params["running_type"])
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+def compute_matching_cost(preds, labels, u_labels):
+  B, N, L = preds.shape
+  assert preds.shape == labels.shape
+  
+  preds = preds.unsqueeze(2)
+  labels = labels.unsqueeze(1)
+  
+  # Cost is MSE across all L causal factors
+  # Result: [B, N, N]
+  cost_matrix = torch.sum((preds - labels)**2, dim=-1)
+  cost_matrix_ = cost_matrix.detach().cpu().numpy()
+  
+  indices = np.array([linear_sum_assignment(p) for p in cost_matrix_])
+  _, col_ind = indices[:, 0], indices[:, 1]  
+  indices_ = indices.shape[2] * indices[:, 0] + indices[:, 1]
+
+  losses = torch.gather(cost_matrix.flatten(1,2), 1, torch.from_numpy(indices_).to(device=cost_matrix.device))
+  total_loss = losses.mean()
+
+  # Reorder labels to match slot order
+  matched_u = u_labels[torch.arange(B, device=u_labels.device).view(B, 1),
+                      col_ind]
+  return total_loss, matched_u
 
 def compute_kl_loss(mu, logvars):
   assert len(mu.shape) == len(logvars.shape) == 2

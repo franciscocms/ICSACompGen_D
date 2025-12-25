@@ -266,6 +266,24 @@ class MLP(nn.Module):
             return self.f_act(self.net(x * mask))
         
 
+class Predictor(nn.Module):
+    def __init__(self, nin, nhidden, nout):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(nin, nhidden),
+            nn.ELU(),
+            nn.Linear(nhidden, nhidden),
+            nn.ELU(),
+            nn.Linear(nhidden, nout),
+            nn.Sigmoid()
+        )
+        
+    def forward(self, z):
+        B, N, L, d = z.shape
+        z = z.view(-1, d)
+        out = self.net(z)
+        return out.view(B, N, L)
+
 class LinearProbe(nn.Module):
     def __init__(self, nin, nout):
         super().__init__()
@@ -343,15 +361,8 @@ class PriorMultivariateCausalFlow(nn.Module):
             self.nf[str(i)] = Flow(L, ldim, A, f_act="tanh") # instead of "tanh"
         
     def forward(self, u_m, z):
-
-        # e:      [B, N, L, d]  ->  label embeddings
-        # latent: [B, N, L, d]  ->  z_scm
-        """ r [B*N, L, K] are the responsibilities to guarantee identifiability """
-
         B, N, L, d = z.shape
-
         assert z.shape == u_m.shape
-
     
         cp_m = torch.zeros_like(u_m).to(device)
         L_slopes = torch.tensor([]).to(device)

@@ -17,7 +17,8 @@ sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
 from src.utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape
-from src.models.architectures import SlotMLPAdditive, NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow
+from src.models.architectures import SlotMLPAdditive, NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow, Predictor
+from src.utils.loss import compute_matching_cost
 
 import logging
 import warnings
@@ -68,6 +69,7 @@ class InvSlotAttentionGuide(nn.Module):
         
         self.causal_flow = MultivariateCausalFlow(self.L, self.ldim, self.A)
         self.prior = PriorMultivariateCausalFlow(self.L, self.ldim, self.A)
+        self.predictor = Predictor(self.ldim, 64, 1)
         if params["TC_minimization"]: self.tc_discriminator = TCDiscriminator(self.L*self.ldim, self.L*self.ldim*4)
         self.epoch = 0
         
@@ -113,76 +115,15 @@ class InvSlotAttentionGuide(nn.Module):
         self.logvar_noise = logvar_noise
 
         slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
+
+        z_scm_detach = z_scm.detach()
+        preds = self.predictor(z_scm_detach)
+        self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
         
         if params["beta"] > 0:
-            cp, self.prior_L_slopes, prior_ss, prior_ts = self.prior(u_m, z_scm) # [B, N, L, d]
+            cp, self.prior_L_slopes, prior_ss, prior_ts = self.prior(aligned_u_m, z_scm) # [B, N, L, d]
             self.prior_ss, self.prior_ts = prior_ss, prior_ts     
                             
         if params["running_type"] == "eval": return z_noise.reshape(B, n_s, self.L, self.ldim)
         return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, cp
         
-
-
-
-
-
-        # self.img = img
-        # x = self.encoder_cnn(self.img)
-        # x = nn.LayerNorm(x.shape[1:]).to(device)(x)
-        # self.features_to_slots = self.mlp(x)
-        # slots, self.slot_pos, attn = self.slot_attention(self.features_to_slots, num_slots=n_s) # slots in [B, n_s, d]
-        # self.attn = attn
-                                
-        # z_noise, mu_noise, logvar_noise, rec_noise = [], [], [], []           
-        # for var in params["latent_vars"]:
-        #     mu, logvars, e = self.noise_nets[var].encode(slots)
-        #     z_noise.append(e)
-        #     mu_noise.append(mu)
-        #     logvar_noise.append(logvars) 
-        # z_noise = torch.stack(z_noise).permute(1, 2, 0, 3)            # [B, N, L, d] => 'L' refers to the number of categorical latents
-        # mu_noise = torch.stack(mu_noise).permute(1, 2, 0, 3)          # [B, N, L, d]
-        # logvar_noise = torch.stack(logvar_noise).permute(1, 2, 0, 3)  # [B, N, L, d]
-        # assert z_noise.size(2) == self.L
-        
-        # u_m = torch.ones(B, n_s, self.L, self.ldim).to(device)
-        # for i, var in enumerate(params["latent_vars"]):
-        #     u_m[:, :, i] = ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])).unsqueeze(-1).expand(-1, -1, self.ldim)
-        
-        # if params["causal_dropout_prob"] <= 1.:
-        #     z_scm, self.L_slopes, ss, ts = self.causal_flow(z_noise)
-        #     self.ss, self.ts = ss, ts
-        # else:
-        #     z_scm = z_noise 
-
-        # z_noise = z_noise.reshape(B*n_s, self.L, self.ldim)
-        # mu_noise = mu_noise.reshape(B*n_s, self.L, self.ldim)
-        # logvar_noise = logvar_noise.reshape(B*n_s, self.L, self.ldim)
-        # self.logvar_noise = logvar_noise
-
-        
-        # slot_hat = []
-        # for i in range(n_s):
-        #     slot_hat_i = self.causal_decs[str(i)](z_scm[:, i, :, :])
-        #     #logger.info(slot_hat_i.shape)
-        #     slot_hat.append(slot_hat_i) # N, B, L, d
-        # slot_hat = torch.sum(torch.stack(slot_hat, dim=1), dim=-2) # [B, N, L, d] -> [B, N, d]
-        
-        # img_hat = self.decoder(slots)
-
-        # """
-        # - prior won't be aligned with labels...
-        # """
-
-        # if params["beta"] > 0:
-        #     cp, self.prior_L_slopes, prior_ss, prior_ts = self.prior(u_m, z_scm) # [B, N, L, d]
-        #     self.prior_ss, self.prior_ts = prior_ss, prior_ts     
-                            
-        # if self.stage == "eval": return z_noise.reshape(B, n_s, self.L, self.ldim)
-        # return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, cp
-        
-        
-        
-        
-        
-        
-
