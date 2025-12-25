@@ -116,9 +116,13 @@ for epoch in range(params["training_epochs"]):
   # update coefficients
   TC_coeff = params["TC_coeff"]
   #alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
-  alpha = params["alpha"]
+  #alpha = params["alpha"]
+  alpha = (1 - torch.sigmoid(torch.tensor(50 - epoch)*100))*params["alpha"]
   log_det_coeff = 0.001
 
+  if epoch >= 50:
+    for name, param in guide.model.named_parameters():
+      param.requires_grad = False
 
   # update gradient computation flags
   if params["TC_minimization"]:
@@ -140,7 +144,7 @@ for epoch in range(params["training_epochs"]):
     slots, recon, e, mu, logvar, z, slot_hat, cp = guide(img, target)
     recon_loss = recon_loss_fn(recon, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots) 
-    batch_loss += recon_loss + alpha*slot_recon_loss + guide.pred_loss
+    batch_loss += recon_loss + alpha*slot_recon_loss + alpha*guide.pred_loss
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
@@ -165,7 +169,7 @@ for epoch in range(params["training_epochs"]):
       assert not torch.isnan(log_det).any()
     else:
       log_det = torch.tensor(0.)
-    batch_loss += alpha*kl_noise - log_det_coeff*log_det
+    batch_loss += alpha*(kl_noise - log_det_coeff*log_det)
     
     if params["beta"] > 0:
       log_det_prior = compute_log_det(guide.prior_L_slopes)
@@ -175,7 +179,7 @@ for epoch in range(params["training_epochs"]):
     else:
       causal_loss = torch.tensor(0.)
       log_det_prior = torch.tensor(0.)
-    batch_loss += alpha*causal_loss - log_det_coeff*log_det_prior
+    batch_loss += alpha*(causal_loss - log_det_coeff*log_det_prior)
 
     batch_loss.backward()
     optimizer.step()
