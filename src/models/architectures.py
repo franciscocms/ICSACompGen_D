@@ -277,10 +277,11 @@ class Predictor(nn.Module):
             nn.Linear(nhidden, nout),
             nn.Sigmoid()
         )
-        
+
     def forward(self, z):
         B, N, L, d = z.shape
-        z = z.view(-1, d)
+        z = torch.flatten(z, 0, 2)
+        assert len(z.shape) == 2, f"{z.shape} invalid!"
         out = self.net(z)
         return out.view(B, N, L)
 
