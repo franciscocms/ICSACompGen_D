@@ -119,8 +119,7 @@ def main():
                 ])
     guide = InvSlotAttentionGuide(resolution = params['resolution'],
                               num_iterations = 3,
-                              slot_dim = params["slot_dim"],
-                              latent_dim = params["slot_dim"],
+                              latent_dim = params["latent_dim"],
                               nlatents = len(params["latent_vars"]),
                               A = A,
                               stage="train"
