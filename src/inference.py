@@ -167,9 +167,9 @@ def main():
         train_val_test_split = [0.7, 0.2, 0.1]
         for i in range(len(params["latent_vars"])):
 
-            #if i == 0: j = 1
-            #elif i == 1: j = 0
-            j = i
+            if i == 0: j = 1
+            elif i == 1: j = 0
+            #j = i
             
             logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
             
@@ -248,6 +248,9 @@ def main():
 
 
             logger.info(f"test r2 score: {torch.mean(r2_score)}")
+
+            if i == 2:
+                break
 
 if __name__ == '__main__':
     main()
