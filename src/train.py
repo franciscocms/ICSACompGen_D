@@ -101,7 +101,7 @@ target_dir = os.path.join(dataset_dir, "metadata")
 train_ds = MyDataset(dataset_dir)
 logger.info(len(train_ds))
 
-train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, num_workers=1)
+train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True) # num_workers=8
 
 recon_loss_fn = nn.MSELoss()
 slot_rec_loss_crit = nn.MSELoss()
