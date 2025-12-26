@@ -220,6 +220,7 @@ for epoch in range(params["training_epochs"]):
       plt.close()
 
     printed = True
+    break
     
   epoch_train_loss /= num_iters
   if epoch % epoch_step == 0:
