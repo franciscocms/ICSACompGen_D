@@ -166,6 +166,7 @@ def main():
                     logger.info(f"preds: {preds[:5, :]}")
                     logger.info(f"target: {t[:5, :]}")
                     r2_score = hungarian_r2_score(preds, t)
+                    r2_score = torch.clamp(r2_score, 0., 1.)
                     logger.info(f"r2: {r2_score[:5]}")
 
 
