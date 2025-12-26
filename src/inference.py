@@ -114,6 +114,8 @@ def main():
             for epoch in range(training_epochs):
                 epoch_train_loss = 0.
                 epoch_val_loss = 0.
+                train_iters = 0
+                val_iters = 0
                 
                 model.train()
                 for z, t in probe_dl_train:
@@ -129,7 +131,8 @@ def main():
 
                     loss.backward()
                     optimizer.step()
-                    epoch_train_loss += loss/z.size(0)
+                    epoch_train_loss += loss
+                    train_iters += 1
                 
                 model.eval()
                 with torch.no_grad():
@@ -139,7 +142,8 @@ def main():
                         
                         preds = model(z)
                         loss = hungarian_matching_loss_scalar(preds, t)
-                        epoch_val_loss += loss/z.size(0)
+                        epoch_val_loss += loss
+                        val_iters += 1
                 
                 if epoch_val_loss < best_loss:
                     #logger.info(f"saving new model with val loss: {epoch_val_loss}")
@@ -148,8 +152,8 @@ def main():
                 
                 if epoch % 10 == 0:
                     logger.info(f"epoch {epoch}/{training_epochs-1}")
-                    logger.info(f"... train loss: {epoch_train_loss}")
-                    logger.info(f"... val loss: {epoch_val_loss}")
+                    logger.info(f"... train loss: {epoch_train_loss/train_iters}")
+                    logger.info(f"... val loss: {epoch_val_loss/val_iters}")
 
             # testing
             model = LinearProbe(z_noise.size(-1), 1).to(device) 
