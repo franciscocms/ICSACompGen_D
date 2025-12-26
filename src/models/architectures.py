@@ -136,7 +136,6 @@ class SlotEncoder(torch.nn.Module):
         out = x.view(-1, self.n_slots, self.n_slot_latents)
         return out
 
-
 class SlotMLPAdditiveDecoder(torch.nn.Module):
     """
     Model generates x_hat = sum_{i=1}^{n_slots} f(z_i),

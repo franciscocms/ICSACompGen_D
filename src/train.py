@@ -209,7 +209,7 @@ for epoch in range(params["training_epochs"]):
     else:
       disc_tc_loss = torch.tensor(0.)
     
-    if epoch % epoch_step == 0 and not printed:
+    if (epoch % epoch_step == 0 or epoch == 0) and not printed:
       fig, ax = plt.subplots(1, 2)
       ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
       ax[1].imshow(np.transpose(recon[0].detach().cpu().numpy(), (1, 2, 0)))
