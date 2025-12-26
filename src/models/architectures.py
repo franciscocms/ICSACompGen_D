@@ -356,7 +356,7 @@ class PriorMultivariateCausalFlow(nn.Module):
         self.L, self.ldim, self.A = L, ldim, A
         self.nf = nn.ModuleDict()
         for i in range(L):
-            self.nf[str(i)] = Flow(L, ldim, A, f_act="tanh") # instead of "tanh"
+            self.nf[str(i)] = Flow(L, ldim, A, f_act="sigmoid") # instead of "tanh"
         
     def forward(self, u_m, z):
         B, N, L, d = z.shape
