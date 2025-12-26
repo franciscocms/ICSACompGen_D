@@ -277,12 +277,10 @@ class Predictor(nn.Module):
             nn.Sigmoid()
         )
 
-    def forward(self, z):
-        B, N, L, d = z.shape
-        z = torch.flatten(z, 0, 2)
-        assert len(z.shape) == 2, f"{z.shape} invalid!"
-        out = self.net(z)
-        return out.view(B, N, L)
+    def forward(self, slots):
+        B, N, d = slots.shape
+        out = self.net(slots)
+        return out
 
 class LinearProbe(nn.Module):
     def __init__(self, nin, nout):

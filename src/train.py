@@ -101,7 +101,7 @@ target_dir = os.path.join(dataset_dir, "metadata")
 train_ds = MyDataset(dataset_dir)
 logger.info(len(train_ds))
 
-train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True) # num_workers=8
+train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, num_workers=8)
 
 recon_loss_fn = nn.MSELoss()
 slot_rec_loss_crit = nn.MSELoss()
@@ -135,9 +135,6 @@ for epoch in range(params["training_epochs"]):
     img = img.to(DEVICE)
     target = target.to(DEVICE)
     B = img.size(0)
-
-    logger.info(img.shape)
-    logger.info(target.shape)
 
     batch_loss = 0.
     #kl_noise = 0.
@@ -223,7 +220,6 @@ for epoch in range(params["training_epochs"]):
       plt.close()
 
     printed = True
-    break
     
   epoch_train_loss /= num_iters
   if epoch % epoch_step == 0:

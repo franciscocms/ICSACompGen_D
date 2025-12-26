@@ -69,7 +69,7 @@ class InvSlotAttentionGuide(nn.Module):
         
         self.causal_flow = MultivariateCausalFlow(self.L, self.ldim, self.A)
         self.prior = PriorMultivariateCausalFlow(self.L, self.ldim, self.A)
-        self.predictor = Predictor(self.ldim, 64, 1)
+        self.predictor = Predictor(self.slot_dim, self.slot_dim, self.L)
         if params["TC_minimization"]: self.tc_discriminator = TCDiscriminator(self.L*self.ldim, self.L*self.ldim*4)
         self.epoch = 0
         
@@ -116,8 +116,7 @@ class InvSlotAttentionGuide(nn.Module):
 
         slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
 
-        z_scm_detach = z_scm.detach()
-        preds = self.predictor(z_scm_detach)
+        preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
         
         if params["beta"] > 0:
