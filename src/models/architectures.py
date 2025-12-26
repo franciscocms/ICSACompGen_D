@@ -316,7 +316,6 @@ class Flow(nn.Module):
         assert not torch.isnan(t).any()
         
         z_i = torch.exp(s) * eps + t
-
         return z_i, s, t
         
 class MultivariateCausalFlow(nn.Module):
