@@ -89,19 +89,26 @@ class MyDataset(Dataset):
       self.nscenes = len(glob.glob(os.path.join(self.img_path, "*.png")))
       self.transform = transforms.Compose([transforms.ToTensor()])
 
+      logger.info(f"\ndataset length: {self.nscenes}\n")
+
   def __len__(self):
       return self.nscenes
   
   def __getitem__(self, idx):
-    img = self.transform(Image.open(os.path.join(self.img_path, f"{str(idx).zfill(len(str(self.nscenes)))}.png")))
-    target_dict = json.load(open(os.path.join(self.target_path, f"{str(idx).zfill(len(str(self.nscenes)))}.json")))
+    img_path = os.path.join(self.img_path, f"{str(idx).zfill(len(str(self.nscenes)))}.png")
+    logger.info(img_path)
+    img = self.transform(Image.open(img_path))
+
+    target_path = os.path.join(self.target_path, f"{str(idx).zfill(len(str(self.nscenes)))}.json")
+    logger.info(target_path)
+    target_dict = json.load(open(target_path))
     
     logger.info(target_dict)
 
     target = process_targets(target_dict)
 
     logger.info(target)
-    
+
     return img, target
 
 class ProbeDataset(Dataset):
