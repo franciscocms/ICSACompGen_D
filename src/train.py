@@ -145,10 +145,8 @@ for epoch in range(params["training_epochs"]):
     B = img.size(0)
 
     batch_loss = 0.
-    #kl_noise = 0.
     optimizer.zero_grad()
     
-    #slots, recon, e, mu, logvar, z, slot_hat, cp = guide(img, target)
     slots, recon, e, mu, logvar, z, slot_hat, cp = guide(img, target)
     recon_loss = recon_loss_fn(recon, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots) 

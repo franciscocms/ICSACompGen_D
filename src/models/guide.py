@@ -109,16 +109,15 @@ class InvSlotAttentionGuide(nn.Module):
         else:
             z_scm = z_noise 
 
-        #slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
-        slot_hat = self.causal_decoder(torch.flatten(z_noise, -2))
+        slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
 
         z_noise = z_noise.reshape(B*n_s, self.L, self.ldim)
         mu_noise = mu_noise.reshape(B*n_s, self.L, self.ldim)
         logvar_noise = logvar_noise.reshape(B*n_s, self.L, self.ldim)
         self.logvar_noise = logvar_noise
-        
-        slots = slots.detach()
 
+        slots = slots.detach()
+        
         preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
         
