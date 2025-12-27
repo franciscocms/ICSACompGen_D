@@ -103,7 +103,7 @@ class InvSlotAttentionGuide(nn.Module):
         for i, var in enumerate(params["latent_vars"]):
             u_m[:, :, i] = ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])).unsqueeze(-1).expand(-1, -1, self.ldim)
         
-        if params["causal_dropout_prob"] <= 1.:
+        if params["causal_dropout_prob"] < 1.:
             z_scm, self.L_slopes, ss, ts = self.causal_flow(z_noise)
             self.ss, self.ts = ss, ts
         else:

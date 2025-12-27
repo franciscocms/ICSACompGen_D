@@ -172,7 +172,7 @@ for epoch in range(params["training_epochs"]):
     else:
       tc_loss = torch.tensor(0.)
       
-    if params["causal_dropout_prob"] <= 1.:
+    if params["causal_dropout_prob"] < 1.:
       log_det = compute_log_det(guide.L_slopes)
       assert not torch.isnan(log_det).any()
     else:
