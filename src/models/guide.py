@@ -123,7 +123,9 @@ class InvSlotAttentionGuide(nn.Module):
         
         if params["beta"] > 0:
             cp, self.prior_L_slopes, prior_ss, prior_ts = self.prior(aligned_u_m, z_scm) # [B, N, L, d]
-            self.prior_ss, self.prior_ts = prior_ss, prior_ts     
+            self.prior_ss, self.prior_ts = prior_ss, prior_ts  
+        else:
+            cp = torch.zeros_like(z_scm)   
                             
         if params["running_type"] == "eval": return z_noise.reshape(B, n_s, self.L, self.ldim)
         return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, cp
