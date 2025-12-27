@@ -116,13 +116,21 @@ for epoch in range(params["training_epochs"]):
   # update coefficients
   TC_coeff = params["TC_coeff"]
   #alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
-  #alpha = params["alpha"]
-  alpha = (1 - torch.sigmoid(torch.tensor(50 - epoch)*100))*params["alpha"]
+  alpha = params["alpha"]
+  #alpha = (1 - torch.sigmoid(torch.tensor(50 - epoch)*100))*params["alpha"]
   log_det_coeff = 0.001
 
-  if epoch >= 50:
-    for name, param in guide.model.named_parameters():
-      param.requires_grad = False
+  # if epoch < 50:
+  #   for name, param in guide.named_parameters():
+  #     param.requires_grad = False
+  #   for name, param in guide.model.named_parameters():
+  #     param.requires_grad = True
+    
+  # elif epoch >= 50:
+  #   for name, param in guide.named_parameters():
+  #     param.requires_grad = True
+  #   for name, param in guide.model.named_parameters():
+  #     param.requires_grad = False
 
   # update gradient computation flags
   if params["TC_minimization"]:

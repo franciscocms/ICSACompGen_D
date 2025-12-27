@@ -247,9 +247,9 @@ class MLP(nn.Module):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(nin, nh),
-            nn.ELU(),
+            nn.SiLU(),
             nn.Linear(nh, nh),
-            nn.ELU(),
+            nn.SiLU(),
             nn.Linear(nh, nout),
         )
         if f_act == "softmax": self.f_act = nn.Softmax(dim=-1)
@@ -257,6 +257,9 @@ class MLP(nn.Module):
         elif f_act == "tanh": self.f_act = nn.Tanh()
         elif f_act == "identity": self.f_act = nn.Identity()
         elif f_act == "softplus": self.f_act = nn.Softplus()
+
+        nn.init.zeros_(self.net[-1].weight)
+        nn.init.zeros_(self.net[-1].bias)
 
     def forward(self, x, mask=None):
         if mask == None: 
@@ -325,7 +328,7 @@ class MultivariateCausalFlow(nn.Module):
         self.L, self.ldim, self.A = L, ldim, A
         self.nf = nn.ModuleDict()
         for i in range(L):
-            self.nf[str(i)] = Flow(L, ldim, A, f_act="sigmoid") # instead of "tanh"
+            self.nf[str(i)] = Flow(L, ldim, A, f_act="identity") # instead of "tanh"
 
     def forward(self, eps):
         z = torch.zeros_like(eps).to(device)
@@ -355,7 +358,7 @@ class PriorMultivariateCausalFlow(nn.Module):
         self.L, self.ldim, self.A = L, ldim, A
         self.nf = nn.ModuleDict()
         for i in range(L):
-            self.nf[str(i)] = Flow(L, ldim, A, f_act="sigmoid") # instead of "tanh"
+            self.nf[str(i)] = Flow(L, ldim, A, f_act="identity") # instead of "tanh"
         
     def forward(self, u_m, z):
         B, N, L, d = z.shape
