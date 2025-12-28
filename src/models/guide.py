@@ -60,7 +60,8 @@ class InvSlotAttentionGuide(nn.Module):
         for var_name in params["latent_vars"]:
             self.noise_nets[var_name] = NoiseEncoder(nin = self.slot_dim,
                                             nh = self.ldim,
-                                            nout = self.ldim
+                                            nout = self.ldim,
+                                            slot_dim = self.slot_dim
                                             )
         self.causal_decoder = CausalDecoder(nin = self.slot_dim,
                                         nh = self.slot_dim,
