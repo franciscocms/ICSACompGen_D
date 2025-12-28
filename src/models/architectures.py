@@ -233,7 +233,7 @@ class NoiseEncoder(nn.Module):
 class CausalDecoder(nn.Module):
     def __init__(self, nin, nh, nout):  
         super().__init__()
-        self.decoder = Decoder(nin=nout, nh=nh, nout=nin)    # takes the reparameterized z to generate hat(u_m)
+        self.decoder = Decoder(nin=nin, nh=nh, nout=nout)    # takes the reparameterized z to generate hat(u_m)
         n_latents, latent_dim = len(params["latent_vars"]), params["latent_dim"]
         self.layer_norm = nn.LayerNorm(n_latents*latent_dim)
 
