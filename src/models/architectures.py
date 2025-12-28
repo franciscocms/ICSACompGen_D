@@ -172,7 +172,7 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         return image, figures
     
 class Encoder(nn.Module):
-    def __init__(self, nin, nh, nout):
+    def __init__(self, nin, nh, nout, slot_dim):
         super().__init__()
 
         self.layers = nn.Sequential(
@@ -187,8 +187,10 @@ class Encoder(nn.Module):
         )
         self.means = nn.Linear(nh, nout)
         self.logvars = nn.Linear(nh, nout)
+        self.layer_norm = nn.LayerNorm(slot_dim)
     
     def forward(self, x):
+        x = self.layer_norm(x)
         x = self.layers(x)
         return self.means(x), self.logvars(x)
 
@@ -211,18 +213,9 @@ class Decoder(nn.Module):
         return self.layers(z)
 
 class NoiseEncoder(nn.Module):
-    def __init__(self, nin, nh, nout):
+    def __init__(self, nin, nh, nout, slot_dim):
         super().__init__()
-        self.encoder = Encoder(nin, nh, nout)                # takes an embedding batch u_m 
-
-    # def compute_kl_loss(self, mu, logvars):
-    #     assert len(mu.shape) == len(logvars.shape) == 2
-    #     kl_div = torch.mean(-0.5 * torch.sum(1 + logvars - mu**2 - torch.exp(logvars), dim=-1))
-    #     return kl_div
-    
-    def compute_rec_loss(self, rec, target):
-        criterion = nn.MSELoss()
-        return criterion(rec, target)
+        self.encoder = Encoder(nin, nh, nout, slot_dim) 
 
     def encode(self, x):
         mu, logvars = self.encoder(x)
