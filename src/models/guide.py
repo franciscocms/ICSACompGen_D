@@ -71,6 +71,8 @@ class InvSlotAttentionGuide(nn.Module):
         self.causal_flow = MultivariateCausalFlow(self.L, self.ldim, self.A)
         self.prior = PriorMultivariateCausalFlow(self.L, self.ldim, self.A)
         self.predictor = Predictor(self.slot_dim, self.slot_dim, self.L)
+        self.noise_predictor = Predictor(self.L*self.ldim, self.L*self.ldim, self.L)
+        
         if params["TC_minimization"]: self.tc_discriminator = TCDiscriminator(self.L*self.ldim, self.L*self.ldim*4)
         self.epoch = 0
         
@@ -118,7 +120,10 @@ class InvSlotAttentionGuide(nn.Module):
         self.logvar_noise = logvar_noise
         
         preds = self.predictor(slots)
+        z_noise_d = z_noise.detach()
+        noise_preds = self.noise_predictor(z_noise_d.reshape(B, n_s, self.L*self.ldim))
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
+        self.noise_pred_loss, _ = compute_matching_cost(noise_preds, labels, u_m)
         
         if params["beta"] > 0:
             cp, self.prior_L_slopes, prior_ss, prior_ts = self.prior(aligned_u_m, z_scm) # [B, N, L, d]

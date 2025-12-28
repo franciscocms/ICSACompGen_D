@@ -260,6 +260,9 @@ class MLP(nn.Module):
         elif f_act == "identity": self.f_act = nn.Identity()
         elif f_act == "softplus": self.f_act = nn.Softplus()
 
+        nn.init.zeros_(self.net[-1].weight)
+        nn.init.zeros_(self.net[-1].bias)
+
     def forward(self, x, mask=None):
         if mask == None: 
             return self.f_act(self.net(x))
