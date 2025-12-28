@@ -95,7 +95,7 @@ def hungarian_r2_score(pred, target):
         r2_scores.append(sklearn.metrics.r2_score(matched_target, matched_pred))
 
     # ---- 5. Average over batch ----
-    return torch.tensor(r2_scores) #/ B
+    return torch.stack(r2_scores)
 
 def hungarian_matching_loss_scalar(predictions, targets, loss_type='mse'):
     """
