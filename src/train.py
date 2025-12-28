@@ -150,7 +150,7 @@ for epoch in range(params["training_epochs"]):
     slots, recon, e, mu, logvar, z, slot_hat, cp = guide(img, target)
     recon_loss = recon_loss_fn(recon, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots) 
-    batch_loss += recon_loss + alpha*slot_recon_loss + alpha*guide.pred_loss
+    batch_loss += recon_loss + alpha*slot_recon_loss + alpha*guide.pred_loss + alpha*guide.noise_pred_loss
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
