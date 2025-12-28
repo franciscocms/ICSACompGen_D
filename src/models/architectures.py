@@ -4,7 +4,13 @@ import torch.nn as nn
 from contextlib import nullcontext
 from typing import Any, Dict
 
+import sys
+sys.path.insert(0, '../..') # add parent-parent dir
+
+from src.main import params
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 
 
 """
@@ -228,8 +234,11 @@ class CausalDecoder(nn.Module):
     def __init__(self, nin, nh, nout):  
         super().__init__()
         self.decoder = Decoder(nin=nout, nh=nh, nout=nin)    # takes the reparameterized z to generate hat(u_m)
+        n_latents, latent_dim = len(params["latent_vars"]), params["latent_dim"]
+        self.layer_norm = nn.LayerNorm(n_latents*latent_dim)
 
     def forward(self, z):
+        z = self.layer_norm(z)
         rec = self.decoder(z)
         return rec
 
