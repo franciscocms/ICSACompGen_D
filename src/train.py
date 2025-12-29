@@ -160,7 +160,7 @@ for epoch in range(params["training_epochs"]):
                                        logvar_noise[:, :, i, :],
                                        prior_means[:, :, i, :],
                                        prior_logvars[:, :, i, :])
-      logger.info(f"{i} - {kl_noise}")
+      # logger.info(f"{i} - {kl_noise}")
     
     if params["causal_dropout_prob"] < 1.:
       log_det = compute_log_det(guide.L_slopes)

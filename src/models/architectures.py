@@ -217,7 +217,10 @@ class NoiseEncoder(nn.Module):
 
     def encode(self, x):
         mu, logvars = self.encoder(x)
+        
+        assert not torch.isnan(mu).any(), f"{mu}"
         assert not torch.isnan(logvars).any(), f"{logvars}"
+        
         stds = torch.exp(0.5*logvars)
         z = mu + torch.randn_like(mu)*stds # reparameterization trick
         return mu, logvars, z
