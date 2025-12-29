@@ -186,13 +186,17 @@ class Encoder(nn.Module):
             nn.ELU(),
             nn.Linear(nh, nh),
             nn.ELU(),
+            nn.Linear(nh, nh),
+            nn.ELU(),
+            nn.Linear(nh, nh),
+            nn.ELU(),
         )
         self.means = nn.Linear(nh, nout)
         self.logvars = nn.Linear(nh, nout)
-        #self.layer_norm = nn.LayerNorm(slot_dim)
+        self.layer_norm = nn.LayerNorm(slot_dim)
     
     def forward(self, x):
-        #x = self.layer_norm(x)
+        x = self.layer_norm(x)
         x = self.layers(x)
         return self.means(x), self.logvars(x)
 
@@ -231,10 +235,10 @@ class CausalDecoder(nn.Module):
         super().__init__()
         self.decoder = Decoder(nin=nin, nh=nh, nout=nout)    # takes the reparameterized z to generate hat(u_m)
         n_latents, latent_dim = len(params["latent_vars"]), params["latent_dim"]
-        #self.layer_norm = nn.LayerNorm(n_latents*latent_dim)
+        self.layer_norm = nn.LayerNorm(n_latents*latent_dim)
 
     def forward(self, z):
-        #z = self.layer_norm(z)
+        z = self.layer_norm(z)
         rec = self.decoder(z)
         return rec
 
