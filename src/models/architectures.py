@@ -328,7 +328,7 @@ class MultivariateCausalFlow(nn.Module):
         self.L, self.ldim, self.A = L, ldim, A
         self.nf = nn.ModuleDict()
         for i in range(L):
-            self.nf[str(i)] = Flow(L, ldim, A, f_act="tanh") # instead of "tanh"
+            self.nf[str(i)] = Flow(L, ldim, A, f_act="identity") # instead of "tanh"
 
     def forward(self, eps):
         z = torch.zeros_like(eps).to(device)
@@ -339,9 +339,11 @@ class MultivariateCausalFlow(nn.Module):
         total_dims = self.L*self.ldim
         for i in range(self.L):
             if 1 in self.A[i, :]:
-                mask = self.A[i, :].repeat(self.ldim, 1).T.reshape(total_dims).to(device)                        
+                mask = self.A[i, :].repeat(self.ldim, 1).T.reshape(total_dims).to(device)  
+                logger.info(f"computing child params...")
             else:
                 mask = torch.zeros(total_dims).to(device)
+                logger.info(f"computing root params...")
             
             z[:, :, i, :], s, t = self.nf[str(i)](eps[:, :, i, :], z, mask)
             L_slopes = torch.cat((L_slopes, s.unsqueeze(-2)), dim=-2)
