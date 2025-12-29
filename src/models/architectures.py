@@ -185,11 +185,7 @@ class Encoder(nn.Module):
             nn.Linear(nin, nh),
             nn.ELU(),
             nn.Linear(nh, nh),
-            nn.ELU(),
-            nn.Linear(nh, nh),
-            nn.ELU(),
-            nn.Linear(nh, nh),
-            nn.ELU(),
+            nn.ELU()
         )
         self.means = nn.Linear(nh, nout)
         self.logvars = nn.Linear(nh, nout)
@@ -225,7 +221,7 @@ class NoiseEncoder(nn.Module):
 
     def encode(self, x):
         mu, logvars = self.encoder(x)
-        assert not torch.isnan(logvars).any()
+        assert not torch.isnan(logvars).any(), f"{logvars}"
         stds = torch.exp(0.5*logvars)
         z = mu + torch.randn_like(mu)*stds # reparameterization trick
         return mu, logvars, z
