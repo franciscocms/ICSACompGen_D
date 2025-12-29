@@ -313,7 +313,7 @@ class Flow(nn.Module):
         
         if torch.isnan(s).any():
             for name, param in self.s_cond.named_parameters():
-                logger.info(f"{name} - {param}")
+                logger.info(f"{name} - {torch.isnan(param).any()}")
 
         assert not torch.isnan(s).any()
         assert not torch.isnan(t).any()
@@ -328,7 +328,7 @@ class MultivariateCausalFlow(nn.Module):
         self.L, self.ldim, self.A = L, ldim, A
         self.nf = nn.ModuleDict()
         for i in range(L):
-            self.nf[str(i)] = Flow(L, ldim, A, f_act="identity") # instead of "tanh"
+            self.nf[str(i)] = Flow(L, ldim, A, f_act="tanh") # instead of "tanh"
 
     def forward(self, eps):
         z = torch.zeros_like(eps).to(device)
