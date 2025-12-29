@@ -36,7 +36,7 @@ params = {
     "epoch_to_load" : 60, 
     "ood_eval": False,
     "TC_minimization": False, # usually True
-    "alpha": 1., # usually 1.
+    "alpha": 0.1, # usually 1.
     "beta": 1., 
     "TC_coeff": 1., # usually 10
     "normalized_logdet": False,
