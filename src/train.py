@@ -223,7 +223,12 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["kl_noise"] = kl_noise
   dict_to_log["alpha"] = alpha
   for i in range(L):
+    dict_to_log[f"mu_{params['latent_vars'][i]}"] = torch.mean(torch.sum(mu_noise[:, :, i, :], dim=-1))
+    dict_to_log[f"prior_mu_{params['latent_vars'][i]}"] = torch.mean(torch.sum(prior_means[:, :, i, :], dim=-1))
+    
     dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.sum(logvar_noise[:, :, i, :], dim=-1))
+    dict_to_log[f"prior_logvar_{params['latent_vars'][i]}"] = torch.mean(torch.sum(prior_logvars[:, :, i, :], dim=-1))
+
   dict_to_log["causal_dropout_prob"] = params["causal_dropout_prob"]
   if params["TC_minimization"]:
     dict_to_log["latent_TC"] = tc_loss
