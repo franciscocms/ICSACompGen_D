@@ -299,8 +299,8 @@ class Flow(nn.Module):
     def __init__(self, L, ldim, A=None, net_class=MLP, nh=100, f_act="identity"):
         super().__init__()
 
-        self.s_cond = net_class(L*ldim, ldim, nh, f_act=f_act)
-        self.t_cond = net_class(L*ldim, ldim, nh, f_act=f_act)
+        self.s_cond = net_class(L*ldim, ldim, ldim, f_act=f_act)
+        self.t_cond = net_class(L*ldim, ldim, ldim, f_act=f_act)
         self.total_dims = L*ldim
         
         self.L, self.ldim = L, ldim
@@ -340,10 +340,10 @@ class MultivariateCausalFlow(nn.Module):
         for i in range(self.L):
             if 1 in self.A[i, :]:
                 mask = self.A[i, :].repeat(self.ldim, 1).T.reshape(total_dims).to(device)  
-                logger.info(f"computing child params...")
+                # logger.info(f"computing child params...")
             else:
                 mask = torch.zeros(total_dims).to(device)
-                logger.info(f"computing root params...")
+                # logger.info(f"computing root params...")
             
             z[:, :, i, :], s, t = self.nf[str(i)](eps[:, :, i, :], z, mask)
             L_slopes = torch.cat((L_slopes, s.unsqueeze(-2)), dim=-2)
