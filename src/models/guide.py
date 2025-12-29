@@ -114,6 +114,7 @@ class InvSlotAttentionGuide(nn.Module):
         
         # causal flow forward
         if params["causal_dropout_prob"] < 1.:
+            assert not torch.isnan(z_noise).any(), f"{z_noise}"
             z_scm, self.L_slopes, ss, ts = self.causal_flow(z_noise)
             self.ss, self.ts = ss, ts
         else:

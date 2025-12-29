@@ -242,9 +242,9 @@ class MLP(nn.Module):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(nin, nh),
-            nn.SiLU(),
+            nn.ELU(),
             nn.Linear(nh, nh),
-            nn.SiLU(),
+            nn.ELU(),
             nn.Linear(nh, nout),
         )
         if f_act == "softmax": self.f_act = nn.Softmax(dim=-1)

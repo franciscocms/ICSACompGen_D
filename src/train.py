@@ -136,6 +136,9 @@ for epoch in range(params["training_epochs"]):
     optimizer.zero_grad()
     
     slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat = guide(img, target)
+
+    logger.info(torch.mean(torch.sum(z_noise, dim=(-1, -2))))
+
     recon_loss = recon_loss_fn(img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots) 
     batch_loss += recon_loss + alpha*slot_recon_loss + alpha*guide.pred_loss + alpha*guide.noise_pred_loss
