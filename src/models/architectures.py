@@ -204,10 +204,6 @@ class Decoder(nn.Module):
             nn.ELU(),
             nn.Linear(nh, nh),
             nn.ELU(),
-            nn.Linear(nh, nh),
-            nn.ELU(),
-            nn.Linear(nh, nh),
-            nn.ELU(),
             nn.Linear(nh, nout),
             #nn.Sigmoid()
         )

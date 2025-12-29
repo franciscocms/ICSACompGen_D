@@ -40,7 +40,7 @@ def compute_matching_cost(preds, labels, u_labels):
 
 def compute_kl_gaussians(mu_q, logvar_q, mu_p, logvar_p):
     var_ratio = torch.exp(logvar_q - logvar_p)
-    t2 = (mu_p - mu_q).pow(2) * torch.exp(-logvar_p)
+    t2 = torch.square(mu_p - mu_q) / torch.exp(logvar_p)
     logvar_diff = logvar_p - logvar_q
     kl = 0.5 * torch.sum(var_ratio + t2 - 1.0 + logvar_diff, dim=-1)
     return torch.mean(kl)
