@@ -28,7 +28,7 @@ params = {
     "resolution": (128, 128),
     "num_slots": 2,
     "batch_size": 512, # 256 for 32GB
-    "lr": 1e-4, # 256 with 1e-4 -- 512 for 1e-3
+    "lr": 3e-4, # 256 with 1e-4 -- 512 for 1e-3
     "training_from_scratch" : True,
     "training_epochs": 100, 
     "epoch_step": 10,
@@ -36,7 +36,7 @@ params = {
     "epoch_to_load" : 60, 
     "ood_eval": False,
     "TC_minimization": False, # usually True
-    "alpha": 0.1, # usually 1.
+    "alpha": 1., # usually 1.
     "beta": 1., 
     "TC_coeff": 1., # usually 10
     "normalized_logdet": False,
