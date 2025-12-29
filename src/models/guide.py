@@ -89,7 +89,7 @@ class InvSlotAttentionGuide(nn.Module):
         recon_figures = output_dict["reconstructed_figures"]
         slots = output_dict["predicted_latents"]
 
-        #slots = slots.detach()
+        slots = slots.detach()
 
         z_noise, mu_noise, logvar_noise = [], [], []           
         for var in params["latent_vars"]:
@@ -106,8 +106,8 @@ class InvSlotAttentionGuide(nn.Module):
         for i, var in enumerate(params["latent_vars"]):
             u_m[:, :, i] = ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])).unsqueeze(-1).expand(-1, -1, self.ldim)
         
-        slots_d = slots.detach()
-        preds = self.predictor(slots_d)
+        #slots_d = slots.detach()
+        preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
 
         # compute the conditionally factorial prior for noise representations
