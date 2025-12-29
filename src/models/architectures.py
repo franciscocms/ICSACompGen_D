@@ -359,7 +359,8 @@ class FlexibleGaussianMLP(nn.Module):
         super().__init__()
         self.net = []
         for _ in range(nlayers-1):
-            self.net.append(nn.Linear(nin, nh), hid_act)
+            self.net.append(nn.Linear(nin, nh))
+            self.net.append(hid_act)
             nin = nh
         self.net = nn.Sequential(*self.net)
 
