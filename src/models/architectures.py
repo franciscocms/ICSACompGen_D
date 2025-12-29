@@ -231,7 +231,7 @@ class NoiseEncoder(nn.Module):
         
         stds = torch.exp(0.5*logvars)
         z = mu + torch.randn_like(mu)*stds # reparameterization trick
-        return mu, logvars, z
+        return mu, z
     
 class CausalDecoder(nn.Module):
     def __init__(self, nin, nh, nout):  
