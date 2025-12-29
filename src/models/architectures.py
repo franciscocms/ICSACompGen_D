@@ -189,7 +189,7 @@ class Encoder(nn.Module):
         )
         self.means = nn.Linear(nh, nout)
         self.logvars = nn.Linear(nh, nout)
-        self.layer_norm = nn.LayerNorm(slot_dim)
+        #self.layer_norm = nn.LayerNorm(slot_dim)
     
     def forward(self, x):
         #x = self.layer_norm(x)
@@ -238,8 +238,6 @@ class CausalDecoder(nn.Module):
         return rec
 
 class MLP(nn.Module):
-    """ a simple 4-layer MLP """
-
     def __init__(self, nin, nout, nh, f_act="identity"):
         super().__init__()
         self.net = nn.Sequential(
@@ -255,8 +253,8 @@ class MLP(nn.Module):
         elif f_act == "identity": self.f_act = nn.Identity()
         elif f_act == "softplus": self.f_act = nn.Softplus()
 
-        nn.init.zeros_(self.net[-1].weight)
-        nn.init.zeros_(self.net[-1].bias)
+        # nn.init.zeros_(self.net[-1].weight)
+        # nn.init.zeros_(self.net[-1].bias)
 
     def forward(self, x, mask=None):
         if mask == None: 
