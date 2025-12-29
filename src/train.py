@@ -15,7 +15,7 @@ sys.path.insert(0, '..') # add parent dir
 from models.guide import InvSlotAttentionGuide
 from main import params
 from utils.guide import permute_dims, linear_scheduler, exp_scheduler
-from utils.loss import compute_log_det, compute_prior_z_loss, compute_kl_loss
+from utils.loss import compute_log_det, compute_kl_gaussians
 from datasets.data_utils import MyDataset
 
 import wandb # type: ignore
@@ -120,18 +120,6 @@ for epoch in range(params["training_epochs"]):
   #alpha = (1 - torch.sigmoid(torch.tensor(50 - epoch)*100))*params["alpha"]
   log_det_coeff = 0.001
 
-  # if epoch < 50:
-  #   for name, param in guide.named_parameters():
-  #     param.requires_grad = False
-  #   for name, param in guide.model.named_parameters():
-  #     param.requires_grad = True
-    
-  # elif epoch >= 50:
-  #   for name, param in guide.named_parameters():
-  #     param.requires_grad = True
-  #   for name, param in guide.model.named_parameters():
-  #     param.requires_grad = False
-
   # update gradient computation flags
   if params["TC_minimization"]:
     for name, param in guide.tc_discriminator.named_parameters():
@@ -147,21 +135,17 @@ for epoch in range(params["training_epochs"]):
     batch_loss = 0.
     optimizer.zero_grad()
     
-    slots, recon, e, mu, logvar, z, slot_hat, cp = guide(img, target)
-    recon_loss = recon_loss_fn(recon, img)
+    slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat = guide(img, target)
+    recon_loss = recon_loss_fn(img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots) 
     batch_loss += recon_loss + alpha*slot_recon_loss + alpha*guide.pred_loss + alpha*guide.noise_pred_loss
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
         os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
-
-    # for i, var_name in enumerate(params["latent_vars"]):
-    #   kl_noise += guide.noise_nets[var_name].compute_kl_loss(mu[:, i, :], logvar[:, i, :])
-    kl_noise = compute_kl_loss(torch.flatten(mu, -2), torch.flatten(logvar, -2))
     
     if params["TC_minimization"]:
-      disc_input = torch.flatten(e, -2)
+      disc_input = torch.flatten(z_noise, -2)
       D_joint = guide.tc_discriminator(disc_input)
       tc_loss = torch.square(torch.mean(D_joint[:, :1] - D_joint[:, 1:]))
       fake_z_noise, perms = permute_dims(disc_input, guide.slot_dim)
@@ -170,6 +154,13 @@ for epoch in range(params["training_epochs"]):
     else:
       tc_loss = torch.tensor(0.)
       
+    kl_noise = 0.
+    for i in range(L):
+      kl_noise += compute_kl_gaussians(mu_noise[:, :, i, :],
+                                       logvar_noise[:, :, i, :],
+                                       prior_means[:, :, i, :],
+                                       prior_logvars[:, :, i, :])
+    
     if params["causal_dropout_prob"] < 1.:
       log_det = compute_log_det(guide.L_slopes)
       assert not torch.isnan(log_det).any()
@@ -177,16 +168,6 @@ for epoch in range(params["training_epochs"]):
       log_det = torch.tensor(0.)
     batch_loss += alpha*(kl_noise - log_det_coeff*log_det)
     
-    if params["beta"] > 0:
-      log_det_prior = compute_log_det(guide.prior_L_slopes)
-      causal_loss = compute_prior_z_loss(z, cp)
-      assert not torch.isnan(causal_loss).any()
-      assert not torch.isnan(log_det_prior).any()
-    else:
-      causal_loss = torch.tensor(0.)
-      log_det_prior = torch.tensor(0.)
-    batch_loss += alpha*(causal_loss - log_det_coeff*log_det_prior)
-
     batch_loss.backward()
     optimizer.step()
     epoch_train_loss += batch_loss 
@@ -218,7 +199,7 @@ for epoch in range(params["training_epochs"]):
     if (epoch % epoch_step == 0 or epoch == 0) and not printed:
       fig, ax = plt.subplots(1, 2)
       ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
-      ax[1].imshow(np.transpose(recon[0].detach().cpu().numpy(), (1, 2, 0)))
+      ax[1].imshow(np.transpose(img_hat[0].detach().cpu().numpy(), (1, 2, 0)))
       for j in range(2):
         ax[j].grid(False)
         ax[j].axis('off')   
@@ -236,14 +217,12 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["pred_loss"] = guide.pred_loss
   dict_to_log["noise_pred_loss"] = guide.noise_pred_loss
   dict_to_log["slot_rec_loss"] = slot_recon_loss
-  dict_to_log["causal_loss"] = causal_loss
   dict_to_log["log_det"] = log_det
   dict_to_log["log_det_coeff"] = log_det_coeff
-  dict_to_log["log_det_prior"] = log_det_prior
   dict_to_log["kl_noise"] = kl_noise
   dict_to_log["alpha"] = alpha
   for i in range(L):
-    dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.sum(logvar[:, i, :], dim=-1))
+    dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.sum(logvar_noise[:, :, i, :], dim=-1))
   if params["beta"] > 0:
     dict_to_log["prior_s"] = guide.prior_ss
     dict_to_log["prior_t"] = guide.prior_ts

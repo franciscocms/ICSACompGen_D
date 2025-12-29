@@ -353,38 +353,42 @@ class MultivariateCausalFlow(nn.Module):
 
         return z, L_slopes, ss, ts
 
-class PriorMultivariateCausalFlow(nn.Module):
-    def __init__(self, L, ldim, A):
+
+class FlexibleGaussianMLP(nn.Module):
+    def __init__(self, nlayers, hid_act, nin, nout, nh):
         super().__init__()
-        
-        self.L, self.ldim, self.A = L, ldim, A
-        self.nf = nn.ModuleDict()
-        for i in range(L):
-            self.nf[str(i)] = Flow(L, ldim, A, f_act="identity") # instead of "tanh"
-        
-    def forward(self, u_m, z):
-        B, N, L, d = z.shape
-        assert z.shape == u_m.shape
-    
-        cp_m = torch.zeros_like(u_m).to(device)
-        L_slopes = torch.tensor([]).to(device)
-        ss = torch.tensor([]).to(device)
-        ts = torch.tensor([]).to(device)
+        self.net = []
+        for _ in range(nlayers-1):
+            self.net.append(nn.Linear(nin, nh), hid_act)
+            nin = nh
+        self.net = nn.Sequential(*self.net)
 
-        total_dims = self.L*self.ldim
+        self.mean = nn.Linear(nh, nout)
+        self.logvar = nn.Linear(nh, nout)
+
+    def forward(self, x):
+        x = self.net(x)
+        return self.mean(x), self.logvar(x)
+
+
+class ConditionalGaussianPrior(nn.Module):
+    def __init__(self, L, ldim):
+        super().__init__()
+
+        self.L = L
+        self.net = nn.ModuleDict()
         for i in range(self.L):
-            if 1 in self.A[i, :]: # shape
-                mask = self.A[i, :].repeat(self.ldim, 1).T.reshape(total_dims).to(device)
-            else: # color
-                mask = torch.zeros(total_dims).to(device)
-            
-            cp_m[:, :, i, :], s, t = self.nf[str(i)](u_m[:, :, i, :], z, mask)
-            L_slopes = torch.cat((L_slopes, s.unsqueeze(-2)), dim=-2)
-            
-            ss = torch.cat((ss, s.unsqueeze(-2)), dim=-2)
-            ts = torch.cat((ts, t.unsqueeze(-2)), dim=-2)
+            self.net[str(i)] = FlexibleGaussianMLP(2, nn.ELU(), ldim, ldim, ldim)
 
-        return cp_m, L_slopes, ss, ts
+    def forward(self, labels):
+        means, logvars = [], []
+        for i in range(self.L):
+            out = self.net[str(i)](labels[:, :, i, :])
+            means.append(out[0])
+            logvars.append(out[1])            
+        means = torch.stack(means, -2)
+        logvars = torch.stack(logvars, -2)
+        return means, logvars
 
 class TCDiscriminator(nn.Module):
     def __init__(self, input_dim, hidden_dim=128):

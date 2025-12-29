@@ -17,7 +17,7 @@ sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
 from src.utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape
-from src.models.architectures import SlotMLPAdditive, NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, PriorMultivariateCausalFlow, Predictor
+from src.models.architectures import SlotMLPAdditive, NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor
 from src.utils.loss import compute_matching_cost
 
 import logging
@@ -69,7 +69,7 @@ class InvSlotAttentionGuide(nn.Module):
                                         )
         
         self.causal_flow = MultivariateCausalFlow(self.L, self.ldim, self.A)
-        self.prior = PriorMultivariateCausalFlow(self.L, self.ldim, self.A)
+        self.prior = ConditionalGaussianPrior(self.L, self.ldim)
         self.predictor = Predictor(self.slot_dim, self.slot_dim, self.L)
         self.noise_predictor = Predictor(self.L*self.ldim, self.L*self.ldim, self.L)
         
@@ -106,6 +106,13 @@ class InvSlotAttentionGuide(nn.Module):
         for i, var in enumerate(params["latent_vars"]):
             u_m[:, :, i] = ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])).unsqueeze(-1).expand(-1, -1, self.ldim)
         
+        preds = self.predictor(slots)
+        self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
+
+        # compute the conditionally factorial prior for noise representations
+        prior_means, prior_logvars = self.prior(aligned_u_m)
+        
+        # causal flow forward
         if params["causal_dropout_prob"] < 1.:
             z_scm, self.L_slopes, ss, ts = self.causal_flow(z_noise)
             self.ss, self.ts = ss, ts
@@ -114,23 +121,15 @@ class InvSlotAttentionGuide(nn.Module):
 
         slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
 
-        z_noise = z_noise.reshape(B*n_s, self.L, self.ldim)
-        mu_noise = mu_noise.reshape(B*n_s, self.L, self.ldim)
-        logvar_noise = logvar_noise.reshape(B*n_s, self.L, self.ldim)
+        # z_noise = z_noise.reshape(B*n_s, self.L, self.ldim)
+        # mu_noise = mu_noise.reshape(B*n_s, self.L, self.ldim)
+        # logvar_noise = logvar_noise.reshape(B*n_s, self.L, self.ldim)
         self.logvar_noise = logvar_noise
         
-        preds = self.predictor(slots)
         z_noise_d = z_noise.detach()
         noise_preds = self.noise_predictor(z_noise_d.reshape(B, n_s, self.L*self.ldim))
-        self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
-        self.noise_pred_loss, _ = compute_matching_cost(noise_preds, labels, u_m)
-        
-        if params["beta"] > 0:
-            cp, self.prior_L_slopes, prior_ss, prior_ts = self.prior(aligned_u_m, z_scm) # [B, N, L, d]
-            self.prior_ss, self.prior_ts = prior_ss, prior_ts  
-        else:
-            cp = torch.zeros_like(z_scm)   
+        self.noise_pred_loss, _ = compute_matching_cost(noise_preds, labels, u_m) 
                             
         if params["running_type"] == "eval": return z_noise.reshape(B, n_s, self.L, self.ldim)
-        return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, cp
+        return slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat
         

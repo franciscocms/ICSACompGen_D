@@ -38,6 +38,13 @@ def compute_matching_cost(preds, labels, u_labels):
                       col_ind]
   return total_loss, matched_u
 
+def compute_kl_gaussians(mu_q, logvar_q, mu_p, logvar_p):
+    var_ratio = torch.exp(logvar_q - logvar_p)
+    t2 = (mu_p - mu_q).pow(2) * torch.exp(-logvar_p)
+    logvar_diff = logvar_p - logvar_q
+    kl = 0.5 * torch.sum(var_ratio + t2 - 1.0 + logvar_diff, dim=-1)
+    return torch.mean(kl)
+
 def compute_kl_loss(mu, logvars):
   assert len(mu.shape) == len(logvars.shape) == 2
   kl_div = torch.mean(-0.5 * torch.sum(1 + logvars - mu**2 - torch.exp(logvars), dim=-1))
@@ -52,7 +59,7 @@ def compute_log_det(L_slopes):
   log_det = torch.mean(log_det)
   return log_det
 
-def compute_prior_z_loss(z, cp):
+def compute_prior_noise_loss(z, cp):
   assert z.shape == cp.shape
 
   B, n_s, _, _ = z.shape
