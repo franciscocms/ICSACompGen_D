@@ -11,7 +11,8 @@ from src.main import params
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-
+import logging
+logger = logging.getLogger(params["running_type"])
 
 """
 Encoder and decoder architectures used in our AE model, the same as in https://arxiv.org/abs/2310.05327.
@@ -244,8 +245,8 @@ class MLP(nn.Module):
             nn.Linear(nin, nh),
             nn.ELU(),
             nn.Linear(nh, nh),
-            nn.ELU(),
-            nn.Linear(nh, nout),
+            # nn.ELU(),
+            # nn.Linear(nh, nout),
         )
         if f_act == "softmax": self.f_act = nn.Softmax(dim=-1)
         elif f_act == "sigmoid": self.f_act = nn.Sigmoid()
@@ -310,6 +311,10 @@ class Flow(nn.Module):
         s = self.s_cond(z.reshape(-1, self.total_dims), mask).reshape(B, n_s, self.ldim) # slope
         t = self.t_cond(z.reshape(-1, self.total_dims), mask).reshape(B, n_s, self.ldim) # offset
         
+        if torch.isnan(s).any():
+            for name, param in self.s_cond.named_parameters():
+                logger.info(f"{name} - {param}")
+
         assert not torch.isnan(s).any()
         assert not torch.isnan(t).any()
         
