@@ -93,7 +93,8 @@ class InvSlotAttentionGuide(nn.Module):
 
         z_noise, mu_noise, logvar_noise = [], [], []           
         for var in params["latent_vars"]:
-            mu, logvars, e = self.noise_nets[var].encode(slots)
+            logvars = torch.zeros(B, n_s, self.ldim).to(device)
+            mu, e = self.noise_nets[var].encode(slots, logvars)
             z_noise.append(e)
             mu_noise.append(mu)
             logvar_noise.append(logvars) 
@@ -111,7 +112,8 @@ class InvSlotAttentionGuide(nn.Module):
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
 
         # compute the conditionally factorial prior for noise representations
-        prior_means, prior_logvars = self.prior(aligned_u_m)
+        prior_means = self.prior(aligned_u_m)
+        prior_logvars = torch.zeros_like(prior_means).to(device)
         
         # causal flow forward
         if params["causal_dropout_prob"] < 1.:
