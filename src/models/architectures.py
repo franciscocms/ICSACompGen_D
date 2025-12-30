@@ -205,19 +205,34 @@ class Encoder(nn.Module):
         x = self.layers(x)
         return self.means(x)
 
-class Decoder(nn.Module):
-    def __init__(self, nin, nh, nout):
+
+class ResBlock(nn.Module):
+    def __init__(self, dim):
         super().__init__()
-        self.layers = nn.Sequential(
-            nn.Linear(nin, nh),
-            nn.ELU(),
-            nn.Linear(nh, nh),
-            nn.ELU(),
-            nn.Linear(nh, nout),
-            #nn.Sigmoid()
+        self.net = nn.Sequential(
+            nn.Linear(dim, dim),
+            nn.LayerNorm(dim),
+            nn.SiLU(),
+            nn.Linear(dim, dim)
         )
+    def forward(self, x):
+        return x + self.net(x)
+    
+class Decoder(nn.Module):
+    def __init__(self, nin, nout):
+        super().__init__()
+        self.proj = nn.Linear(nin, nout)
+
+        self.layers = nn.Sequential(
+            ResBlock(nout),
+            ResBlock(nout),
+            ResBlock(nout)
+        )
+
     def forward(self, z):
-        return self.layers(z)
+        # z: [B, N, L*d]
+        h = self.proj(z) 
+        return self.layers(h)
 
 class NoiseEncoder(nn.Module):
     def __init__(self, nin, nh, nout, slot_dim):
@@ -234,9 +249,9 @@ class NoiseEncoder(nn.Module):
         return mu, z
     
 class CausalDecoder(nn.Module):
-    def __init__(self, nin, nh, nout):  
+    def __init__(self, nin, nout):  
         super().__init__()
-        self.decoder = Decoder(nin=nin, nh=nh, nout=nout)    # takes the reparameterized z to generate hat(u_m)
+        self.decoder = Decoder(nin=nin, nout=nout)    # takes the reparameterized z to generate hat(u_m)
         n_latents, latent_dim = len(params["latent_vars"]), params["latent_dim"]
         #self.layer_norm = nn.LayerNorm(n_latents*latent_dim)
 

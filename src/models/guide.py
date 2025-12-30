@@ -64,7 +64,6 @@ class InvSlotAttentionGuide(nn.Module):
                                             slot_dim = self.slot_dim
                                             )
         self.causal_decoder = CausalDecoder(nin = self.L*self.ldim,
-                                        nh = self.slot_dim,
                                         nout = self.slot_dim
                                         )
         
