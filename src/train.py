@@ -108,6 +108,18 @@ slot_rec_loss_crit = nn.MSELoss()
 
 guide.train()
 for epoch in range(params["training_epochs"]):
+
+  # if epoch < 50:
+  #   for name, params in guide.named_parameters():
+  #     params.requires_grad = False
+  #   for name, params in guide.model.named_parameters():
+  #     params.requires_grad = True
+  # elif epoch >= 50:
+  #   for name, params in guide.named_parameters():
+  #     params.requires_grad = True
+  #   for name, params in guide.model.named_parameters():
+  #     params.requires_grad = False
+    
   
   guide.epoch = epoch
   epoch_train_loss = 0.
