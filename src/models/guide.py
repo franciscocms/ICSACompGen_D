@@ -119,8 +119,6 @@ class InvSlotAttentionGuide(nn.Module):
         preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
 
-        #if labels are not independent, is this prior ensuring that p(e|u) is conditionally factorial?
-
         # compute the conditionally factorial prior for noise representations
         prior_means = self.prior(aligned_u_m)
         prior_logvars = torch.zeros_like(prior_means).to(device)
@@ -133,9 +131,7 @@ class InvSlotAttentionGuide(nn.Module):
         else:
             z_scm = z_noise 
 
-        slot_hat = self.causal_decoder(torch.flatten(z_noise, -2))
-        #img_hat, _ = self.slot_decoder(slot_hat)
-        #img_hat, _ = self.slot_decoder(torch.flatten(z_scm, -2))
+        slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
         
         z_noise_d = z_noise.detach()
         noise_preds = self.noise_predictor(z_noise_d.reshape(B, n_s, self.L*self.ldim))
