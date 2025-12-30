@@ -147,12 +147,12 @@ for epoch in range(params["training_epochs"]):
     batch_loss = 0.
     optimizer.zero_grad()
   
-    #slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat = guide(img, target)
-    slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm = guide(img, target)
+    slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat = guide(img, target)
+    #slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm = guide(img, target)
     recon_loss = recon_loss_fn(img_hat, img)
-    #slot_recon_loss = slot_rec_loss_crit(slot_hat, slots) 
-    #batch_loss += recon_loss + alpha*0.01*slot_recon_loss + alpha*guide.pred_loss + alpha*guide.noise_pred_loss
-    batch_loss += recon_loss + alpha*guide.pred_loss + alpha*guide.noise_pred_loss
+    slot_recon_loss = slot_rec_loss_crit(slot_hat, slots) 
+    batch_loss += recon_loss + alpha*0.01*slot_recon_loss + alpha*guide.pred_loss + alpha*guide.noise_pred_loss
+    #batch_loss += recon_loss + alpha*guide.pred_loss + alpha*guide.noise_pred_loss
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
@@ -222,6 +222,7 @@ for epoch in range(params["training_epochs"]):
       plt.close()
 
     printed = True
+    break
     
   epoch_train_loss /= num_iters
   if epoch % epoch_step == 0:
@@ -231,7 +232,7 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["rec_loss"] = recon_loss
   dict_to_log["pred_loss"] = guide.pred_loss
   dict_to_log["noise_pred_loss"] = guide.noise_pred_loss
-  #dict_to_log["slot_rec_loss"] = slot_recon_loss
+  dict_to_log["slot_rec_loss"] = slot_recon_loss
   dict_to_log["log_det"] = log_det
   dict_to_log["log_det_coeff"] = log_det_coeff
   dict_to_log["kl_noise"] = kl_noise

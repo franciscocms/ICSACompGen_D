@@ -47,17 +47,17 @@ class InvSlotAttentionGuide(nn.Module):
         self.L = nlatents
         self.A = A
         self.ldim = latent_dim
-        #self.slot_dim = self.L*self.ldim*4
-        self.slot_dim = self.L*self.ldim
+        self.slot_dim = self.L*self.ldim*4
+        #self.slot_dim = self.L*self.ldim
 
-        # self.model = SlotMLPAdditive(
-        #     in_channels = 3,
-        #     n_slots = 2,
-        #     n_slot_latents = self.slot_dim,
-        # ).to(device)
+        self.model = SlotMLPAdditive(
+            in_channels = 3,
+            n_slots = 2,
+            n_slot_latents = self.slot_dim,
+        ).to(device)
 
-        self.slot_encoder = SlotEncoder(in_channels=3, n_slots=2, n_slot_latents=self.slot_dim)
-        self.slot_decoder = SlotMLPAdditiveDecoder(in_channels=3, n_slots=2, n_slot_latents=self.slot_dim)
+        # self.slot_encoder = SlotEncoder(in_channels=3, n_slots=2, n_slot_latents=self.slot_dim)
+        # self.slot_decoder = SlotMLPAdditiveDecoder(in_channels=3, n_slots=2, n_slot_latents=self.slot_dim)
 
 
         self.noise_nets = nn.ModuleDict()
@@ -67,9 +67,9 @@ class InvSlotAttentionGuide(nn.Module):
                                             nout = self.ldim,
                                             slot_dim = self.slot_dim
                                             )
-        # self.causal_decoder = CausalDecoder(nin = self.L*self.ldim,
-        #                                 nout = self.slot_dim
-        #                                 )
+        self.causal_decoder = CausalDecoder(nin = self.L*self.ldim,
+                                        nout = self.slot_dim
+                                        )
         
         self.causal_flow = MultivariateCausalFlow(self.L, self.ldim, self.A)
         self.prior = ConditionalGaussianPrior(self.L, self.ldim)
@@ -87,12 +87,14 @@ class InvSlotAttentionGuide(nn.Module):
 
         assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
 
-        # output_dict = self.model(img)
-        # img_hat = output_dict["reconstructed_image"]
-        # recon_figures = output_dict["reconstructed_figures"]
-        # slots = output_dict["predicted_latents"]
+        output_dict = self.model(img)
+        img_hat = output_dict["reconstructed_image"]
+        recon_figures = output_dict["reconstructed_figures"]
+        slots = output_dict["predicted_latents"]
 
-        slots = self.slot_encoder(img)
+        #slots = self.slot_encoder(img)
+
+        slots = slots.detach()
 
         z_noise, mu_noise, logvar_noise = [], [], []           
         for var in params["latent_vars"]:
@@ -110,9 +112,14 @@ class InvSlotAttentionGuide(nn.Module):
         for i, var in enumerate(params["latent_vars"]):
             u_m[:, :, i] = ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])).unsqueeze(-1).expand(-1, -1, self.ldim)
         
-        slots_d = slots.detach()
-        preds = self.predictor(slots_d)
+        logger.info(labels[:5])
+        logger.info(u_m[:5])
+        
+        #slots_d = slots.detach()
+        preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
+
+        #if labels are not independent, is this prior ensuring that p(e|u) is conditionally factorial?
 
         # compute the conditionally factorial prior for noise representations
         prior_means = self.prior(aligned_u_m)
@@ -126,7 +133,7 @@ class InvSlotAttentionGuide(nn.Module):
         else:
             z_scm = z_noise 
 
-        #slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
+        slot_hat = self.causal_decoder(torch.flatten(z_noise, -2))
         #img_hat, _ = self.slot_decoder(slot_hat)
         img_hat, _ = self.slot_decoder(torch.flatten(z_scm, -2))
         
@@ -135,5 +142,5 @@ class InvSlotAttentionGuide(nn.Module):
         self.noise_pred_loss, _ = compute_matching_cost(noise_preds, labels, u_m) 
                             
         if params["running_type"] == "eval": return z_noise.reshape(B, n_s, self.L, self.ldim)
-        return slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm#, slot_hat
+        return slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat
         
