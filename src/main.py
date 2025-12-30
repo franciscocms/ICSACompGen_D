@@ -30,7 +30,7 @@ params = {
     "batch_size": 512, # 256 for 32GB
     "lr": 1e-3, # 256 with 1e-4 -- 512 for 1e-3
     "training_from_scratch" : True,
-    "training_epochs": 1, 
+    "training_epochs": 100, 
     "epoch_step": 10,
     "running_type": "train", # train, debug, eval, inspect
     "epoch_to_load" : 60, 
