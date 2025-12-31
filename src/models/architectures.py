@@ -191,6 +191,8 @@ class Encoder(nn.Module):
         self.means = nn.Linear(nh, nout)
         self.logvars = nn.Linear(nh, nout)
 
+        self.logvars.bias.data.fill_(-5.0)
+
     def forward(self, x):
         #x = self.layer_norm(x)
         x = self.layers(x)
