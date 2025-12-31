@@ -131,7 +131,8 @@ class InvSlotAttentionGuide(nn.Module):
         else:
             z_scm = z_noise 
 
-        slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
+        #slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
+        slot_hat = self.causal_decoder(torch.flatten(z_noise, -2))
         
         z_noise_d = z_noise.detach()
         noise_preds = self.noise_predictor(z_noise_d.reshape(B, n_s, self.L*self.ldim))

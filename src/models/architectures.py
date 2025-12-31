@@ -190,16 +190,6 @@ class Encoder(nn.Module):
         )
         self.means = nn.Linear(nh, nout)
 
-
-
-
-        #FIX THE PRIOR AND ENCODED VARIANCE TO 1, ONLY MEANS ARE LEARNED!!!!!!
-
-
-
-
-
-    
     def forward(self, x):
         #x = self.layer_norm(x)
         x = self.layers(x)
@@ -221,18 +211,28 @@ class ResBlock(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, nin, nout):
         super().__init__()
-        self.proj = nn.Linear(nin, nout)
+        #self.proj = nn.Linear(nin, nout)
 
         self.layers = nn.Sequential(
-            ResBlock(nout),
-            ResBlock(nout),
-            ResBlock(nout)
+            nn.Linear(nin, nout),
+            nn.ELU(),
+            nn.Linear(nout, nout),
+            nn.ELU(),
+            nn.Linear(nout, nout),
+            nn.ELU(),
+            nn.Linear(nout, nout),
+            nn.ELU(),
+            nn.Linear(nout, nout),
         )
+        self.out_dim = nout
 
     def forward(self, z):
         # z: [B, N, L*d]
-        h = self.proj(z) 
-        return self.layers(h)
+        batch_size, n_slots, features = z.size()
+        z = z.reshape(batch_size*n_slots, -1)
+        out = self.layers(z)
+        out = out.reshape(batch_size, n_slots, self.out_dim)
+        return out
 
 class NoiseEncoder(nn.Module):
     def __init__(self, nin, nh, nout, slot_dim):
