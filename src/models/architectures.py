@@ -189,11 +189,12 @@ class Encoder(nn.Module):
             nn.ELU()
         )
         self.means = nn.Linear(nh, nout)
+        self.logvars = nn.Linear(nh, nout)
 
     def forward(self, x):
         #x = self.layer_norm(x)
         x = self.layers(x)
-        return self.means(x)
+        return self.means(x), self.logvars(x)
 
 
 class ResBlock(nn.Module):
@@ -239,14 +240,13 @@ class NoiseEncoder(nn.Module):
         super().__init__()
         self.encoder = Encoder(nin, nh, nout, slot_dim) 
 
-    def encode(self, x, logvars):
-        mu = self.encoder(x)
-        
+    def encode(self, x):
+        mu, logvars = self.encoder(x)
         assert not torch.isnan(mu).any(), f"{mu}"
-        
+        assert not torch.isnan(logvars).any(), f"{mu}"
         stds = torch.exp(0.5*logvars)
         z = mu + torch.randn_like(mu)*stds # reparameterization trick
-        return mu, z
+        return mu, logvars, z
     
 class CausalDecoder(nn.Module):
     def __init__(self, nin, nout):  

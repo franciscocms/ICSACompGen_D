@@ -98,8 +98,8 @@ class InvSlotAttentionGuide(nn.Module):
 
         z_noise, mu_noise, logvar_noise = [], [], []           
         for var in params["latent_vars"]:
-            logvars = torch.zeros(B, n_s, self.ldim).to(device)
-            mu, e = self.noise_nets[var].encode(slots, logvars)
+            #logvars = torch.zeros(B, n_s, self.ldim).to(device)
+            mu, logvars, e = self.noise_nets[var].encode(slots)
             z_noise.append(e)
             mu_noise.append(mu)
             logvar_noise.append(logvars) 
