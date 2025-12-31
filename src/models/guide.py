@@ -120,8 +120,8 @@ class InvSlotAttentionGuide(nn.Module):
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
 
         # compute the conditionally factorial prior for noise representations
-        prior_means = self.prior(aligned_u_m)
-        prior_logvars = torch.zeros_like(prior_means).to(device)
+        prior_means, prior_logvars = self.prior(aligned_u_m)
+        #prior_logvars = torch.zeros_like(prior_means).to(device)
         
         # causal flow forward
         if params["causal_dropout_prob"] < 1.:

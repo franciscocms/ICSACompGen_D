@@ -387,10 +387,11 @@ class FlexibleGaussianMLP(nn.Module):
         self.net = nn.Sequential(*self.net)
 
         self.mean = nn.Linear(nh, nout)
+        self.logvar = nn.Linear(nh, nout)
 
     def forward(self, x):
         x = self.net(x)
-        return self.mean(x)
+        return self.mean(x), self.logvar(x)
 
 
 class ConditionalGaussianPrior(nn.Module):
@@ -403,12 +404,14 @@ class ConditionalGaussianPrior(nn.Module):
             self.net[str(i)] = FlexibleGaussianMLP(3, nn.ELU(), ldim, ldim, ldim)
 
     def forward(self, labels):
-        means = []
+        means, logvars = [], []
         for i in range(self.L):
             out = self.net[str(i)](labels[:, :, i, :])
-            means.append(out)         
+            means.append(out[0])
+            logvars.append(out[1])         
         means = torch.stack(means, -2)
-        return means
+        logvars = torch.stack(logvars, -2)
+        return means, logvars
 
 class TCDiscriminator(nn.Module):
     def __init__(self, input_dim, hidden_dim=128):
