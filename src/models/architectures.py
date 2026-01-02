@@ -190,10 +190,8 @@ class Encoder(nn.Module):
         )
         self.fc_mean = nn.Linear(nh, nout)
         self.fc_logvar = nn.Linear(nh, nout)
-        #nn.init.constant_(self.fc_logvar.bias, -5.0)
 
     def forward(self, x):
-        #x = self.layer_norm(x)
         x = self.layers(x)
         return self.fc_mean(x), self.fc_logvar(x)
 
@@ -213,7 +211,6 @@ class IdentityEncoder(nn.Module):
         logvar = torch.full_like(mu, -20.0) 
         
         return mu, logvar
-
 
 class ResBlock(nn.Module):
     def __init__(self, dim):
@@ -261,8 +258,6 @@ class NoiseEncoder(nn.Module):
 
     def encode(self, x):
         mu, logvars = self.encoder(x)
-        assert not torch.isnan(mu).any(), f"{mu}"
-        assert not torch.isnan(logvars).any(), f"{mu}"
         stds = torch.exp(0.5*logvars)
         z = mu + torch.randn_like(mu)*stds # reparameterization trick
         return mu, logvars, z
@@ -271,11 +266,8 @@ class CausalDecoder(nn.Module):
     def __init__(self, nin, nout):  
         super().__init__()
         self.decoder = Decoder(nin=nin, nout=nout)    # takes the reparameterized z to generate hat(u_m)
-        n_latents, latent_dim = len(params["latent_vars"]), params["latent_dim"]
-        #self.layer_norm = nn.LayerNorm(n_latents*latent_dim)
 
     def forward(self, z):
-        #z = self.layer_norm(z)
         rec = self.decoder(z)
         return rec
 
