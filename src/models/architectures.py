@@ -399,18 +399,18 @@ class FlexibleGaussianMLP(nn.Module):
     def __init__(self, nlayers, hid_act, nin, nout, nh):
         super().__init__()
         self.net = []
-        for _ in range(nlayers-1):
+        for _ in range(nlayers):
             self.net.append(nn.Linear(nin, nh))
             self.net.append(hid_act)
             nin = nh
         self.net = nn.Sequential(*self.net)
 
         self.mean = nn.Linear(nh, nout)
-        self.logvar = nn.Linear(nh, nout)
+        #self.logvar = nn.Linear(nh, nout)
 
     def forward(self, x):
         x = self.net(x)
-        return self.mean(x), self.logvar(x)
+        return self.mean(x)#, self.logvar(x)
 
 
 class ConditionalGaussianPrior(nn.Module):
@@ -420,17 +420,15 @@ class ConditionalGaussianPrior(nn.Module):
         self.L = L
         self.net = nn.ModuleDict()
         for i in range(self.L):
-            self.net[str(i)] = FlexibleGaussianMLP(3, nn.ELU(), ldim, ldim, ldim)
+            self.net[str(i)] = FlexibleGaussianMLP(1, nn.ELU(), ldim, ldim, ldim)
 
     def forward(self, labels):
-        means, logvars = [], []
+        means = []
         for i in range(self.L):
             out = self.net[str(i)](labels[:, :, i, :])
-            means.append(out[0])
-            logvars.append(out[1])         
+            means.append(out)       
         means = torch.stack(means, -2)
-        logvars = torch.stack(logvars, -2)
-        return means, logvars
+        return means
 
 class TCDiscriminator(nn.Module):
     def __init__(self, input_dim, hidden_dim=128):
