@@ -210,7 +210,7 @@ class IdentityEncoder(nn.Module):
         
         # We set logvar to a very small number (e.g., -20) 
         # so variance is essentially zero
-        logvar = torch.full_like(s, -20.0) 
+        logvar = torch.full_like(mu, -20.0) 
         
         return mu, logvar
 
