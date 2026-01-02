@@ -190,7 +190,7 @@ class Encoder(nn.Module):
         # )
         self.fc_mean = nn.Linear(nin, nout)
         self.fc_logvar = nn.Linear(nin, nout)
-        nn.init.constant_(self.fc_logvar.bias, -5.0)
+        #nn.init.constant_(self.fc_logvar.bias, -5.0)
 
     def forward(self, x):
         #x = self.layer_norm(x)
