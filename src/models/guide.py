@@ -112,9 +112,6 @@ class InvSlotAttentionGuide(nn.Module):
         for i, var in enumerate(params["latent_vars"]):
             u_m[:, :, i] = ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])).unsqueeze(-1).expand(-1, -1, self.ldim)
         
-        logger.info(labels[:5])
-        logger.info(u_m[:5])
-        
         #slots_d = slots.detach()
         preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)

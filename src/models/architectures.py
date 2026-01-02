@@ -188,15 +188,14 @@ class Encoder(nn.Module):
             nn.Linear(nh, nh),
             nn.ELU()
         )
-        self.means = nn.Linear(nh, nout)
-        self.logvars = nn.Linear(nh, nout)
-
-        self.logvars.bias.data.fill_(-5.0)
+        self.fc_mean = nn.Linear(nh, nout)
+        self.fc_logvar = nn.Linear(nh, nout)
+        nn.init.constant_(self.fc_logvar.bias, -5.0)
 
     def forward(self, x):
         #x = self.layer_norm(x)
         x = self.layers(x)
-        return self.means(x), self.logvars(x)
+        return self.fc_mean(x), self.fc_logvar(x)
 
 
 class ResBlock(nn.Module):
