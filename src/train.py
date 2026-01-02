@@ -181,7 +181,7 @@ for epoch in range(params["training_epochs"]):
     # else:
     #   log_det = torch.tensor(0.)
     # batch_loss += alpha*(kl_noise - log_det_coeff*log_det)
-    batch_loss += alpha*kl_noise
+    batch_loss += alpha * 0.001 * kl_noise
     
     batch_loss.backward()
     optimizer.step()
