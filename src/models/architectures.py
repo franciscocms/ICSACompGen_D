@@ -197,6 +197,23 @@ class Encoder(nn.Module):
         x = self.layers(x)
         return self.fc_mean(x), self.fc_logvar(x)
 
+class IdentityEncoder(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # We define a dummy parameter so the optimizer doesn't crash 
+        # if it expects parameters to optimize
+        self.dummy = nn.Parameter(torch.tensor(0.0))
+
+    def forward(self, s):
+        # s: [B, N, 64]
+        mu = s # The mean is the slot itself
+        
+        # We set logvar to a very small number (e.g., -20) 
+        # so variance is essentially zero
+        logvar = torch.full_like(s, -20.0) 
+        
+        return mu, logvar
+
 
 class ResBlock(nn.Module):
     def __init__(self, dim):
@@ -239,7 +256,8 @@ class Decoder(nn.Module):
 class NoiseEncoder(nn.Module):
     def __init__(self, nin, nh, nout, slot_dim):
         super().__init__()
-        self.encoder = Encoder(nin, nh, nout, slot_dim) 
+        #self.encoder = Encoder(nin, nh, nout, slot_dim) 
+        self.encoder = IdentityEncoder() 
 
     def encode(self, x):
         mu, logvars = self.encoder(x)
