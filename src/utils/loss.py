@@ -99,9 +99,7 @@ def hungarian_r2_score(pred, target):
 
         # ---- 4. Compute R² using sklearn ----
         # sklearn handles edge cases (constant targets, etc.)
-        r2_scores.append(sklearn.metrics.r2_score(matched_target, matched_pred))
-
-    logger.info(r2_scores)
+        r2_scores.append(torch.tensor(sklearn.metrics.r2_score(matched_target, matched_pred)))
     
     # ---- 5. Average over batch ----
     return torch.stack(r2_scores)
