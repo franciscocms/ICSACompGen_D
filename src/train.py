@@ -128,8 +128,8 @@ for epoch in range(params["training_epochs"]):
   # update coefficients
   TC_coeff = params["TC_coeff"]
   #alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
-  alpha = params["alpha"]
-  #alpha = (1 - torch.sigmoid(torch.tensor(50 - epoch)*100))*params["alpha"]
+  #alpha = params["alpha"]
+  alpha = (1 - torch.sigmoid(torch.tensor(50 - epoch)*100))*params["alpha"]
 
   # update gradient computation flags
   if params["TC_minimization"]:
@@ -150,8 +150,7 @@ for epoch in range(params["training_epochs"]):
     #slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm = guide(img, target)
     recon_loss = recon_loss_fn(img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots) 
-    batch_loss += recon_loss + alpha*0.01*slot_recon_loss + alpha*guide.pred_loss + alpha*guide.noise_pred_loss
-    #batch_loss += recon_loss + alpha*guide.pred_loss + alpha*guide.noise_pred_loss
+    batch_loss += recon_loss + 0.01*slot_recon_loss + guide.pred_loss + guide.noise_pred_loss
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
