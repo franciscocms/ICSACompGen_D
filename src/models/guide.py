@@ -94,7 +94,7 @@ class InvSlotAttentionGuide(nn.Module):
 
         #slots = self.slot_encoder(img)
 
-        slots = slots.detach()
+        #slots = slots.detach()
 
         # logger.info(slots.mean().item())
         # logger.info(slots.std().item())
@@ -117,13 +117,12 @@ class InvSlotAttentionGuide(nn.Module):
         for i, var in enumerate(params["latent_vars"]):
             u_m[:, :, i] = ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])).unsqueeze(-1).expand(-1, -1, self.ldim)
         
-        #slots_d = slots.detach()
-        preds = self.predictor(slots)
+        slots_d = slots.detach()
+        preds = self.predictor(slots_d)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
 
         # compute the conditionally factorial prior for noise representations
-        #prior_means = self.prior(aligned_u_m)
-        prior_means = aligned_u_m
+        prior_means = self.prior(aligned_u_m)
         prior_logvars = -5. * torch.ones_like(prior_means).to(device)
         
         # causal flow forward
