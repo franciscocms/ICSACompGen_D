@@ -94,7 +94,7 @@ class InvSlotAttentionGuide(nn.Module):
 
         #slots = self.slot_encoder(img)
 
-        #slots = slots.detach()
+        slots = slots.detach()
 
         # logger.info(slots.mean().item())
         # logger.info(slots.std().item())
@@ -117,8 +117,8 @@ class InvSlotAttentionGuide(nn.Module):
         for i, var in enumerate(params["latent_vars"]):
             u_m[:, :, i] = ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])).unsqueeze(-1).expand(-1, -1, self.ldim)
         
-        slots_d = slots.detach()
-        preds = self.predictor(slots_d)
+        #slots_d = slots.detach()
+        preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
 
         # compute the conditionally factorial prior for noise representations
@@ -134,7 +134,7 @@ class InvSlotAttentionGuide(nn.Module):
             z_scm = z_noise 
 
         #slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
-        slot_hat = self.causal_decoder(torch.flatten(z_noise, -2))
+        slot_hat = self.causal_decoder(torch.flatten(mu_noise, -2))
         
         z_noise_d = mu_noise.detach()
         noise_preds = self.noise_predictor(z_noise_d.reshape(B, n_s, self.L*self.ldim))
