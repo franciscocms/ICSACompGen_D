@@ -198,15 +198,15 @@ class Encoder(nn.Module):
         return self.fc_mean(x), self.fc_logvar(x)
 
 class IdentityEncoder(nn.Module):
-    def __init__(self):
+    def __init__(self, nin, nh, nout, slot_dim):
         super().__init__()
         # We define a dummy parameter so the optimizer doesn't crash 
         # if it expects parameters to optimize
-        self.dummy = nn.Parameter(torch.tensor(0.0))
-
+        self.projection = nn.Linear(nin, nout)
+    
     def forward(self, s):
         # s: [B, N, 64]
-        mu = s # The mean is the slot itself
+        mu = self.projection(s)
         
         # We set logvar to a very small number (e.g., -20) 
         # so variance is essentially zero
