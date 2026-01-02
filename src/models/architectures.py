@@ -182,19 +182,19 @@ class Encoder(nn.Module):
     def __init__(self, nin, nh, nout, slot_dim):
         super().__init__()
 
-        self.layers = nn.Sequential(
-            nn.Linear(nin, nh),
-            nn.ELU(),
-            nn.Linear(nh, nh),
-            nn.ELU()
-        )
-        self.fc_mean = nn.Linear(nh, nout)
-        self.fc_logvar = nn.Linear(nh, nout)
+        # self.layers = nn.Sequential(
+        #     nn.Linear(nin, nh),
+        #     nn.ELU(),
+        #     nn.Linear(nh, nh),
+        #     nn.ELU()
+        # )
+        self.fc_mean = nn.Linear(nin, nout)
+        self.fc_logvar = nn.Linear(nin, nout)
         nn.init.constant_(self.fc_logvar.bias, -5.0)
 
     def forward(self, x):
         #x = self.layer_norm(x)
-        x = self.layers(x)
+        #x = self.layers(x)
         return self.fc_mean(x), self.fc_logvar(x)
 
 class IdentityEncoder(nn.Module):
@@ -256,8 +256,8 @@ class Decoder(nn.Module):
 class NoiseEncoder(nn.Module):
     def __init__(self, nin, nh, nout, slot_dim):
         super().__init__()
-        #self.encoder = Encoder(nin, nh, nout, slot_dim) 
-        self.encoder = IdentityEncoder(nin, nh, nout, slot_dim) 
+        self.encoder = Encoder(nin, nh, nout, slot_dim) 
+        #self.encoder = IdentityEncoder(nin, nh, nout, slot_dim) 
 
     def encode(self, x):
         mu, logvars = self.encoder(x)

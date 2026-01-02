@@ -96,10 +96,10 @@ class InvSlotAttentionGuide(nn.Module):
 
         slots = slots.detach()
 
-        logger.info(slots.mean().item())
-        logger.info(slots.std().item())
-        logger.info(slots.min().item())
-        logger.info(slots.max().item())
+        # logger.info(slots.mean().item())
+        # logger.info(slots.std().item())
+        # logger.info(slots.min().item())
+        # logger.info(slots.max().item())
 
         z_noise, mu_noise, logvar_noise = [], [], []           
         for var in params["latent_vars"]:
@@ -136,7 +136,7 @@ class InvSlotAttentionGuide(nn.Module):
         #slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
         slot_hat = self.causal_decoder(torch.flatten(z_noise, -2))
         
-        z_noise_d = z_noise.detach()
+        z_noise_d = mu_noise.detach()
         noise_preds = self.noise_predictor(z_noise_d.reshape(B, n_s, self.L*self.ldim))
         self.noise_pred_loss, _ = compute_matching_cost(noise_preds, labels, u_m) 
                             
