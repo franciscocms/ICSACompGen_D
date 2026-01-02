@@ -257,7 +257,7 @@ class NoiseEncoder(nn.Module):
     def __init__(self, nin, nh, nout, slot_dim):
         super().__init__()
         #self.encoder = Encoder(nin, nh, nout, slot_dim) 
-        self.encoder = IdentityEncoder() 
+        self.encoder = IdentityEncoder(nin, nh, nout, slot_dim) 
 
     def encode(self, x):
         mu, logvars = self.encoder(x)
