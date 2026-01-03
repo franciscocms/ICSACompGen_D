@@ -412,7 +412,7 @@ class ConditionalGaussianPrior(nn.Module):
         self.L = L
         self.net = nn.ModuleDict()
         for i in range(self.L):
-            self.net[str(i)] = FlexibleGaussianMLP(3, nn.ELU(), ldim, ldim, ldim)
+            self.net[str(i)] = FlexibleGaussianMLP(3, nn.SiLU(), ldim, ldim, ldim)
 
     def forward(self, labels):
         means = []
