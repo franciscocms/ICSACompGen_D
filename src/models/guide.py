@@ -119,8 +119,8 @@ class InvSlotAttentionGuide(nn.Module):
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
 
         # compute the conditionally factorial prior for noise representations
-        #prior_means = self.prior(aligned_u_m)
-        prior_means = aligned_u_m
+        prior_means = self.prior(aligned_u_m)
+        #prior_means = aligned_u_m
         prior_logvars = -3. * torch.ones_like(prior_means).to(device)
         
         # causal flow forward
