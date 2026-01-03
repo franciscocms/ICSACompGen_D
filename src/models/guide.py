@@ -96,6 +96,8 @@ class InvSlotAttentionGuide(nn.Module):
 
         slots = slots.detach()
 
+        slots = (slots - slots.mean(dim=(0, 1), keepdim=True)) / slots.std(dim=(0, 1), keepdim=True)
+
         # logger.info(slots.mean().item())
         # logger.info(slots.std().item())
         # logger.info(slots.min().item())
