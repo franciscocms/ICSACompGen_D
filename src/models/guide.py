@@ -128,14 +128,13 @@ class InvSlotAttentionGuide(nn.Module):
         
         # causal flow forward
         if params["causal_dropout_prob"] < 1.:
-            assert not torch.isnan(z_noise).any(), f"{z_noise}"
-            z_scm, self.L_slopes, ss, ts = self.causal_flow(z_noise)
+            z_scm, self.L_slopes, ss, ts = self.causal_flow(mu_noise)
             self.ss, self.ts = ss, ts
         else:
             z_scm = z_noise 
 
-        #slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
-        slot_hat = self.causal_decoder(torch.flatten(mu_noise, -2))
+        slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
+        #slot_hat = self.causal_decoder(torch.flatten(mu_noise, -2))
         
         z_noise_d = mu_noise.detach()
         noise_preds = self.noise_predictor(z_noise_d.reshape(B, n_s, self.L*self.ldim))
