@@ -98,11 +98,6 @@ class InvSlotAttentionGuide(nn.Module):
 
         slots = (slots - slots.mean(dim=(0, 1), keepdim=True)) / slots.std(dim=(0, 1), keepdim=True)
 
-        # logger.info(slots.mean().item())
-        # logger.info(slots.std().item())
-        # logger.info(slots.min().item())
-        # logger.info(slots.max().item())
-
         z_noise, mu_noise, logvar_noise = [], [], []           
         for var in params["latent_vars"]:
             #logvars = torch.zeros(B, n_s, self.ldim).to(device)
