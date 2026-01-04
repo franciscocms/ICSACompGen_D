@@ -130,6 +130,7 @@ for epoch in range(params["training_epochs"]):
   #alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
   alpha = params["alpha"]
   #alpha = (1 - torch.sigmoid(torch.tensor(20 - epoch)*100))*params["alpha"]
+  log_det_coeff = 1.
 
   # update gradient computation flags
   if params["TC_minimization"]:
@@ -180,7 +181,8 @@ for epoch in range(params["training_epochs"]):
     # else:
     #   log_det = torch.tensor(0.)
     # batch_loss += alpha*(kl_noise - log_det_coeff*log_det)
-    batch_loss += alpha * 0.001 * kl_noise
+    log_det = compute_log_det(guide.L_slopes)
+    batch_loss += alpha * 0.001 * kl_noise - log_det_coeff*log_det
     
     batch_loss.backward()
     optimizer.step()
@@ -232,8 +234,8 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["pred_loss"] = guide.pred_loss
   dict_to_log["noise_pred_loss"] = guide.noise_pred_loss
   dict_to_log["slot_rec_loss"] = slot_recon_loss
-  # dict_to_log["log_det"] = log_det
-  # dict_to_log["log_det_coeff"] = log_det_coeff
+  dict_to_log["log_det"] = log_det
+  dict_to_log["log_det_coeff"] = log_det_coeff
   dict_to_log["kl_noise"] = kl_noise
   dict_to_log["alpha"] = alpha
   for i in range(L):

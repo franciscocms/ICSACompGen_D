@@ -133,7 +133,7 @@ class InvSlotAttentionGuide(nn.Module):
             z_scm, self.L_slopes, ss, ts = self.causal_flow(mu_noise)
             self.ss, self.ts = ss, ts
         else:
-            z_scm = z_noise 
+            z_scm = mu_noise 
 
         slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
         #slot_hat = self.causal_decoder(torch.flatten(mu_noise, -2))
