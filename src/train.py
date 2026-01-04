@@ -245,6 +245,10 @@ for epoch in range(params["training_epochs"]):
     dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(logvar_noise[:, :, i, :], dim=-1))
     dict_to_log[f"prior_logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(prior_logvars[:, :, i, :], dim=-1))
 
+    dict_to_log[f"s_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ss[:, :, i, :], dim=-1))
+    dict_to_log[f"t_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ts[:, :, i, :], dim=-1))
+
+
   dict_to_log["causal_dropout_prob"] = params["causal_dropout_prob"]
   if params["TC_minimization"]:
     dict_to_log["latent_TC"] = tc_loss
