@@ -115,7 +115,7 @@ class InvSlotAttentionGuide(nn.Module):
         logvar_noise = torch.stack(logvar_noise).permute(1, 2, 0, 3)  # [B, N, L, d]
         assert z_noise.size(2) == self.L
         
-        u_m = torch.ones(B, n_s, self.L, self.ldim).to(device)
+        u_m = torch.ones(B, n_s, self.L).to(device)
         for i, var in enumerate(params["latent_vars"]):
             u_m[:, :, i] = ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0]))#.unsqueeze(-1).expand(-1, -1, self.ldim)
         
