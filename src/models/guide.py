@@ -50,14 +50,14 @@ class InvSlotAttentionGuide(nn.Module):
         #self.slot_dim = self.L*self.ldim*4
         self.slot_dim = self.L*self.ldim
 
-        # self.model = SlotMLPAdditive(
-        #     in_channels = 3,
-        #     n_slots = 2,
-        #     n_slot_latents = self.slot_dim,
-        # ).to(device)
+        self.model = SlotMLPAdditive(
+            in_channels = 3,
+            n_slots = 2,
+            n_slot_latents = self.slot_dim,
+        ).to(device)
 
-        self.slot_encoder = SlotEncoder(in_channels=3, n_slots=2, n_slot_latents=self.slot_dim)
-        self.slot_decoder = SlotMLPAdditiveDecoder(in_channels=3, n_slots=2, n_slot_latents=self.slot_dim)
+        # self.slot_encoder = SlotEncoder(in_channels=3, n_slots=2, n_slot_latents=self.slot_dim)
+        # self.slot_decoder = SlotMLPAdditiveDecoder(in_channels=3, n_slots=2, n_slot_latents=self.slot_dim)
 
 
         self.noise_nets = nn.ModuleDict()
