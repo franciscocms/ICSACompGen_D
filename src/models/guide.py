@@ -87,21 +87,20 @@ class InvSlotAttentionGuide(nn.Module):
 
         assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
 
-        # output_dict = self.model(img)
-        # img_hat = output_dict["reconstructed_image"]
-        # recon_figures = output_dict["reconstructed_figures"]
-        # slots = output_dict["predicted_latents"]
+        output_dict = self.model(img)
+        img_hat = output_dict["reconstructed_image"]
+        recon_figures = output_dict["reconstructed_figures"]
+        slots = output_dict["predicted_latents"]
 
-        slots = self.slot_encoder(img)
+        #slots = self.slot_encoder(img)
 
-        #slots = slots.detach()
+        slots = slots.detach()
+        slots = (slots - slots.mean(dim=(0, 1), keepdim=True)) / slots.std(dim=(0, 1), keepdim=True)
 
-        #slots = (slots - slots.mean(dim=(0, 1), keepdim=True)) / slots.std(dim=(0, 1), keepdim=True)
-
-        logger.info(f"mean: {slots.mean()}")
-        logger.info(f"std: {slots.std()}")
-        logger.info(f"min: {slots.min()}")
-        logger.info(f"max: {slots.max()}\n")
+        # logger.info(f"mean: {slots.mean()}")
+        # logger.info(f"std: {slots.std()}")
+        # logger.info(f"min: {slots.min()}")
+        # logger.info(f"max: {slots.max()}\n")
 
 
         z_noise, mu_noise, logvar_noise = [], [], []           
@@ -118,10 +117,10 @@ class InvSlotAttentionGuide(nn.Module):
         
         u_m = torch.ones(B, n_s, self.L, self.ldim).to(device)
         for i, var in enumerate(params["latent_vars"]):
-            u_m[:, :, i] = ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])).unsqueeze(-1).expand(-1, -1, self.ldim)
+            u_m[:, :, i] = ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0]))#.unsqueeze(-1).expand(-1, -1, self.ldim)
         
-        slots_d = slots.detach()
-        preds = self.predictor(slots_d)
+        #slots_d = slots.detach()
+        preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
 
         # compute the conditionally factorial prior for noise representations
@@ -139,7 +138,7 @@ class InvSlotAttentionGuide(nn.Module):
         slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
         #slot_hat = self.causal_decoder(torch.flatten(mu_noise, -2))
 
-        img_hat, _ = self.slot_decoder(slot_hat)
+        #img_hat, _ = self.slot_decoder(slot_hat)
         
         z_noise_d = mu_noise.detach()
         noise_preds = self.noise_predictor(z_noise_d.reshape(B, n_s, self.L*self.ldim))

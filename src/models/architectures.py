@@ -361,7 +361,7 @@ class MultivariateCausalFlow(nn.Module):
         self.L, self.ldim, self.A = L, ldim, A
         self.nf = nn.ModuleDict()
         for i in range(L):
-            self.nf[str(i)] = Flow(L, ldim, A, f_act="tanh") # instead of "tanh"
+            self.nf[str(i)] = Flow(L, ldim, A, f_act="identity") # instead of "tanh"
 
     def forward(self, eps):
         z = torch.zeros_like(eps).to(device)
@@ -386,7 +386,6 @@ class MultivariateCausalFlow(nn.Module):
 
         return z, L_slopes, ss, ts
 
-
 class FlexibleGaussianMLP(nn.Module):
     def __init__(self, nlayers, hid_act, nin, nout, nh):
         super().__init__()
@@ -404,7 +403,6 @@ class FlexibleGaussianMLP(nn.Module):
         x = self.net(x)
         return self.mean(x)#, self.logvar(x)
 
-
 class ConditionalGaussianPrior(nn.Module):
     def __init__(self, L, ldim):
         super().__init__()
@@ -412,12 +410,12 @@ class ConditionalGaussianPrior(nn.Module):
         self.L = L
         self.net = nn.ModuleDict()
         for i in range(self.L):
-            self.net[str(i)] = FlexibleGaussianMLP(3, nn.SiLU(), ldim, ldim, ldim)
+            self.net[str(i)] = FlexibleGaussianMLP(3, nn.SiLU(), 1, ldim, ldim)
 
     def forward(self, labels):
         means = []
         for i in range(self.L):
-            out = self.net[str(i)](labels[:, :, i, :])
+            out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
             means.append(out)       
         means = torch.stack(means, -2)
         return means
