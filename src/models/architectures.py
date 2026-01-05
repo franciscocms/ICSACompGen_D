@@ -351,7 +351,7 @@ class Flow(nn.Module):
         assert not torch.isnan(s).any()
         assert not torch.isnan(t).any()
 
-        s = s - s.mean(dim=-1, keepdim=True)
+        #s = s - s.mean(dim=-1, keepdim=True)
         
         z_i = torch.exp(s) * eps + t
         return z_i, s, t
@@ -388,7 +388,7 @@ class MultivariateCausalFlow(nn.Module):
 
         return z, L_slopes, ss, ts
 
-class FlexibleGaussianMLP(nn.Module):
+class GaussianMLP(nn.Module):
     def __init__(self, nlayers, hid_act, nin, nout, nh, learn_var):
         super().__init__()
         self.learn_var = learn_var
@@ -401,7 +401,7 @@ class FlexibleGaussianMLP(nn.Module):
 
         self.mean = nn.Linear(nh, nout)
         
-        if learn_var: self.logvar = nn.Linear(nh, nout)
+        if learn_var: self.logvar =  nn.Linear(nh, nout)
 
     def forward(self, x):
         x = self.net(x)
@@ -418,7 +418,7 @@ class ConditionalGaussianPrior(nn.Module):
         self.L = L
         self.net = nn.ModuleDict()
         for i in range(self.L):
-            self.net[str(i)] = FlexibleGaussianMLP(1, nn.ELU(), 1, ldim, ldim, learn_var)
+            self.net[str(i)] = GaussianMLP(1, nn.ELU(), 1, ldim, ldim, learn_var)
 
     def forward(self, labels):
         means, logvars = [], []
