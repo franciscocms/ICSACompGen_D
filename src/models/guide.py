@@ -31,7 +31,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 """Slot Attention-based auto-encoder for object discovery."""
 class InvSlotAttentionGuide(nn.Module):
-    def __init__(self, resolution, num_iterations, latent_dim, nlatents, A, stage):
+    def __init__(self, resolution, num_iterations, latent_dim, nlatents, A):
         """Builds the Slot Attention-based auto-encoder.
         Args:
         resolution: Tuple of integers specifying width and height of input image.
@@ -42,8 +42,6 @@ class InvSlotAttentionGuide(nn.Module):
         self.resolution = resolution
         self.num_slots = 0
         self.num_iterations = num_iterations
-        self.stage = stage
-        assert self.stage in ["train", "eval"], "stage must be either 'train' or 'eval'"
         self.L = nlatents
         self.A = A
         self.ldim = latent_dim

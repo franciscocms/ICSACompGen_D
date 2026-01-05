@@ -68,8 +68,7 @@ guide = InvSlotAttentionGuide(resolution = params['resolution'],
                               num_iterations = 3,
                               latent_dim = params["latent_dim"],
                               nlatents = len(params["latent_vars"]),
-                              A = A,
-                              stage="train"
+                              A = A
                               ).to(DEVICE)
 run.watch(guide)
 

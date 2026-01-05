@@ -88,7 +88,7 @@ def hungarian_r2_score(pred, target):
     Returns: scalar R² averaged over batch.
     """
 
-    B, N = pred.shape
+    B = pred.shape[0]
 
     # ---- 1. Batched cost matrix: cost[b, i, j] = (pred[b,i] - target[b,j])^2 ----
     diff = pred.unsqueeze(2) - target.unsqueeze(1)      # [B, N, N]
