@@ -318,11 +318,11 @@ class LinearProbe(nn.Module):
     def __init__(self, nin, nout):
         super().__init__()
         self.net = nn.Sequential(
+            nn.Linear(nin, nin),
+            nn.ELU(),
+            nn.Linear(nin, nin),
+            nn.ELU(),
             nn.Linear(nin, nout),
-            nn.ELU(),
-            nn.Linear(nout, nout),
-            nn.ELU(),
-            nn.Linear(nout, nout),
             nn.Sigmoid()
         )
     def forward(self, x):
