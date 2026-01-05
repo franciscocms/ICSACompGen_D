@@ -414,7 +414,7 @@ class FlexibleGaussianMLP(nn.Module):
 class ConditionalGaussianPrior(nn.Module):
     def __init__(self, L, ldim, learn_var=False):
         super().__init__()
-
+        self.learn_var = learn_var
         self.L = L
         self.net = nn.ModuleDict()
         for i in range(self.L):
