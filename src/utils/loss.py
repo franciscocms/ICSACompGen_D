@@ -15,7 +15,7 @@ logger = logging.getLogger(params["running_type"])
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def compute_matching_cost(preds, labels, u_labels=None):
-  B, N, L = preds.shape
+  B = preds.size(0)
   assert preds.shape == labels.shape
   
   preds = preds.unsqueeze(2)
@@ -23,7 +23,11 @@ def compute_matching_cost(preds, labels, u_labels=None):
   
   # Cost is MSE across all L causal factors
   # Result: [B, N, N]
-  cost_matrix = torch.sum((preds - labels)**2, dim=-1)
+  
+  if len(preds.shape) == 4: # [B, N, 1, L]
+    cost_matrix = torch.sum((preds - labels)**2, dim=-1)
+  elif len(preds.shape) == 3: # [B, N, 1]
+    cost_matrix = torch.square(preds - labels)
   cost_matrix_ = cost_matrix.detach().cpu().numpy()
   
   indices = np.array([linear_sum_assignment(p) for p in cost_matrix_])
@@ -125,7 +129,7 @@ def hungarian_matching_loss_scalar(predictions, targets, loss_type='mse'):
     # 1. Compute Pairwise Cost Matrix [B, N, N]
     # We use the absolute difference as the cost for matching
     # (B, N, 1) - (B, 1, N) -> (B, N, N)
-    cost_matrix = torch.abs(predictions.unsqueeze(2) - targets.unsqueeze(1))
+    cost_matrix = torch.square(predictions.unsqueeze(2) - targets.unsqueeze(1))
     
     # 2. Hungarian Matching (Batch-wise)
     # We move to CPU because Scipy is a CPU-based library
