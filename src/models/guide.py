@@ -145,6 +145,8 @@ class InvSlotAttentionGuide(nn.Module):
             self.ss, self.ts = ss, ts
         else:
             z_scm = mu_noise 
+            self.L_slopes, self.ss, self.ts = torch.zeros(B, n_s, self.L, self.ldim), torch.zeros(B, n_s, self.L, self.ldim), torch.zeros(B, n_s, self.L, self.ldim)
+
 
         slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
         #slot_hat = self.causal_decoder(torch.flatten(mu_noise, -2))
