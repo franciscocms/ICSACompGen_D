@@ -86,6 +86,7 @@ class InvSlotAttentionGuide(nn.Module):
         
         if params["TC_minimization"]: self.tc_discriminator = TCDiscriminator(self.L*self.ldim, self.L*self.ldim*4)
         self.epoch = 0
+        self.learn_transform = 0.
         
     
     def forward(self, img, labels):
@@ -139,7 +140,7 @@ class InvSlotAttentionGuide(nn.Module):
             prior_logvars = -3. * torch.ones_like(prior_means).to(device)
         
         # causal flow forward
-        if params["causal_dropout_prob"] < 1.:
+        if self.learn_transform == 1:
             z_scm, self.L_slopes, ss, ts = self.causal_flow(mu_noise)
             self.ss, self.ts = ss, ts
         else:

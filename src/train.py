@@ -131,6 +131,7 @@ for epoch in range(params["training_epochs"]):
   alpha = params["alpha"]
   #alpha = (1 - torch.sigmoid(torch.tensor(20 - epoch)*100))*params["alpha"]
   log_det_coeff = 0. # 0.001
+  guide.learn_transform = 0. if epoch < 20 else 1.
 
   # update gradient computation flags
   if params["TC_minimization"]:
