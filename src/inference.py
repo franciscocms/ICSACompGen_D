@@ -15,7 +15,7 @@ from models.guide import InvSlotAttentionGuide
 from main import params
 from datasets.data_utils import MyDataset, ProbeDataset
 from models.architectures import LinearProbe
-from utils.loss import hungarian_r2_score, hungarian_matching_loss_scalar
+from utils.loss import hungarian_r2_score, compute_matching_cost
 
 import logging
 logfile_name = f"eval-{params['jobID']}.log"
@@ -127,7 +127,7 @@ def main():
                     preds = model(z) # [B, N]
                     
                     # loss must be computed under a matching algorithm
-                    loss = hungarian_matching_loss_scalar(preds, t)
+                    loss = compute_matching_cost(preds, t)
 
                     loss.backward()
                     optimizer.step()
@@ -141,7 +141,7 @@ def main():
                         t = t.to(device)                        
                         
                         preds = model(z)
-                        loss = hungarian_matching_loss_scalar(preds, t)
+                        loss = compute_matching_cost(preds, t)
                         epoch_val_loss += loss
                         val_iters += 1
                 
