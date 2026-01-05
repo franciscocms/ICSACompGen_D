@@ -394,21 +394,22 @@ class GaussianMLP(nn.Module):
     def __init__(self, nlayers, hid_act, nin, nout, nh, learn_var):
         super().__init__()
         self.learn_var = learn_var
-        self.net = []
-        for _ in range(nlayers):
-            self.net.append(nn.Linear(nin, nh))
-            self.net.append(hid_act)
-            nin = nh
-        self.net = nn.Sequential(*self.net)
+        # self.net = []
+        # for _ in range(nlayers):
+        #     self.net.append(nn.Linear(nin, nh))
+        #     self.net.append(hid_act)
+        #     nin = nh
+        # self.net = nn.Sequential(*self.net)
 
-        self.mean = nn.Linear(nh, nout)
+        self.mean = nn.Linear(nin, nout)
         
-        if learn_var: self.logvar =  nn.Sequential(nn.Linear(nh, nout), nn.Sigmoid())
+        #if learn_var: self.logvar =  nn.Sequential(nn.Linear(nin, nout), nn.Sigmoid())
+        if learn_var: self.logvar = nn.Linear(nin, nout)
 
     def forward(self, x):
         x = self.net(x)
         if self.learn_var:
-            return self.mean(x), self.logvar(x) - 5.
+            return self.mean(x), self.logvar(x)
         else:
             return self.mean(x)    
         
