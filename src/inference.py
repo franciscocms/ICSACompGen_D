@@ -68,9 +68,10 @@ def main():
         logger.info(f"\nOOD: {OOD_EVAL}\n")
 
         dataset_dir = "/nas-ctm01/datasets/public/CG/eval"
+        inference_batch_size = 64
 
         dataset = MyDataset(dataset_dir, OOD_EVAL)
-        dataloader = DataLoader(dataset, 64, shuffle=False, generator=torch.Generator(device='cuda'))
+        dataloader = DataLoader(dataset, inference_batch_size, shuffle=False, generator=torch.Generator(device='cuda'))
 
         z_noise = torch.tensor([])  
         targets = torch.tensor([])      
@@ -83,13 +84,14 @@ def main():
                 batch_noise = guide(img, target) # [B, N, L, d]
                 z_noise = torch.cat((z_noise, batch_noise), dim=0)
 
-                B, N, _, d = batch_noise.shape
+                # B, N, _, d = batch_noise.shape
                 targets = torch.cat((targets, target), dim=0)
         
+        B, N, L, ldim = z_noise.shape
         logger.info(z_noise.shape)
         logger.info(targets.shape)
         
-        z_noise = z_noise.reshape(B, params["num_slots"], len(params["latent_vars"])*params["latent_dim"])
+        z_noise = z_noise.reshape(B, N, L*ldim)
 
         train_val_test_split = [0.7, 0.2, 0.1]
         
