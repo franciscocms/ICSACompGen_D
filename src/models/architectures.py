@@ -408,7 +408,7 @@ class GaussianMLP(nn.Module):
     def forward(self, x):
         x = self.net(x)
         if self.learn_var:
-            return self.mean(x), self.logvar(x) * -5.
+            return self.mean(x), self.logvar(x) - 5.
         else:
             return self.mean(x)    
         
