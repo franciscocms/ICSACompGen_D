@@ -91,14 +91,13 @@ def hungarian_r2_score(pred, target):
     B = pred.shape[0]
 
     # ---- 1. Batched cost matrix: cost[b, i, j] = (pred[b,i] - target[b,j])^2 ----
-    diff = pred.unsqueeze(2) - target.unsqueeze(1)      # [B, N, N]
-    cost = (diff * diff).cpu()                          # convert once for scipy
+    cost = torch.sum((pred.unsqueeze(2) - target.unsqueeze(1))**2, dim=-1).cpu().numpy()      # [B, N, N]
 
     r2_scores = []
 
     # ---- 2. Hungarian algorithm per batch (cannot be parallelized) ----
     for b in range(B):
-        row_ind, col_ind = linear_sum_assignment(cost[b].numpy())
+        row_ind, col_ind = linear_sum_assignment(cost[b])
 
         # ---- 3. Apply matching ----
         matched_pred   = pred[b, row_ind].cpu().numpy()
