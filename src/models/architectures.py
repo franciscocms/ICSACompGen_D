@@ -389,8 +389,9 @@ class MultivariateCausalFlow(nn.Module):
         return z, L_slopes, ss, ts
 
 class FlexibleGaussianMLP(nn.Module):
-    def __init__(self, nlayers, hid_act, nin, nout, nh):
+    def __init__(self, nlayers, hid_act, nin, nout, nh, learn_var):
         super().__init__()
+        self.learn_var = learn_var
         self.net = []
         for _ in range(nlayers):
             self.net.append(nn.Linear(nin, nh))
@@ -399,28 +400,41 @@ class FlexibleGaussianMLP(nn.Module):
         self.net = nn.Sequential(*self.net)
 
         self.mean = nn.Linear(nh, nout)
-        #self.logvar = nn.Linear(nh, nout)
+        
+        if learn_var: self.logvar = nn.Linear(nh, nout)
 
     def forward(self, x):
         x = self.net(x)
-        return self.mean(x)#, self.logvar(x)
+        if self.learn_var:
+            return self.mean(x), self.logvar(x)
+        else:
+            return self.mean(x)    
+        
 
 class ConditionalGaussianPrior(nn.Module):
-    def __init__(self, L, ldim):
+    def __init__(self, L, ldim, learn_var=False):
         super().__init__()
 
         self.L = L
         self.net = nn.ModuleDict()
         for i in range(self.L):
-            self.net[str(i)] = FlexibleGaussianMLP(1, nn.ELU(), 1, ldim, ldim)
+            self.net[str(i)] = FlexibleGaussianMLP(1, nn.ELU(), 1, ldim, ldim, learn_var)
 
     def forward(self, labels):
-        means = []
+        means, logvars = [], []
         for i in range(self.L):
             out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
-            means.append(out)       
+            if isinstance(out, tuple):
+                means.append(out[0])   
+                logvars.append(out[1]) 
+            else:
+                means.append(out)       
         means = torch.stack(means, -2)
-        return means
+        if len(logvars) > 0:
+            logvars = torch.stack(logvars, -2)
+            return means, logvars
+        else:
+            return means
 
 class TCDiscriminator(nn.Module):
     def __init__(self, input_dim, hidden_dim=128):

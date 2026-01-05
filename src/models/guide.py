@@ -71,10 +71,18 @@ class InvSlotAttentionGuide(nn.Module):
                                         nout = self.slot_dim
                                         )
         
-        self.causal_flow = MultivariateCausalFlow(self.L, self.ldim, self.A)
-        self.prior = ConditionalGaussianPrior(self.L, self.ldim)
-        self.predictor = Predictor(self.slot_dim, self.slot_dim, self.L)
-        self.noise_predictor = Predictor(self.L*self.ldim, self.L*self.ldim, self.L)
+        self.causal_flow = MultivariateCausalFlow(self.L,
+                                                  self.ldim,
+                                                  self.A)
+        self.prior = ConditionalGaussianPrior(self.L,
+                                              self.ldim,
+                                              learn_var=True)
+        self.predictor = Predictor(self.slot_dim,
+                                   self.slot_dim,
+                                   self.L)
+        self.noise_predictor = Predictor(self.L*self.ldim,
+                                         self.L*self.ldim,
+                                         self.L)
         
         if params["TC_minimization"]: self.tc_discriminator = TCDiscriminator(self.L*self.ldim, self.L*self.ldim*4)
         self.epoch = 0
@@ -124,9 +132,11 @@ class InvSlotAttentionGuide(nn.Module):
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
 
         # compute the conditionally factorial prior for noise representations
-        prior_means = self.prior(aligned_u_m)
-        #prior_means = aligned_u_m
-        prior_logvars = -3. * torch.ones_like(prior_means).to(device)
+        if self.prior.learn_var:
+            prior_means, prior_logvars = self.prior(aligned_u_m)
+        else:
+            prior_means = self.prior(aligned_u_m)
+            prior_logvars = -3. * torch.ones_like(prior_means).to(device)
         
         # causal flow forward
         if params["causal_dropout_prob"] < 1.:
