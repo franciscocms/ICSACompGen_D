@@ -401,12 +401,12 @@ class GaussianMLP(nn.Module):
 
         self.mean = nn.Linear(nh, nout)
         
-        if learn_var: self.logvar =  nn.Linear(nh, nout)
+        if learn_var: self.logvar =  nn.Sequential(nn.Linear(nh, nout), nn.Sigmoid())
 
     def forward(self, x):
         x = self.net(x)
         if self.learn_var:
-            return self.mean(x), self.logvar(x)
+            return self.mean(x), self.logvar(x) * -5.
         else:
             return self.mean(x)    
         
