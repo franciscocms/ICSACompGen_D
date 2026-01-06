@@ -79,10 +79,7 @@ def process_targets(target_dict):
       out = torch.cat(all_v, dim=-1)
       target.append(out)
     target = torch.stack(target)
-    if len(target.shape) > 2: target = target.squeeze() 
-
-    logger.info(target.shape)
-    
+    if len(target.shape) > 2: target = target.squeeze()    
     return target
 
 class MyDataset(Dataset):

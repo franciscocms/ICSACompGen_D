@@ -19,15 +19,15 @@ def compute_matching_cost(preds, labels):
   assert preds.shape == labels.shape
   
   preds = preds.unsqueeze(2)
-  labels = labels.unsqueeze(1)
+  labels_u = labels.unsqueeze(1)
   
   # Cost is MSE across all L causal factors
   # Result: [B, N, N]
   
   if len(preds.shape) == 4: # [B, N, 1, L]
-    cost_matrix = torch.sum((preds - labels)**2, dim=-1)
+    cost_matrix = torch.sum((preds - labels_u)**2, dim=-1)
   elif len(preds.shape) == 3: # [B, N, 1]
-    cost_matrix = torch.square(preds - labels)
+    cost_matrix = torch.square(preds - labels_u)
   cost_matrix_ = cost_matrix.detach().cpu().numpy()
   
   indices = np.array([linear_sum_assignment(p) for p in cost_matrix_])
