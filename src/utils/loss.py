@@ -40,6 +40,11 @@ def compute_matching_cost(preds, labels):
   # Reorder labels to match slot order
   matched_labels = labels[torch.arange(B, device=labels.device).view(B, 1),
                       col_ind]
+  
+  
+  logger.info(labels.shape)
+  logger.info(matched_labels.shape)
+
   return total_loss, matched_labels
 
 
