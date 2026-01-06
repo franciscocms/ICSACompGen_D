@@ -160,6 +160,7 @@ class InvSlotAttentionGuide(nn.Module):
         self.noise_pred_loss = []
         for i, var in enumerate(params["latent_vars"]):
             noise_preds = self.noise_predictors[var](z_noise_d[:, :, i, :])
+            if noise_preds.size(-1) == 1: noise_preds = noise_preds.squeeze(-1)
             noise_pred_loss = compute_matching_cost(noise_preds, labels[:, :, i]) 
             self.noise_pred_loss.append(noise_pred_loss)
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
