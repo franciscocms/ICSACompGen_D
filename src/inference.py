@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 import os
 import shutil
 from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 
 # add project path to sys to import relative modules
 import sys
@@ -171,10 +172,13 @@ def main():
 
                     logger.info(f"preds: {preds[:5, :]}")
                     logger.info(f"target: {t[:5, :]}")
-                    r2_score = hungarian_r2_score(preds, t)
+                    r2_score, a_target, a_preds = hungarian_r2_score(preds, t)
                     # r2_score = torch.clamp(r2_score, 0., 1.)
                     # logger.info(f"r2: {r2_score[:5]}")
 
+            plt.scatter(a_target, a_preds)
+            plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}.png")
+            plt.close()
 
             logger.info(f"test r2 score: {r2_score}")
 
