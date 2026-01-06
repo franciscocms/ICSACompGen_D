@@ -120,7 +120,7 @@ def hungarian_r2_score(pred, target):
     r2_scores = sklearn.metrics.r2_score(all_target.cpu().numpy(), all_pred.cpu().numpy())
     
     # ---- 5. Average over batch ----
-    return r2_scores, all_target, all_pred
+    return r2_scores, all_target.cpu().numpy(), all_pred.cpu().numpy()
 
 def hungarian_matching_loss_scalar(predictions, targets, loss_type='mse'):
     """
