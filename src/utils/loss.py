@@ -103,8 +103,8 @@ def hungarian_r2_score(pred, target):
         row_ind, col_ind = linear_sum_assignment(cost[b])
 
         # ---- 3. Apply matching ----
-        matched_pred   = pred[b, row_ind].cpu().numpy()
-        matched_target = target[b, col_ind].cpu().numpy()
+        matched_pred   = pred[b, row_ind]
+        matched_target = target[b, col_ind]
 
         # ---- 4. Compute R² using sklearn ----
         # sklearn handles edge cases (constant targets, etc.)
