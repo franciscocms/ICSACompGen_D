@@ -130,9 +130,10 @@ class InvSlotAttentionGuide(nn.Module):
         #u_m = torch.ones(B, n_s, self.L).to(device)
         u_m = torch.tensor([]).to(device)
         for i, var in enumerate(params["latent_vars"]):
-            u_m = torch.cat((u_m, ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])).unsqueeze(-1)), dim=-1)
+            u_m = torch.cat((u_m, ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])).unsqueeze(-1)),
+                            dim=-1)
             
-            #u_m[:, :, i] = (labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])#.unsqueeze(-1).expand(-1, -1, self.ldim)
+        assert u_m.shape == (B, n_s, self.L), f"{u_m.shape}"
         
         #slots_d = slots.detach()
         preds = self.predictor(slots)
