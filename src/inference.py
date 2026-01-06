@@ -87,6 +87,14 @@ def main():
                 B, N, _, d = batch_noise.shape
                 targets = torch.cat((targets, target), dim=0)
         
+        
+        
+        NEED TO NORMALIZE LABELS BEFORE TRAINING THE PROBES
+        
+        
+        
+        
+        
         logger.info(z_noise.shape)
         logger.info(targets.shape)
         
@@ -176,7 +184,7 @@ def main():
                     # r2_score = torch.clamp(r2_score, 0., 1.)
                     # logger.info(f"r2: {r2_score[:5]}")
 
-            plt.scatter(a_target, a_preds)
+            plt.scatter(a_target, a_preds, s=2)
             plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}.png")
             plt.close()
 

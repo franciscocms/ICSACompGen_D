@@ -14,7 +14,7 @@ from src.main import params
 logger = logging.getLogger(params["running_type"])
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def compute_matching_cost(preds, labels, u_labels=None):
+def compute_matching_cost(preds, labels):
   B = preds.size(0)
   assert preds.shape == labels.shape
   
@@ -38,12 +38,10 @@ def compute_matching_cost(preds, labels, u_labels=None):
   total_loss = losses.mean()
 
   # Reorder labels to match slot order
-  if u_labels != None:
-    matched_u = u_labels[torch.arange(B, device=u_labels.device).view(B, 1),
-                        col_ind]
-    return total_loss, matched_u
-  else:
-    return total_loss
+  matched_labels = labels[torch.arange(B, device=labels.device).view(B, 1),
+                      col_ind]
+  return total_loss, matched_labels
+
 
 def compute_kl_gaussians(mu_q, logvar_q, mu_p, logvar_p):
     var_ratio = torch.exp(logvar_q - logvar_p)

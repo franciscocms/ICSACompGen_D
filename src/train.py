@@ -250,8 +250,6 @@ for epoch in range(params["training_epochs"]):
 
     dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
 
-
-
   dict_to_log["causal_dropout_prob"] = params["causal_dropout_prob"]
   if params["TC_minimization"]:
     dict_to_log["latent_TC"] = tc_loss

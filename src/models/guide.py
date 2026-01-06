@@ -133,7 +133,7 @@ class InvSlotAttentionGuide(nn.Module):
         
         #slots_d = slots.detach()
         preds = self.predictor(slots)
-        self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels, u_m)
+        self.pred_loss, aligned_u_m = compute_matching_cost(preds, u_m)
 
         # compute the conditionally factorial prior for noise representations
         if self.prior.learn_var:
@@ -161,7 +161,7 @@ class InvSlotAttentionGuide(nn.Module):
         for i, var in enumerate(params["latent_vars"]):
             noise_preds = self.noise_predictors[var](z_noise_d[:, :, i, :])
             if noise_preds.size(-1) == 1: noise_preds = noise_preds.squeeze(-1)
-            noise_pred_loss = compute_matching_cost(noise_preds, labels[:, :, i]) 
+            noise_pred_loss, _ = compute_matching_cost(noise_preds, u_m[:, :, i]) 
             self.noise_pred_loss.append(noise_pred_loss)
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
                             
