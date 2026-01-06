@@ -148,7 +148,7 @@ def main():
                 epoch_val_loss /= val_iters
 
                 if epoch_val_loss < best_loss:
-                    logger.info(f"saving new model with val loss: {epoch_val_loss}")
+                    #logger.info(f"saving new model with val loss: {epoch_val_loss}")
                     best_loss = epoch_val_loss
                     torch.save(model.state_dict(), 'pred_model.pth')
                 

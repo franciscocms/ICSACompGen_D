@@ -95,6 +95,8 @@ def hungarian_r2_score(pred, target):
     cost = cost.cpu().numpy()
 
     r2_scores = []
+    all_target = []
+    all_pred = []
 
     # ---- 2. Hungarian algorithm per batch (cannot be parallelized) ----
     for b in range(B):
@@ -106,10 +108,19 @@ def hungarian_r2_score(pred, target):
 
         # ---- 4. Compute R² using sklearn ----
         # sklearn handles edge cases (constant targets, etc.)
-        r2_scores.append(torch.tensor(sklearn.metrics.r2_score(matched_target, matched_pred)))
+
+        all_target.append(matched_target)
+        all_pred.append(matched_pred)
+        
+        #r2_scores.append(torch.tensor(sklearn.metrics.r2_score(matched_target, matched_pred)))
+    
+    all_target = torch.flatten(torch.stack(all_target))
+    all_pred = torch.flatten(torch.stack(all_pred))
+
+    r2_scores = sklearn.metrics.r2_score(all_target, all_pred)
     
     # ---- 5. Average over batch ----
-    return torch.stack(r2_scores)
+    return r2_scores
 
 def hungarian_matching_loss_scalar(predictions, targets, loss_type='mse'):
     """
