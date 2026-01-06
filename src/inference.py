@@ -47,8 +47,7 @@ def main():
                               num_iterations = 3,
                               latent_dim = params["latent_dim"],
                               nlatents = len(params["latent_vars"]),
-                              A = A,
-                              stage="train"
+                              A = A
                               ).to(device)
 
     GUIDE_PATH = f"{main_dir}/checkpoint-{params['jobID']}/guide_{params['epoch_to_load']}.pth"
