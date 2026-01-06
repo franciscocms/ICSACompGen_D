@@ -63,17 +63,24 @@ def sample_ood(parent, child_boundaries, threshold=4.):
   
   return uniform_child
 
+def normalize(x, min, max):
+   return (x-min)/(max-min)
+
 def process_targets(target_dict):   
     n = int(target_dict['scene_attr']['N'])
     target = []
     for i in range(n):
-      out = torch.cat([torch.FloatTensor([target_dict['scene_attr'][f'object_{i}']['scale']]),
-                       torch.FloatTensor([target_dict['scene_attr'][f'object_{i}']['color']]),
-                       torch.FloatTensor([target_dict['scene_attr'][f'object_{i}']['x_pos']]),
-                       torch.FloatTensor([target_dict['scene_attr'][f'object_{i}']['y_pos']])], dim=-1)
+      all_v = []
+      for var in ["scale", "color", "x_pos", "y_pos"]:
+        v = normalize(torch.FloatTensor([target_dict['scene_attr'][f'object_{i}'][var]]),
+                          params["factor_ranges"][var][0],
+                          params["factor_ranges"][var][1])    
+        all_v.append(v)
+      out = torch.cat(all_v, dim=-1)
       target.append(out)
     target = torch.stack(target)
-    if len(target.shape) > 2: target = target.squeeze()
+    if len(target.shape) > 2: target = target.squeeze() 
+    
     return target
 
 class MyDataset(Dataset):

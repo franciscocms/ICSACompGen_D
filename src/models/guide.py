@@ -126,18 +126,10 @@ class InvSlotAttentionGuide(nn.Module):
         mu_noise = torch.stack(mu_noise).permute(1, 2, 0, 3)          # [B, N, L, d]
         logvar_noise = torch.stack(logvar_noise).permute(1, 2, 0, 3)  # [B, N, L, d]
         assert z_noise.size(2) == self.L
-        
-        #u_m = torch.ones(B, n_s, self.L).to(device)
-        u_m = torch.tensor([]).to(device)
-        for i, var in enumerate(params["latent_vars"]):
-            u_m = torch.cat((u_m, ((labels[:, :, i] - params["factor_ranges"][var][0]) / (params["factor_ranges"][var][1] - params["factor_ranges"][var][0])).unsqueeze(-1)),
-                            dim=-1)
-            
-        assert u_m.shape == (B, n_s, self.L), f"{u_m.shape}"
-        
+                
         #slots_d = slots.detach()
         preds = self.predictor(slots)
-        self.pred_loss, aligned_u_m = compute_matching_cost(preds, u_m)
+        self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
 
         # compute the conditionally factorial prior for noise representations
         if self.prior.learn_var:
@@ -165,7 +157,7 @@ class InvSlotAttentionGuide(nn.Module):
         for i, var in enumerate(params["latent_vars"]):
             noise_preds = self.noise_predictors[var](z_noise_d[:, :, i, :])
             if noise_preds.size(-1) == 1: noise_preds = noise_preds.squeeze(-1)
-            noise_pred_loss, _ = compute_matching_cost(noise_preds, u_m[:, :, i]) 
+            noise_pred_loss, _ = compute_matching_cost(noise_preds, labels[:, :, i]) 
             self.noise_pred_loss.append(noise_pred_loss)
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
                             

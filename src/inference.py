@@ -85,15 +85,7 @@ def main():
                 z_noise = torch.cat((z_noise, batch_noise), dim=0)
 
                 B, N, _, d = batch_noise.shape
-                targets = torch.cat((targets, target), dim=0)
-        
-        
-        
-        NEED TO NORMALIZE LABELS BEFORE TRAINING THE PROBES
-        
-        
-        
-        
+                targets = torch.cat((targets, target), dim=0)             
         
         logger.info(z_noise.shape)
         logger.info(targets.shape)
