@@ -80,6 +80,8 @@ def process_targets(target_dict):
       target.append(out)
     target = torch.stack(target)
     if len(target.shape) > 2: target = target.squeeze() 
+
+    logger.info(target.shape)
     
     return target
 

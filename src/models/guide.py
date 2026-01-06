@@ -99,6 +99,8 @@ class InvSlotAttentionGuide(nn.Module):
 
         assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
 
+        logger.info(f"labels shape: {labels.shape}")
+
         output_dict = self.model(img)
         img_hat = output_dict["reconstructed_image"]
         recon_figures = output_dict["reconstructed_figures"]
