@@ -91,7 +91,8 @@ def hungarian_r2_score(pred, target):
     B = pred.shape[0]
 
     # ---- 1. Batched cost matrix: cost[b, i, j] = (pred[b,i] - target[b,j])^2 ----
-    cost = torch.sum((pred.unsqueeze(2) - target.unsqueeze(1))**2, dim=-1).cpu().numpy()      # [B, N, N]
+    cost = (pred.unsqueeze(2) - target.unsqueeze(1))**2      # [B, N, N]
+    cost = cost.cpu().numpy()
 
     r2_scores = []
 
