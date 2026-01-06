@@ -59,12 +59,19 @@ class InvSlotAttentionGuide(nn.Module):
 
 
         self.noise_nets = nn.ModuleDict()
+        self.noise_predictors = nn.ModuleDict()
         for var_name in params["latent_vars"]:
             self.noise_nets[var_name] = NoiseEncoder(nin = self.slot_dim,
                                             nh = self.ldim,
                                             nout = self.ldim,
                                             slot_dim = self.slot_dim
                                             )
+            self.noise_predictors[var_name] = Predictor(self.ldim,
+                                                        self.ldim,
+                                                        1)
+            
+        
+        
         self.causal_decoder = CausalDecoder(nin = self.L*self.ldim,
                                         nout = self.slot_dim
                                         )
@@ -78,9 +85,7 @@ class InvSlotAttentionGuide(nn.Module):
         self.predictor = Predictor(self.slot_dim,
                                    self.slot_dim,
                                    self.L)
-        self.noise_predictor = Predictor(self.L*self.ldim,
-                                         self.L*self.ldim,
-                                         self.L)
+        
         
         if params["TC_minimization"]: self.tc_discriminator = TCDiscriminator(self.L*self.ldim, self.L*self.ldim*4)
         self.epoch = 0
@@ -152,8 +157,12 @@ class InvSlotAttentionGuide(nn.Module):
         #img_hat, _ = self.slot_decoder(slot_hat)
         
         z_noise_d = mu_noise.detach()
-        noise_preds = self.noise_predictor(z_noise_d.reshape(B, n_s, self.L*self.ldim))
-        self.noise_pred_loss, _ = compute_matching_cost(noise_preds, labels, u_m) 
+        self.noise_pred_loss = []
+        for i, var in enumerate(params["latent_vars"]):
+            noise_preds = self.noise_predictors[var](z_noise_d[:, :, i, :])
+            noise_pred_loss, _ = compute_matching_cost(noise_preds, labels, u_m) 
+            self.noise_pred_loss.append(noise_pred_loss)
+        self.noise_pred_loss = torch.stack(self.noise_pred_loss)
                             
         if params["running_type"] == "eval": return z_noise.reshape(B, n_s, self.L, self.ldim)
         return slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat
