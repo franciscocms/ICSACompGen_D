@@ -103,9 +103,10 @@ class MyDataset(Dataset):
     return img, target
 
 class ProbeDataset(Dataset):
-    def __init__(self, noise, target, split):
+    def __init__(self, noise, target, var_idx, split):
         self.noise = noise
         self.target = target
+        self.var_idx = var_idx
 
         logger.info(f"# of samples for {split} split: {self.noise.size(0)}")
 
@@ -113,4 +114,4 @@ class ProbeDataset(Dataset):
         return len(self.noise)
     
     def __getitem__(self, idx):
-        return self.noise[idx], self.target[idx]
+        return self.noise[idx], self.target[idx, :, self.var_idx]
