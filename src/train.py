@@ -133,10 +133,11 @@ for epoch in range(params["training_epochs"]):
   # update coefficients
   TC_coeff = params["TC_coeff"]
   #alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
-  #alpha = params["alpha"]
-  alpha = (1 - torch.sigmoid(torch.tensor(20 - epoch)*100))*params["alpha"]
+  alpha = params["alpha"]
+  #alpha = (1 - torch.sigmoid(torch.tensor(20 - epoch)*100))*params["alpha"]
   log_det_coeff = 0. # 0.001
-  guide.learn_transform = 0. if epoch < 20 else 1.
+  #guide.learn_transform = 0. if epoch < 20 else 1.
+  guide.learn_transform = 1.
 
   # update gradient computation flags
   if params["TC_minimization"]:
@@ -156,8 +157,11 @@ for epoch in range(params["training_epochs"]):
     slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat = guide(img, target)
     #slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm = guide(img, target)
     recon_loss = recon_loss_fn(img_hat, img)
-    slot_recon_loss = slot_rec_loss_crit(slot_hat, slots) 
-    batch_loss += 100*recon_loss + slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss)
+    slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
+
+    target_logvar = torch.tensor(-3.0).to(DEVICE)
+    prior_logvar_loss = F.mse_loss(prior_logvars, target_logvar.expand_as(prior_logvars))
+    batch_loss += 100*recon_loss + slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + prior_logvar_loss
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
@@ -256,6 +260,9 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["log_det_coeff"] = log_det_coeff
   dict_to_log["kl_noise"] = kl_noise
   dict_to_log["alpha"] = alpha
+
+  dict_to_log["logvar_loss"] = prior_logvar_loss
+
   for i in range(L):
     dict_to_log[f"mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(mu_noise[:, :, i, :], dim=-1))
     dict_to_log[f"prior_mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(prior_means[:, :, i, :], dim=-1))
