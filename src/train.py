@@ -124,7 +124,6 @@ for epoch in range(params["training_epochs"]):
   #     params.requires_grad = True
   #   for name, params in guide.model.named_parameters():
   #     params.requires_grad = False
-    
   
   guide.epoch = epoch
   epoch_train_loss = 0.
@@ -178,11 +177,13 @@ for epoch in range(params["training_epochs"]):
       tc_loss = torch.tensor(0.)
       
     kl_noise = 0.
+    prior_means_d = prior_means.detach()
+    prior_logvars_d = prior_logvars.detach()
     for i in range(L):
       kl_noise += compute_kl_gaussians(mu_noise[:, :, i, :],
                                        logvar_noise[:, :, i, :],
-                                       prior_means[:, :, i, :],
-                                       prior_logvars[:, :, i, :])
+                                       prior_means_d[:, :, i, :],
+                                       prior_logvars_d[:, :, i, :])
       # logger.info(f"{i} - {kl_noise}")
     
     # if params["causal_dropout_prob"] < 1.:
