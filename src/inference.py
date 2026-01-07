@@ -131,7 +131,7 @@ def main():
                     preds = model(z) # [B, N]
                     
                     # loss must be computed under a matching algorithm
-                    loss = compute_matching_cost(preds, t)
+                    loss, _ = compute_matching_cost(preds, t)
 
                     loss.backward()
                     optimizer.step()
@@ -145,7 +145,7 @@ def main():
                         t = t.to(device)                        
                         
                         preds = model(z)
-                        loss = compute_matching_cost(preds, t)
+                        loss, _ = compute_matching_cost(preds, t)
                         epoch_val_loss += loss
                         val_iters += 1
                 
