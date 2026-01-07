@@ -232,8 +232,8 @@ for epoch in range(params["training_epochs"]):
       u_min = torch.zeros(1, 1, L).to(DEVICE) # Label = 0
       u_max = torch.ones(1, 1, L).to(DEVICE) # Label = 1
       
-      mu_min = guide.prior(u_min) 
-      mu_max = guide.prior(u_max)
+      mu_min, _ = guide.prior(u_min) 
+      mu_max, _ = guide.prior(u_max)
         
       # Calculate the Euclidean distance in the 16D space
       dist = []
