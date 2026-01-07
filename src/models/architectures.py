@@ -435,7 +435,7 @@ class ConditionalGaussianPrior(nn.Module):
         means = torch.stack(means, -2)
         if len(logvars) > 0:
             logvars = torch.stack(logvars, -2)
-            return means, logvars
+            return means, torch.clamp(logvars, -5, -2)
         else:
             return means
 
