@@ -228,8 +228,20 @@ for epoch in range(params["training_epochs"]):
       plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
       plt.close()
 
+    with torch.no_grad():
+      u_min = torch.zeros(1, 1, L) # Label = 0
+      u_max = torch.ones(1, 1, L)  # Label = 1
+      
+      mu_min = guide.prior(u_min) 
+      mu_max = guide.prior(u_max)
+        
+      # Calculate the Euclidean distance in the 16D space
+      dist = []
+      for i in range(L):
+        dist.append(torch.norm(mu_max[:, :, i] - mu_min[:, :, i]))   
+
     printed = True
-    #break
+    
     
   epoch_train_loss /= num_iters
   if epoch % epoch_step == 0:
@@ -253,6 +265,8 @@ for epoch in range(params["training_epochs"]):
 
     dict_to_log[f"s_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ss[:, :, i, :], dim=-1))
     dict_to_log[f"t_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ts[:, :, i, :], dim=-1))
+
+    dict_to_log[f"dist_{params['latent_vars'][i]}"] = dist[i]
 
     dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
 
