@@ -35,15 +35,19 @@ def main():
     assert params["running_type"] == "eval"
 
     logger.info(device)
-
-    threshold = [-1.]
     
+    # A = torch.tensor([
+    #                 [0., 0., 0., 0.],
+    #                 [1., 0., 0., 0.],
+    #                 [0., 0., 0., 0.],
+    #                 [0., 0., 0., 0.],
+    #             ])
+
     A = torch.tensor([
-                    [0., 0., 0., 0.],
-                    [1., 0., 0., 0.],
-                    [0., 0., 0., 0.],
-                    [0., 0., 0., 0.],
-                ])
+        [0., 0.],
+        [1., 0.],
+    ])
+
     guide = InvSlotAttentionGuide(resolution = params['resolution'],
                               num_iterations = 3,
                               latent_dim = params["latent_dim"],
@@ -181,9 +185,6 @@ def main():
             plt.close()
 
             logger.info(f"test r2 score: {r2_score}")
-
-            if i == 1:
-                break
 
 if __name__ == '__main__':
     main()
