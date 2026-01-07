@@ -35,18 +35,20 @@ def check_overlap(attributes_list):
 
 
 def sample_adjacency_matrix(params):
-  #A = torch.zeros(params["n_latents"], params["n_latents"])
-
   # order of latents: scale, color, x-pos, y-pos
   # specified A: scale -> color
   
-  A = torch.tensor([
-    [0., 0., 0., 0.],
-    [1., 0., 0., 0.],
-    [0., 0., 0., 0.],
-    [0., 0., 0., 0.],
-  ])
+  # A = torch.tensor([
+  #   [0., 0., 0., 0.],
+  #   [1., 0., 0., 0.],
+  #   [0., 0., 0., 0.],
+  #   [0., 0., 0., 0.],
+  # ])
 
+  A = torch.tensor([
+    [0., 0.],
+    [1., 0.],
+  ])
 
   return A
 
@@ -71,25 +73,28 @@ def generate_scene(params, scene_id=0, A=None, train_set=True):
   all_locs = []
   for n in range(int(n_objects)):
     object_attributes = []
-    for i, factor in enumerate(params["latent_vars"]):
+    for i, factor in enumerate(params["latent_vars"] + ["x_pos", "y_pos"]):
       # get ranges for the distribution for each factor, in an abstract way
       factor_min, factor_max = params["factor_ranges"][factor]
-
-      # check in A if it is a child, and which variable is the parent
-      if 1 in A[i, :]:
-        parent = (A[i, :] == 1).nonzero(as_tuple=False)
-        # specify the new range according to the causal dependency
-        if len(parent) == 1:
-          norm_parent = norm(object_attributes[parent], params["factor_ranges"][params["latent_vars"][parent]][0], params["factor_ranges"][params["latent_vars"][parent]][1])
-          
-          if train_set or not params["ood_eval"]:
-            sampled_value, _, _ = sample_identifiable_bounded_(norm_parent)
-          else:
-            sampled_value = sample_ood(norm_parent, params["factor_ranges"][factor])
-      else:
-        # sample the value
+      if factor in ["x_pos", "y_pos"]:
         sampled_value = dist.Uniform(factor_min, factor_max).sample()
-
+              
+      else:
+        # check in A if it is a child, and which variable is the parent
+        if 1 in A[i, :]:
+          parent = (A[i, :] == 1).nonzero(as_tuple=False)
+          # specify the new range according to the causal dependency
+          if len(parent) == 1:
+            norm_parent = norm(object_attributes[parent], params["factor_ranges"][params["latent_vars"][parent]][0], params["factor_ranges"][params["latent_vars"][parent]][1])
+            
+            if train_set or not params["ood_eval"]:
+              sampled_value, _, _ = sample_identifiable_bounded_(norm_parent)
+            else:
+              sampled_value = sample_ood(norm_parent, params["factor_ranges"][factor])
+        else:
+          # sample the value
+          sampled_value = dist.Uniform(factor_min, factor_max).sample()
+            
       object_attributes.append(sampled_value)
     attributes_list.append(object_attributes)
   

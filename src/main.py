@@ -9,7 +9,7 @@ params = {
     "device": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
     "random_seed": 1,
     "dataset_path": "/nas-ctm01/datasets/public/CG",
-    "latent_vars": ["scale", "color", "x_pos", "y_pos"],
+    "latent_vars": ["scale", "color"], #, "x_pos", "y_pos"],
     "factor_ranges": {
         "scale": [0.5 , 1.  ],
         "color": [0.  , 1.  ],
@@ -43,7 +43,7 @@ params = {
     "causal_dropout_prob": 0., # 0.6 for models with causal flow, 1.0 for models without
     "latent_dim" : 16,
     "check_attn": True,
-    "jobID": 70,  
+    "jobID": 71,  
     "mesh_iters": 4,
     "mesh_lr": 5, 
     "mesh_noise": 1e-3,

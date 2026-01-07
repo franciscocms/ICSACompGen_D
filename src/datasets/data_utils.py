@@ -71,7 +71,7 @@ def process_targets(target_dict):
     target = []
     for i in range(n):
       all_v = []
-      for var in ["scale", "color", "x_pos", "y_pos"]:
+      for var in params["latent_vars"]:
         v = normalize(torch.FloatTensor([target_dict['scene_attr'][f'object_{i}'][var]]),
                           params["factor_ranges"][var][0],
                           params["factor_ranges"][var][1])    

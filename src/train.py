@@ -55,12 +55,18 @@ L = len(params["latent_vars"])
 logger.info(params)
 
 l_to_label = {i: l for i, l in enumerate(params["latent_vars"])}
+# A = torch.tensor([
+#     [0., 0., 0., 0.],
+#     [1., 0., 0., 0.],
+#     [0., 0., 0., 0.],
+#     [0., 0., 0., 0.],
+#   ])
+
 A = torch.tensor([
-    [0., 0., 0., 0.],
-    [1., 0., 0., 0.],
-    [0., 0., 0., 0.],
-    [0., 0., 0., 0.],
-  ])
+  [0., 0.],
+  [1., 0.],
+])
+
 logger.info(f"\nA: {A}\n")
 torch.manual_seed(params["random_seed"])
 
