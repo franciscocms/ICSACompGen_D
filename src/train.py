@@ -229,8 +229,8 @@ for epoch in range(params["training_epochs"]):
       plt.close()
 
     with torch.no_grad():
-      u_min = torch.zeros(1, 1, L) # Label = 0
-      u_max = torch.ones(1, 1, L)  # Label = 1
+      u_min = torch.zeros(1, 1, L).to(DEVICE) # Label = 0
+      u_max = torch.ones(1, 1, L).to(DEVICE) # Label = 1
       
       mu_min = guide.prior(u_min) 
       mu_max = guide.prior(u_max)
