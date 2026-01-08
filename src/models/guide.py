@@ -150,9 +150,9 @@ class InvSlotAttentionGuide(nn.Module):
             for i in range(self.L):
                 logger.info(f"\nvar {i}")
                 logger.info(f"s mean: {torch.mean(torch.mean(self.ss[:, :, i, :], dim=-1))}")
-                logger.info(f"s std: {torch.mean((self.ss[:, :, i, :]).std(dim=-1))}")
-                logger.info(f"s min: {torch.mean((self.ss[:, :, i, :]).min(dim=-1))}")
-                logger.info(f"s max: {torch.mean((self.ss[:, :, i, :]).max(dim=-1))}")
+                logger.info(f"s std: {torch.mean(torch.std(self.ss[:, :, i, :], dim=-1))}")
+                logger.info(f"s min: {torch.mean(torch.min(self.ss[:, :, i, :], dim=-1))}")
+                logger.info(f"s max: {torch.mean(torch.max(self.ss[:, :, i, :], dim=-1))}")
         
         
         slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
