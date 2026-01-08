@@ -127,6 +127,8 @@ class InvSlotAttentionGuide(nn.Module):
         logvar_noise = torch.stack(logvar_noise).permute(1, 2, 0, 3)  # [B, N, L, d]
         assert z_noise.size(2) == self.L
 
+        if params["running_type"] == "eval": return z_noise.reshape(B, n_s, self.L, self.ldim)
+
         #slots_d = slots.detach()
         preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
@@ -168,7 +170,6 @@ class InvSlotAttentionGuide(nn.Module):
             noise_pred_loss, _ = compute_matching_cost(noise_preds, labels[:, :, i]) 
             self.noise_pred_loss.append(noise_pred_loss)
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
-                            
-        if params["running_type"] == "eval": return z_noise.reshape(B, n_s, self.L, self.ldim)
+        
         return slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat
         
