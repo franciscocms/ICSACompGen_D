@@ -114,6 +114,8 @@ slot_rec_loss_crit = nn.MSELoss()
 guide.train()
 for epoch in range(params["training_epochs"]):
 
+  guide.epoch = epoch
+
   # if epoch < 50:
   #   for name, params in guide.named_parameters():
   #     params.requires_grad = False
@@ -149,6 +151,8 @@ for epoch in range(params["training_epochs"]):
     img = img.to(DEVICE)
     target = target.to(DEVICE)
     B = img.size(0)
+
+    guide.iter = num_iters
 
     batch_loss = 0.
     optimizer.zero_grad()

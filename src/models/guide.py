@@ -89,6 +89,7 @@ class InvSlotAttentionGuide(nn.Module):
         
         if params["TC_minimization"]: self.tc_discriminator = TCDiscriminator(self.L*self.ldim, self.L*self.ldim*4)
         self.epoch = 0
+        self.iter = 0
         self.learn_transform = 0.
         
     
@@ -114,7 +115,6 @@ class InvSlotAttentionGuide(nn.Module):
         # logger.info(f"min: {slots.min()}")
         # logger.info(f"max: {slots.max()}\n")
 
-
         z_noise, mu_noise, logvar_noise = [], [], []           
         for var in params["latent_vars"]:
             #logvars = torch.zeros(B, n_s, self.ldim).to(device)
@@ -126,7 +126,7 @@ class InvSlotAttentionGuide(nn.Module):
         mu_noise = torch.stack(mu_noise).permute(1, 2, 0, 3)          # [B, N, L, d]
         logvar_noise = torch.stack(logvar_noise).permute(1, 2, 0, 3)  # [B, N, L, d]
         assert z_noise.size(2) == self.L
-                
+
         #slots_d = slots.detach()
         preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
@@ -146,7 +146,15 @@ class InvSlotAttentionGuide(nn.Module):
             z_scm = mu_noise 
             self.L_slopes, self.ss, self.ts = torch.zeros(B, n_s, self.L, self.ldim), torch.zeros(B, n_s, self.L, self.ldim), torch.zeros(B, n_s, self.L, self.ldim)
 
-
+        if self.epoch % 10 == 0 and self.iter == 0:
+            for i in range(self.L):
+                logger.info(f"\nvar {i}")
+                logger.info(f"s mean: {torch.mean(torch.mean(self.ss[:, :, i, :], dim=-1))}")
+                logger.info(f"s std: {torch.mean((self.ss[:, :, i, :]).std(dim=-1))}")
+                logger.info(f"s min: {torch.mean((self.ss[:, :, i, :]).min(dim=-1))}")
+                logger.info(f"s max: {torch.mean((self.ss[:, :, i, :]).max(dim=-1))}")
+        
+        
         slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
         #slot_hat = self.causal_decoder(torch.flatten(mu_noise, -2))
 
