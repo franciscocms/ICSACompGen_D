@@ -96,6 +96,9 @@ def main():
         
         train_val_test_split = [0.7, 0.2, 0.1]
         for i in range(len(params["latent_vars"])):
+
+            if i == 0: j = 1
+            elif i == 1: j = 0
             
             logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
             
@@ -105,9 +108,9 @@ def main():
             n_train_samples = int(train_val_test_split[0]*z_noise.size(0))
             n_val_samples = n_train_samples + int(train_val_test_split[1]*z_noise.size(0))
             
-            probe_ds_train = ProbeDataset(z_noise[:n_train_samples, :, i], targets[:n_train_samples], i, split="train")
-            probe_ds_val = ProbeDataset(z_noise[n_train_samples:n_val_samples, :, i], targets[n_train_samples:n_val_samples], i, split="validation")
-            probe_ds_test = ProbeDataset(z_noise[n_val_samples:, :, i], targets[n_val_samples:], i, split="test")
+            probe_ds_train = ProbeDataset(z_noise[:n_train_samples, :, i], targets[:n_train_samples], j, split="train")
+            probe_ds_val = ProbeDataset(z_noise[n_train_samples:n_val_samples, :, i], targets[n_train_samples:n_val_samples], j, split="validation")
+            probe_ds_test = ProbeDataset(z_noise[n_val_samples:, :, i], targets[n_val_samples:], j, split="test")
 
             probe_dl_train = DataLoader(probe_ds_train, 256, shuffle=True, generator=torch.Generator(device='cuda'))
             probe_dl_val = DataLoader(probe_ds_val, len(probe_ds_val), shuffle=False, generator=torch.Generator(device='cuda'))
