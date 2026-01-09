@@ -316,14 +316,16 @@ class Predictor(nn.Module):
 class LinearProbe(nn.Module):
     def __init__(self, nin, nout):
         super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(nin, nin),
-            nn.ELU(),
-            nn.Linear(nin, nin),
-            nn.ELU(),
-            nn.Linear(nin, nout),
-            nn.Sigmoid()
-        )
+        # self.net = nn.Sequential(
+        #     nn.Linear(nin, nin),
+        #     nn.ELU(),
+        #     nn.Linear(nin, nin),
+        #     nn.ELU(),
+        #     nn.Linear(nin, nout),
+        #     nn.Sigmoid()
+        # )
+        self.net = nn.Linear(nin, nout)
+        
     def forward(self, x):
         out = self.net(x)
         if out.size(-1) == 1: out = out.squeeze(-1)
