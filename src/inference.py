@@ -18,6 +18,8 @@ from datasets.data_utils import MyDataset, ProbeDataset
 from models.architectures import LinearProbe
 from utils.loss import hungarian_r2_score, compute_matching_cost
 
+import wandb # type: ignore
+
 import logging
 logfile_name = f"eval-{params['jobID']}.log"
 logger = logging.getLogger(params["running_type"])
@@ -29,6 +31,10 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 torch.set_default_device(device)
 main_dir = os.path.abspath(__file__+'/../')
+
+run = wandb.init(project="ICSA",
+                  name=f"{params['jobID']}_inference"
+                  )
 
 def main():    
 
@@ -95,7 +101,9 @@ def main():
         logger.info(targets.shape)
         
         train_val_test_split = [0.7, 0.2, 0.1]
-        for i in range(len(params["latent_vars"])):
+        for i, var in enumerate(params["latent_vars"]):
+
+            dict_to_log = {}
 
             if i == 0: j = 1
             elif i == 1: j = 0
@@ -164,6 +172,10 @@ def main():
                     logger.info(f"epoch {epoch}/{training_epochs-1}")
                     logger.info(f"... train loss: {epoch_train_loss}")
                     logger.info(f"... val loss: {epoch_val_loss}")
+                
+                dict_to_log[f"{var}_train_loss"] = epoch_train_loss
+                dict_to_log[f"{var}_valid_loss"] = epoch_val_loss
+                run.log(dict_to_log)
 
             # testing
             model = LinearProbe(z_noise.size(-1), 1).to(device) 
@@ -188,6 +200,8 @@ def main():
             plt.close()
 
             logger.info(f"test r2 score: {r2_score}")
+        
 
 if __name__ == '__main__':
     main()
+    wandb.finish()
