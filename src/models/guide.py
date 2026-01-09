@@ -148,17 +148,30 @@ class InvSlotAttentionGuide(nn.Module):
             z_scm = mu_noise 
             self.L_slopes, self.ss, self.ts = torch.zeros(B, n_s, self.L, self.ldim), torch.zeros(B, n_s, self.L, self.ldim), torch.zeros(B, n_s, self.L, self.ldim)
 
-        if self.epoch % 10 == 0 and self.iter == 0:
-            for i in range(self.L):
-                logger.info(f"\nvar {i}")
-                logger.info(f"s mean: {torch.mean(torch.mean(self.ss[:, :, i, :], dim=-1))}")
-                logger.info(f"s std: {torch.mean(torch.std(self.ss[:, :, i, :], dim=-1))}")
-                logger.info(f"s min: {torch.mean(torch.amin(self.ss[:, :, i, :], dim=-1))}")
-                logger.info(f"s max: {torch.mean(torch.amax(self.ss[:, :, i, :], dim=-1))}")
+        # if self.epoch % 10 == 0 and self.iter == 0:
+        #     for i in range(self.L):
+        #         logger.info(f"\nvar {i}")
+        #         logger.info(f"s mean: {torch.mean(torch.mean(self.ss[:, :, i, :], dim=-1))}")
+        #         logger.info(f"s std: {torch.mean(torch.std(self.ss[:, :, i, :], dim=-1))}")
+        #         logger.info(f"s min: {torch.mean(torch.amin(self.ss[:, :, i, :], dim=-1))}")
+        #         logger.info(f"s max: {torch.mean(torch.amax(self.ss[:, :, i, :], dim=-1))}")
         
         
         slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
         #slot_hat = self.causal_decoder(torch.flatten(mu_noise, -2))
+
+        if self.epoch % 10 == 0 and self.iter == 0:
+            logger.info(f"\nslots mean: {torch.mean(torch.mean(slots, dim=-1))}")
+            logger.info(f"slot hat mean: {torch.mean(torch.mean(slot_hat, dim=-1))}")
+
+            logger.info(f"\nslots std: {torch.mean(torch.std(slots, dim=-1))}")
+            logger.info(f"slot hat std: {torch.mean(torch.std(slot_hat, dim=-1))}")
+            
+            logger.info(f"\nslots min: {torch.mean(torch.amin(slots, dim=-1))}")
+            logger.info(f"slot hat min: {torch.mean(torch.amin(slot_hat, dim=-1))}")
+
+            logger.info(f"\nslots max: {torch.mean(torch.amax(slots, dim=-1))}")
+            logger.info(f"slot hat max: {torch.mean(torch.amax(slot_hat, dim=-1))}")
 
         #img_hat, _ = self.slot_decoder(slot_hat)
         
