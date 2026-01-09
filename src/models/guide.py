@@ -45,8 +45,8 @@ class InvSlotAttentionGuide(nn.Module):
         self.L = nlatents
         self.A = A
         self.ldim = latent_dim
-        self.slot_dim = self.L*self.ldim*4
-        #self.slot_dim = self.L*self.ldim
+        #self.slot_dim = self.L*self.ldim*4
+        self.slot_dim = self.L*self.ldim
 
         self.model = SlotMLPAdditive(
             in_channels = 3,
@@ -73,8 +73,8 @@ class InvSlotAttentionGuide(nn.Module):
         
         
         self.causal_decoder = CausalDecoder(nin = self.L*self.ldim,
-                                        nout = self.slot_dim
-                                        )
+                                            nout = self.slot_dim
+                                            )
         
         self.causal_flow = MultivariateCausalFlow(self.L,
                                                   self.ldim,

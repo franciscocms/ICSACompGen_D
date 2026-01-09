@@ -228,26 +228,25 @@ class Decoder(nn.Module):
     def __init__(self, nin, nout):
         super().__init__()
         #self.proj = nn.Linear(nin, nout)
-
+        nhidden = nin*4
         self.layers = nn.Sequential(
-            nn.Linear(nin, nout),
+            nn.Linear(nin, nhidden),
             nn.ELU(),
-            nn.Linear(nout, nout),
+            nn.Linear(nhidden, nhidden),
             nn.ELU(),
-            nn.Linear(nout, nout),
+            nn.Linear(nhidden, nhidden),
             nn.ELU(),
-            nn.Linear(nout, nout),
+            nn.Linear(nhidden, nhidden),
             nn.ELU(),
-            nn.Linear(nout, nout),
+            nn.Linear(nhidden, nout),
         )
-        self.out_dim = nout
 
     def forward(self, z):
         # z: [B, N, L*d]
         batch_size, n_slots, features = z.size()
         z = z.reshape(batch_size*n_slots, -1)
         out = self.layers(z)
-        out = out.reshape(batch_size, n_slots, self.out_dim)
+        out = out.reshape(batch_size, n_slots, -1)
         return out
 
 class NoiseEncoder(nn.Module):
