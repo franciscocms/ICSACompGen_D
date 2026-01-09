@@ -325,7 +325,7 @@ class LinearProbe(nn.Module):
         #     nn.Sigmoid()
         # )
         self.net = nn.Linear(nin, nout)
-        
+
     def forward(self, x):
         out = self.net(x)
         if out.size(-1) == 1: out = out.squeeze(-1)
@@ -354,7 +354,7 @@ class Flow(nn.Module):
         assert not torch.isnan(s).any()
         assert not torch.isnan(t).any()
 
-        s = s - s.mean(dim=-1, keepdim=True)
+        #s = s - s.mean(dim=-1, keepdim=True)
         
         z_i = torch.exp(s) * eps + t
         return z_i, s, t
