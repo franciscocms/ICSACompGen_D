@@ -299,14 +299,17 @@ class MLP(nn.Module):
 class Predictor(nn.Module):
     def __init__(self, nin, nhidden, nout):
         super().__init__()
+        
+        nhidden = nin*4
         self.net = nn.Sequential(
             nn.Linear(nin, nhidden),
             nn.ELU(),
             nn.Linear(nhidden, nhidden),
             nn.ELU(),
-            nn.Linear(nhidden, nout),
-            nn.Sigmoid()
+            nn.Linear(nhidden, nout)
+            #nn.Sigmoid()
         )
+        #self.net = nn.Linear(nin, nout)
 
     def forward(self, slots):
         B, N, d = slots.shape
@@ -317,15 +320,15 @@ class LinearProbe(nn.Module):
     def __init__(self, nin, nout):
         super().__init__()
         
-        nhidden = nin*4
-        self.net = nn.Sequential(
-            nn.Linear(nin, nhidden),
-            nn.ELU(),
-            nn.Linear(nhidden, nhidden),
-            nn.ELU(),
-            nn.Linear(nhidden, nout)
-        )
-        #self.net = nn.Linear(nin, nout)
+        # nhidden = nin*4
+        # self.net = nn.Sequential(
+        #     nn.Linear(nin, nhidden),
+        #     nn.ELU(),
+        #     nn.Linear(nhidden, nhidden),
+        #     nn.ELU(),
+        #     nn.Linear(nhidden, nout)
+        # )
+        self.net = nn.Linear(nin, nout)
 
     def forward(self, x):
         out = self.net(x)
