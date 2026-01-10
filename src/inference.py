@@ -110,16 +110,15 @@ def main():
             
             logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
             
-            #model = LinearProbe(z_noise.size(-1), 1).to(device)
-            model = LinearProbe(z_noise.size(-1)*z_noise.size(-2), 1).to(device)
+            model = LinearProbe(z_noise.size(-1), 1).to(device)
             optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
             n_train_samples = int(train_val_test_split[0]*z_noise.size(0))
             n_val_samples = n_train_samples + int(train_val_test_split[1]*z_noise.size(0))
             
-            probe_ds_train = ProbeDataset(z_noise[:n_train_samples,], targets[:n_train_samples], i, split="train")
-            probe_ds_val = ProbeDataset(z_noise[n_train_samples:n_val_samples], targets[n_train_samples:n_val_samples], i, split="validation")
-            probe_ds_test = ProbeDataset(z_noise[n_val_samples:], targets[n_val_samples:], i, split="test")
+            probe_ds_train = ProbeDataset(z_noise[:n_train_samples, :, i], targets[:n_train_samples], i, split="train")
+            probe_ds_val = ProbeDataset(z_noise[n_train_samples:n_val_samples, :, i], targets[n_train_samples:n_val_samples], i, split="validation")
+            probe_ds_test = ProbeDataset(z_noise[n_val_samples:, :, i], targets[n_val_samples:], i, split="test")
 
             probe_dl_train = DataLoader(probe_ds_train, 256, shuffle=True, generator=torch.Generator(device='cuda'))
             probe_dl_val = DataLoader(probe_ds_val, len(probe_ds_val), shuffle=False, generator=torch.Generator(device='cuda'))
@@ -140,8 +139,6 @@ def main():
 
                     optimizer.zero_grad()
                     
-                    z = torch.flatten(z, -2)
-
                     preds = model(z) # [B, N]
                     
                     # loss must be computed under a matching algorithm
@@ -156,9 +153,7 @@ def main():
                 with torch.no_grad():
                     for z, t in probe_dl_val:
                         z = z.to(device)
-                        t = t.to(device)  
-
-                        z = torch.flatten(z, -2)                      
+                        t = t.to(device)                        
                         
                         preds = model(z)
                         loss, _ = compute_matching_cost(preds, t)
@@ -183,16 +178,13 @@ def main():
                 run.log(dict_to_log)
 
             # testing
-            model = LinearProbe(z_noise.size(-1)*z_noise.size(-2), 1).to(device) 
+            model = LinearProbe(z_noise.size(-1), 1).to(device) 
             model.load_state_dict(torch.load('pred_model.pth')) 
             model.eval()
             with torch.no_grad():
                 for z, t in probe_dl_test:
                     z = z.to(device)
                     t = t.to(device)
-                    
-                    z = torch.flatten(z, -2)
-                    
                     preds = model(z)
 
                     logger.info(f"preds: {preds[:5, :]}")
