@@ -183,7 +183,7 @@ def main():
                 run.log(dict_to_log)
 
             # testing
-            model = LinearProbe(z_noise.size(-1), 1).to(device) 
+            model = LinearProbe(z_noise.size(-1)*z_noise.size(-2), 1).to(device) 
             model.load_state_dict(torch.load('pred_model.pth')) 
             model.eval()
             with torch.no_grad():
