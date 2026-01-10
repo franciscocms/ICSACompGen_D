@@ -239,7 +239,7 @@ for epoch in range(params["training_epochs"]):
 
     with torch.no_grad():
       
-      prior_means_distance_e = torch.sum(torch.square(prior_means_d[:, :, 0], prior_means_d[:, :, 1]), dim=-1) # [B, N]
+      prior_means_distance_e = torch.sum(torch.square(prior_means_d[:, :, 0] - prior_means_d[:, :, 1]), dim=-1) # [B, N]
       
       u_min = torch.zeros(1, 1, L).to(DEVICE) # Label = 0
       u_max = torch.ones(1, 1, L).to(DEVICE) # Label = 1
