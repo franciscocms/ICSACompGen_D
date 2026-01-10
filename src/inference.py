@@ -188,8 +188,6 @@ def main():
             model.eval()
             with torch.no_grad():
                 for z, t in probe_dl_test:
-                    B, N, d = z.shape
-
                     z = z.to(device)
                     t = t.to(device)
                     
