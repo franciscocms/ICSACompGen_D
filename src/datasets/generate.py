@@ -28,8 +28,8 @@ def color_to_rgb(color):
 def check_overlap(attributes_list):
   object_1, object_2 = attributes_list
 
-  x_cond = abs(object_1[-2]*127 - object_2[-2]*127) <= (object_1[0]//2 + object_2[0]//2) * 15
-  y_cond = abs(object_1[-1]*127 - object_2[-1]*127) <= (object_1[0]//2 + object_2[0]//2) * 15
+  x_cond = abs(object_1[-2]*127 - object_2[-2]*127) <= (object_1[0]/2 + object_2[0]/2) * params["factor_scaling"]["scale"]
+  y_cond = abs(object_1[-1]*127 - object_2[-1]*127) <= (object_1[0]/2 + object_2[0]/2) * params["factor_scaling"]["scale"]
   if x_cond and y_cond: return True
   else: return False
 
