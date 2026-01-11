@@ -110,7 +110,7 @@ def generate_scene(params, scene_id=0, A=None, train_set=True):
         # specify the new range according to the causal dependency
         if len(parent) == 1:
           # normalize parent value
-          norm_parent = norm(attributes_list[parent], params["factor_ranges"][params["latent_vars"][parent]][0], params["factor_ranges"][params["latent_vars"][parent]][1])
+          norm_parent = norm(attributes_list[-1][parent], params["factor_ranges"][params["latent_vars"][parent]][0], params["factor_ranges"][params["latent_vars"][parent]][1])
           factor_min, factor_max = norm_parent - 0.2, norm_parent + 0.2
 
           if factor_min < params["factor_ranges"][factor][0]: factor_min = params["factor_ranges"][factor][0]
