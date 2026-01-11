@@ -99,26 +99,16 @@ def generate_scene(params, scene_id=0, A=None, train_set=True):
     attributes_list.append(object_attributes)
   
   while check_overlap(attributes_list):
-    object_attributes = []
-    for i, factor in enumerate(params["latent_vars"] + ["x_pos", "y_pos"]):
-      # get ranges for the distribution for each factor, in an abstract way
-      factor_min, factor_max = params["factor_ranges"][factor]
+    for n in range(int(n_objects)):
+      for factor in ["x_pos", "y_pos"]:
 
-      # check in A if it is a child, and which variable is the parent (index)
-      if 1 in A[i, :]:
-        parent = (A[i, :] == 1).nonzero(as_tuple=False)
-        # specify the new range according to the causal dependency
-        if len(parent) == 1:
-          # normalize parent value
-          norm_parent = norm(attributes_list[-1][parent], params["factor_ranges"][params["latent_vars"][parent]][0], params["factor_ranges"][params["latent_vars"][parent]][1])
-          factor_min, factor_max = norm_parent - 0.2, norm_parent + 0.2
+        factor_min, factor_max = params["factor_ranges"][factor]
+        x = dist.Uniform(factor_min, factor_max).sample()
+        y = dist.Uniform(factor_min, factor_max).sample()
 
-          if factor_min < params["factor_ranges"][factor][0]: factor_min = params["factor_ranges"][factor][0]
-          if factor_max > params["factor_ranges"][factor][1]: factor_max = params["factor_ranges"][factor][1]
-      # sample the value
-      sampled_value = dist.Uniform(factor_min, factor_max).sample()
-      object_attributes.append(sampled_value)
-    attributes_list[-1] = object_attributes
+        attributes_list[n][-2] = x
+        attributes_list[n][-1] = y
+
 
   for n in range(int(n_objects)):
     scene_dict["scene_attr"]["object_" + str(n)] = {
