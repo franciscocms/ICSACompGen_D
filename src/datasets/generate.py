@@ -59,9 +59,6 @@ def generate_scene(params, scene_id=0, A=None, train_set=True):
   
   n_objects = params["num_slots"]
 
-  # sample properties for each object 
-  shape_obj, size_obj, color_obj, locx_obj, locy_obj = [], [], [], [], []
-
   scene_dict = {}
   scene_dict["scene_id"] = scene_id
   scene_dict["scene_attr"] = {
