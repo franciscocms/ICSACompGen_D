@@ -100,7 +100,7 @@ def generate_scene(params, scene_id=0, A=None, train_set=True):
   
   while check_overlap(attributes_list):
     object_attributes = []
-    for i, factor in enumerate(params["latent_vars"]):
+    for i, factor in enumerate(params["latent_vars"] + ["x_pos", "y_pos"]):
       # get ranges for the distribution for each factor, in an abstract way
       factor_min, factor_max = params["factor_ranges"][factor]
 
