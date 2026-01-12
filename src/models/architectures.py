@@ -520,6 +520,8 @@ class SlotAttentionAutoEncoder(nn.Module):
         x = self.fc2(x)  # Feedforward network on set.
         # `x` has shape: [batch_size, width*height, input_size].
 
+        logger.info(f"5: {x.shape}")
+
         # Slot Attention module.
         return self.slot_attention(x)
 
@@ -560,6 +562,9 @@ class SlotAttentionAutoEncoder(nn.Module):
         extended_consistency_loss=False,
     ) -> Dict[str, Any]:
         hat_z = self.encode(x)
+        
+        logger.info(f"6 (slots): {hat_z.shape}")
+
         hat_x, figures, masks, reconstructions = self.decode(hat_z)
 
         output_dict = {
@@ -685,9 +690,13 @@ class SlotAttentionEncoder(nn.Module):
         x = F.relu(x)
         x = self.conv4(x)
         x = F.relu(x)
+        logger.info(f"1: {x.shape}")
         x = x.permute(0, 2, 3, 1)
+        logger.info(f"2: {x.shape}")
         x = self.encoder_pos(x)
+        logger.info(f"3: {x.shape}")
         x = torch.flatten(x, 1, 2)
+        logger.info(f"4: {x.shape}")
         return x
 
 
@@ -695,7 +704,7 @@ class SlotAttentionDecoder(nn.Module):
     def __init__(self, ch_dim, hid_dim, resolution):
         super().__init__()
 
-        self.decoder_initial_size = params["resolution"]
+        self.decoder_initial_size = (64, 64)
 
         self.conv_list = nn.ModuleList(
             [nn.Conv2d(hid_dim, ch_dim, 5, padding=2), nn.ReLU()]
@@ -710,7 +719,6 @@ class SlotAttentionDecoder(nn.Module):
         self.resolution = resolution
 
     def forward(self, x):
-        logger.info(x.shape)
         x = self.decoder_pos(x)
         x = x.permute(0, 3, 1, 2)
         for conv_layer in self.conv_list:
@@ -721,28 +729,3 @@ class SlotAttentionDecoder(nn.Module):
         return x
 
 
-class PositionalEmbedding(nn.Module):
-    """Adds soft positional embedding with learnable projection."""
-
-    def __init__(self, height: int, width: int, channels: int):
-        super().__init__()
-        east = torch.linspace(0, 1, width).repeat(height)
-        west = torch.linspace(1, 0, width).repeat(height)
-        south = torch.linspace(0, 1, height).repeat(width)
-        north = torch.linspace(1, 0, height).repeat(width)
-        east = east.reshape(height, width)
-        west = west.reshape(height, width)
-        south = south.reshape(width, height).T
-        north = north.reshape(width, height).T
-        # (4, h, w)
-        linear_pos_embedding = torch.stack([north, south, west, east], dim=0)
-        linear_pos_embedding.unsqueeze_(0)  # for batch size
-        self.channels_map = nn.Conv2d(4, channels, kernel_size=1)
-        self.register_buffer("linear_position_embedding", linear_pos_embedding)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        bs_linear_position_embedding = self.linear_position_embedding.expand(
-            x.size(0), 4, x.size(2), x.size(3)
-        )
-        x = x + self.channels_map(bs_linear_position_embedding)
-        return x
