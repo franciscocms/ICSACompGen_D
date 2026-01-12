@@ -120,7 +120,7 @@ for epoch in range(params["training_epochs"]):
   
   for group in optimizer.param_groups:
     if epoch % 50 == 0 and epoch != 0:
-      group['lr'] /= 10
+      group['lr'] /= 2
     epoch_lr = group['lr']
   
 
@@ -168,6 +168,8 @@ for epoch in range(params["training_epochs"]):
     slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat, figs = guide(img, target)
     recon_loss = recon_loss_fn(img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
+
+    logger.info(figs.shape)
 
     target_logvar = torch.tensor(-4.0).to(DEVICE)
     prior_logvar_loss = F.mse_loss(prior_logvars, target_logvar.expand_as(prior_logvars))
