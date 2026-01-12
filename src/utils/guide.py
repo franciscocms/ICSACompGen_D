@@ -22,6 +22,36 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 import logging
 logger = logging.getLogger(params["running_type"])
 
+def sample_z_from_latents(latents: torch.Tensor, n_samples: int = 64):
+    """
+    Sample imaginable latents combinations z from infered latents.
+
+    Args:
+        latents: tensor of shape (batch_size, n_slots, n_latents)
+        n_samples: number of samples to generate
+
+    Returns:
+        sampled_z: tensor of shape (n_samples, n_slots, n_latents)
+        indices: array of indices of the sampled latents
+    """
+    batch_size, n_slots, n_latents = latents.shape
+
+    # Flatten the latents tensor into a 2D tensor
+    flattened_latents = latents.reshape(batch_size * n_slots, n_latents)
+
+    # Sample indices randomly with replacement from the flattened latents tensor
+    indices = np.random.choice(
+        len(flattened_latents),
+        size=n_samples * n_slots,
+    )
+
+    # Gather the sampled latents from the flattened tensor
+    sampled_latents = flattened_latents[indices]
+
+    # Reshape the sampled latents tensor back to the original shape
+    sampled_z = sampled_latents.reshape(n_samples, n_slots, n_latents)
+
+    return sampled_z.to(latents.device), indices
 
 def linear_scheduler(step, total_steps, initial, final):
     """Linear scheduler"""

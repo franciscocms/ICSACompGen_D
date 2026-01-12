@@ -17,7 +17,7 @@ sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
 from src.utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape
-from src.models.architectures import SlotMLPAdditive, SlotEncoder, SlotMLPAdditiveDecoder, NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor
+from src.models.architectures import SlotAttentionAutoEncoder, SlotAttentionEncoder, SlotAttentionDecoder, NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor
 from src.utils.loss import compute_matching_cost
 
 import logging
@@ -48,15 +48,25 @@ class InvSlotAttentionGuide(nn.Module):
         #self.slot_dim = self.L*self.ldim*4
         self.slot_dim = self.L*self.ldim
 
-        self.model = SlotMLPAdditive(
-            in_channels = 3,
-            n_slots = 2,
-            n_slot_latents = self.slot_dim,
-        ).to(device)
+        # self.model = SlotMLPAdditive(
+        #     in_channels = 3,
+        #     n_slots = 2,
+        #     n_slot_latents = self.slot_dim,
+        # ).to(device)
 
-        # self.slot_encoder = SlotEncoder(in_channels=3, n_slots=2, n_slot_latents=self.slot_dim)
-        # self.slot_decoder = SlotMLPAdditiveDecoder(in_channels=3, n_slots=2, n_slot_latents=self.slot_dim)
-
+        slot_encoder = SlotAttentionEncoder(resolution=params["resolution"],
+                                            hid_dim=self.slot_dim,
+                                            ch_dim=32)
+        slot_decoder = SlotAttentionDecoder(ch_idm=32,
+                                            hid_dim=self.slot_dim,
+                                            resolution=params["resolution"])
+        self.model = SlotAttentionAutoEncoder(slot_encoder,
+                                              slot_decoder,
+                                              params["num_slots"],
+                                              num_iterations=3,
+                                              hid_dim=self.slot_dim,
+                                              softmax=False,
+                                              sampling=False)
 
         self.noise_nets = nn.ModuleDict()
         self.noise_predictors = nn.ModuleDict()
