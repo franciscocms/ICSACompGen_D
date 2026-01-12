@@ -520,7 +520,7 @@ class SlotAttentionAutoEncoder(nn.Module):
         x = self.fc2(x)  # Feedforward network on set.
         # `x` has shape: [batch_size, width*height, input_size].
 
-        logger.info(f"5: {x.shape}")
+        # logger.info(f"5: {x.shape}")
 
         # Slot Attention module.
         return self.slot_attention(x)
@@ -535,12 +535,12 @@ class SlotAttentionAutoEncoder(nn.Module):
             .repeat((1, self.spatial_broadcast, self.spatial_broadcast, 1))
         )
 
-        logger.info(f"7 (slots broadcasted): {slots.shape}")
+        # logger.info(f"7 (slots broadcasted): {slots.shape}")
 
         # `out` has shape: [batch_size*num_slots, width, height, num_channels+1].
         out = self.decoder_cnn(slots)
         
-        logger.info(f"8 (decoder out): {out.shape}")
+        # logger.info(f"8 (decoder out): {out.shape}")
 
         # Undo combination of slot and batch dimension; split alpha masks.
         reconstructions, masks = out.reshape(
@@ -567,7 +567,7 @@ class SlotAttentionAutoEncoder(nn.Module):
     ) -> Dict[str, Any]:
         hat_z = self.encode(x)
         
-        logger.info(f"6 (slots): {hat_z.shape}")
+        # logger.info(f"6 (slots): {hat_z.shape}")
 
         hat_x, figures, masks, reconstructions = self.decode(hat_z)
 
@@ -694,13 +694,13 @@ class SlotAttentionEncoder(nn.Module):
         x = F.relu(x)
         x = self.conv4(x)
         x = F.relu(x)
-        logger.info(f"1: {x.shape}")
+        # logger.info(f"1: {x.shape}")
         x = x.permute(0, 2, 3, 1)
-        logger.info(f"2: {x.shape}")
+        # logger.info(f"2: {x.shape}")
         x = self.encoder_pos(x)
-        logger.info(f"3: {x.shape}")
+        # logger.info(f"3: {x.shape}")
         x = torch.flatten(x, 1, 2)
-        logger.info(f"4: {x.shape}")
+        # logger.info(f"4: {x.shape}")
         return x
 
 
