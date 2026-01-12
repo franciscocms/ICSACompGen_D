@@ -116,6 +116,14 @@ for epoch in range(params["training_epochs"]):
 
   guide.epoch = epoch
 
+  # update lr every 50 epochs
+  
+  for group in optimizer.param_groups:
+    if epoch % 50 == 0:
+      group['lr'] /= 10
+    epoch_lr = group['lr']
+  
+
   # if epoch < 50:
   #   for name, params in guide.named_parameters():
   #     params.requires_grad = False
@@ -157,8 +165,7 @@ for epoch in range(params["training_epochs"]):
     batch_loss = 0.
     optimizer.zero_grad()
   
-    slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat = guide(img, target)
-    #slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm = guide(img, target)
+    slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat, figs = guide(img, target)
     recon_loss = recon_loss_fn(img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
 
@@ -228,10 +235,13 @@ for epoch in range(params["training_epochs"]):
       disc_tc_loss = torch.tensor(0.)
     
     if (epoch % epoch_step == 0 or epoch == 0) and not printed:
-      fig, ax = plt.subplots(1, 2)
+      fig, ax = plt.subplots(1, 4)
       ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
       ax[1].imshow(np.transpose(img_hat[0].detach().cpu().numpy(), (1, 2, 0)))
-      for j in range(2):
+      ax[2].imshow(np.transpose(figs[0, 0].detach().cpu().numpy(), (1, 2, 0)))
+      ax[3].imshow(np.transpose(figs[0, 1].detach().cpu().numpy(), (1, 2, 0)))
+
+      for j in range(4):
         ax[j].grid(False)
         ax[j].axis('off')   
       plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
@@ -272,6 +282,7 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["logvar_loss"] = prior_logvar_loss
   
   dict_to_log["prior_means_distance_e"] = torch.mean(prior_means_distance_e)
+  dict_to_log["LR"] = epoch_lr
 
   for i in range(L):
     dict_to_log[f"mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(mu_noise[:, :, i, :], dim=-1))
