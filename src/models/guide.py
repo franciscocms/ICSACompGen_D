@@ -57,7 +57,7 @@ class InvSlotAttentionGuide(nn.Module):
         slot_encoder = SlotAttentionEncoder(resolution=params["resolution"],
                                             hid_dim=self.slot_dim,
                                             ch_dim=32)
-        slot_decoder = SlotAttentionDecoder(ch_idm=32,
+        slot_decoder = SlotAttentionDecoder(ch_dim=32,
                                             hid_dim=self.slot_dim,
                                             resolution=params["resolution"])
         self.model = SlotAttentionAutoEncoder(slot_encoder,
