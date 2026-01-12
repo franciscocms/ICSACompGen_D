@@ -27,8 +27,8 @@ params = {
     "test_dataset_len": 5000,
     "resolution": (128, 128),
     "num_slots": 2,
-    "batch_size": 512, # 256 for 32GB
-    "lr": 1e-3, # 256 with 1e-4 -- 512 for 1e-3
+    "batch_size": 256, # 256 for 32GB
+    "lr": 1e-4, # 256 with 1e-4 -- 512 for 1e-3
     "training_from_scratch" : True,
     "training_epochs": 100, 
     "epoch_step": 10,
