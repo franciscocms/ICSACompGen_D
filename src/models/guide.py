@@ -182,8 +182,6 @@ class InvSlotAttentionGuide(nn.Module):
 
             logger.info(f"\nslots max: {torch.mean(torch.amax(slots, dim=-1))}")
             logger.info(f"slot hat max: {torch.mean(torch.amax(slot_hat, dim=-1))}")
-
-        #img_hat, _ = self.slot_decoder(slot_hat)
         
         z_noise_d = mu_noise.detach()
         self.noise_pred_loss = []
