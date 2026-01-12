@@ -710,6 +710,7 @@ class SlotAttentionDecoder(nn.Module):
         self.resolution = resolution
 
     def forward(self, x):
+        logger.info(x.shape)
         x = self.decoder_pos(x)
         x = x.permute(0, 3, 1, 2)
         for conv_layer in self.conv_list:
