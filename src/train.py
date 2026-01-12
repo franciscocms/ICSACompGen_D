@@ -169,8 +169,6 @@ for epoch in range(params["training_epochs"]):
     recon_loss = recon_loss_fn(img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
 
-    logger.info(figs.shape)
-
     target_logvar = torch.tensor(-4.0).to(DEVICE)
     prior_logvar_loss = F.mse_loss(prior_logvars, target_logvar.expand_as(prior_logvars))
     batch_loss += 100*recon_loss + slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + prior_logvar_loss
@@ -241,7 +239,7 @@ for epoch in range(params["training_epochs"]):
       ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
       ax[1].imshow(np.transpose(img_hat[0].detach().cpu().numpy(), (1, 2, 0)))
       ax[2].imshow(np.transpose(figs[0, 0].detach().cpu().numpy(), (1, 2, 0)))
-      ax[3].imshow(np.transpose(figs[0, 1].detach().cpu().numpy(), (1, 2, 0)))
+      ax[3].imshow(np.transpose(figs[1, 0].detach().cpu().numpy(), (1, 2, 0)))
 
       for j in range(4):
         ax[j].grid(False)
