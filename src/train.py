@@ -210,8 +210,8 @@ for epoch in range(params["training_epochs"]):
     optimizer.step()
     epoch_train_loss += batch_loss 
     num_iters += 1
-    
-    logger.info(num_iters)
+
+    #logger.info(num_iters)
     
     if params["TC_minimization"]:
       for name, param in guide.tc_discriminator.named_parameters():
