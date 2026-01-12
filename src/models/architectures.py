@@ -695,7 +695,7 @@ class SlotAttentionDecoder(nn.Module):
     def __init__(self, ch_dim, hid_dim, resolution):
         super().__init__()
 
-        self.decoder_initial_size = (64, 64)
+        self.decoder_initial_size = params["resolution"]
 
         self.conv_list = nn.ModuleList(
             [nn.Conv2d(hid_dim, ch_dim, 5, padding=2), nn.ReLU()]
