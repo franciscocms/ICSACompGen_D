@@ -167,8 +167,8 @@ for epoch in range(params["training_epochs"]):
   
     slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat, figs = guide(img, target)
     
-    # logger.info(img.shape)
-    # logger.info(img_hat.shape)
+    logger.info(f"img: {img.shape}")
+    logger.info(f"img_hat: {img_hat.shape}")
 
     recon_loss = recon_loss_fn(img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
