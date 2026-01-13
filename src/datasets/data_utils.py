@@ -98,7 +98,7 @@ class MyDataset(Dataset):
       logger.info(f"\ndataset length: {self.nscenes}\n")
 
   def __len__(self):
-    return 5000
+    return 1000
     #return self.nscenes
   
   def __getitem__(self, idx):
