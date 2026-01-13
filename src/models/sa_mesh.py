@@ -188,7 +188,7 @@ class AutoEncoder(nn.Module):
         super().__init__()
     
         self.encoder = Encoder(resolution)
-        self.decoder = SlotAttentionDecoder(ch_dim=32, hid_dim=slot_dim, resolution=resolution, init_resolution=init_decoder_res)
+        self.decoder = SlotAttentionDecoder(ch_dim=init_dim, hid_dim=slot_dim, resolution=resolution, init_resolution=init_decoder_res)
         self.num_slots = num_slots
 
         self.slot_attention = SlotAttention(
@@ -213,9 +213,9 @@ class AutoEncoder(nn.Module):
 
         # Convolutional encoder with position embedding.
         x = self.encoder(x)  # CNN Backbone.
-        logger.info(f"1: {x.shape}")
+        #logger.info(f"1: {x.shape}")
         x = F.layer_norm(x, x.shape[1:])
-        
+
         x = self.mlp(x)
 
         # Slot Attention module.

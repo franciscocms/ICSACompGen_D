@@ -240,7 +240,7 @@ for epoch in range(params["training_epochs"]):
     else:
       disc_tc_loss = torch.tensor(0.)
     
-    aux_attn = guide.attn.reshape((B, params["num_slots"], 16, 16))
+    aux_attn = guide.attn.reshape((B, params["num_slots"], 32, 32))
     if (epoch % epoch_step == 0 or epoch == 0) and not printed:
       fig, ax = plt.subplots(1, 6)
       ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
