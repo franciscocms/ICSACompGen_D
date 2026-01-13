@@ -523,7 +523,8 @@ class SlotAttentionAutoEncoder(nn.Module):
         #logger.info(f"5: {x.shape}")
 
         # Slot Attention module.
-        return self.slot_attention(x)
+        slots, attn = self.slot_attention(x)
+        return slots, attn
 
     def decode(self, hat_z):
         # """Broadcast slot features to a 2D grid and collapse slot dimension.""".
@@ -565,13 +566,14 @@ class SlotAttentionAutoEncoder(nn.Module):
         use_consistency_loss=False,
         extended_consistency_loss=False,
     ) -> Dict[str, Any]:
-        hat_z = self.encode(x)
+        hat_z, attn = self.encode(x)
         
         #logger.info(f"6 (slots): {hat_z.shape}")
 
         hat_x, figures, masks, reconstructions = self.decode(hat_z)
 
         output_dict = {
+            "attn": attn,
             "reconstructed_image": hat_x,
             "predicted_latents": hat_z,
             "reconstructed_figures": figures.permute(1, 0, 4, 2, 3),
@@ -647,7 +649,7 @@ class SlotAttention(nn.Module):
             slots = slots.reshape(b, -1, d)
             slots = slots + self.fc2(F.elu(self.fc1(self.norm_pre_ff(slots))))
 
-        return slots
+        return slots, attn
 
 
 def build_grid(resolution):

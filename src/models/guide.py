@@ -65,7 +65,7 @@ class InvSlotAttentionGuide(nn.Module):
                                               params["num_slots"],
                                               num_iterations=3,
                                               hid_dim=self.slot_dim,
-                                              softmax=True,
+                                              softmax=False,
                                               sampling=False)
 
         self.noise_nets = nn.ModuleDict()
@@ -111,6 +111,7 @@ class InvSlotAttentionGuide(nn.Module):
         assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
 
         output_dict = self.model(img)
+        self.attn = output_dict["attn"]
         img_hat = output_dict["reconstructed_image"]
         recon_figures = output_dict["reconstructed_figures"]
         slots = output_dict["predicted_latents"]

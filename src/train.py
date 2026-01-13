@@ -239,14 +239,17 @@ for epoch in range(params["training_epochs"]):
     else:
       disc_tc_loss = torch.tensor(0.)
     
+    aux_attn = guide.attn.reshape((B, params["num_slots"], 16, 16))
     if (epoch % epoch_step == 0 or epoch == 0) and not printed:
-      fig, ax = plt.subplots(1, 4)
+      fig, ax = plt.subplots(1, 6)
       ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
       ax[1].imshow(np.transpose(img_hat[0].detach().cpu().numpy(), (1, 2, 0)))
-      ax[2].imshow(np.transpose(figs[0, 0].detach().cpu().numpy(), (1, 2, 0)))
-      ax[3].imshow(np.transpose(figs[1, 0].detach().cpu().numpy(), (1, 2, 0)))
+      ax[2].imshow(aux_attn[0, 0].detach().cpu().numpy())
+      ax[3].imshow(np.transpose(figs[0, 0].detach().cpu().numpy(), (1, 2, 0)))
+      ax[4].imshow(aux_attn[0, 1].detach().cpu().numpy())
+      ax[5].imshow(np.transpose(figs[1, 0].detach().cpu().numpy(), (1, 2, 0)))
 
-      for j in range(4):
+      for j in range(6):
         ax[j].grid(False)
         ax[j].axis('off')   
       plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
