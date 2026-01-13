@@ -28,7 +28,7 @@ params = {
     "resolution": (64, 64),
     "num_slots": 2 + 1,
     "batch_size": 128, # 256 for 32GB
-    "lr": 1e-3, # 256 with 1e-4 -- 512 for 1e-3
+    "lr": 1e-5, # 256 with 1e-4 -- 512 for 1e-3
     "training_from_scratch" : True,
     "training_epochs": 400, 
     "epoch_step": 10,
