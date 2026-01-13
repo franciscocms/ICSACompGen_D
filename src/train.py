@@ -119,8 +119,8 @@ for epoch in range(params["training_epochs"]):
   # update lr every 50 epochs
   
   for group in optimizer.param_groups:
-    if epoch % 50 == 0 and epoch != 0:
-      group['lr'] /= 2
+    # if epoch % 50 == 0 and epoch != 0:
+    #   group['lr'] /= 2
     epoch_lr = group['lr']
   
 
