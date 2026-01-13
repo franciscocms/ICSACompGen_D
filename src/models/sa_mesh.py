@@ -184,11 +184,11 @@ class SlotAttentionDecoder(nn.Module):
         return x
     
 class AutoEncoder(nn.Module):
-    def __init__(self, num_slots, slot_dim, init_dim=64, num_iterations=3, resolution=(128, 128), softmax=True):
+    def __init__(self, num_slots, slot_dim, init_dim=64, num_iterations=3, resolution=(128, 128), init_decoder_res=(32, 32), softmax=True):
         super().__init__()
     
         self.encoder = Encoder(resolution)
-        self.decoder = SlotAttentionDecoder(ch_dim=32, hid_dim=slot_dim, resolution=resolution)
+        self.decoder = SlotAttentionDecoder(ch_dim=32, hid_dim=slot_dim, resolution=resolution, init_resolution=init_decoder_res)
         self.num_slots = num_slots
 
         self.slot_attention = SlotAttention(
@@ -205,7 +205,7 @@ class AutoEncoder(nn.Module):
              nn.Linear(init_dim, init_dim)
         )
         
-        self.spatial_broadcast = 32
+        self.spatial_broadcast = init_decoder_res[0]
         self.use_softmax = softmax
         
     def encode(self, x):
