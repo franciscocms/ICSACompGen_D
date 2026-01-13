@@ -166,6 +166,9 @@ for epoch in range(params["training_epochs"]):
     optimizer.zero_grad()
   
     slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat, figs = guide(img, target)
+    
+    logger.info(f"img: {img.shape} and img_hat: {img_hat.shape}")
+    
     recon_loss = recon_loss_fn(img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
 
