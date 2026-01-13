@@ -23,7 +23,7 @@ params = {
         "y_pos": 64
     },
     "n_dependencies": 1,
-    "train_dataset_len": 1000,
+    "train_dataset_len": 10000,
     "test_dataset_len": 5000,
     "resolution": (64, 64),
     "num_slots": 2 + 1,
