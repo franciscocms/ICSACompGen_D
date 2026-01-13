@@ -70,7 +70,8 @@ A = torch.tensor([
 logger.info(f"\nA: {A}\n")
 torch.manual_seed(params["random_seed"])
 
-guide = InvSlotAttentionGuide(resolution = params['resolution'],
+guide = InvSlotAttentionGuide(model_name="sa-mesh",
+                              resolution = params['resolution'],
                               num_iterations = 3,
                               latent_dim = params["latent_dim"],
                               nlatents = len(params["latent_vars"]),
