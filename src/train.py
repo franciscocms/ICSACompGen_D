@@ -70,7 +70,7 @@ A = torch.tensor([
 logger.info(f"\nA: {A}\n")
 torch.manual_seed(params["random_seed"])
 
-guide = InvSlotAttentionGuide(model_name="sa-mesh",
+guide = InvSlotAttentionGuide(model_name="slot_attention",
                               resolution = params['resolution'],
                               num_iterations = 3,
                               latent_dim = params["latent_dim"],
@@ -166,49 +166,45 @@ for epoch in range(params["training_epochs"]):
     batch_loss = 0.
     optimizer.zero_grad()
   
-    slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat, figs = guide(img, target)
+    #slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat, figs = guide(img, target)
+    slots, img_hat, figs = guide(img, target)
     
     #logger.info(f"img: {img.shape} and img_hat: {img_hat.shape}")
     
     recon_loss = recon_loss_fn(img_hat, img)
-    slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
+    #slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
 
     target_logvar = torch.tensor(-4.0).to(DEVICE)
-    prior_logvar_loss = F.mse_loss(prior_logvars, target_logvar.expand_as(prior_logvars))
-    batch_loss += 100*recon_loss + slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + 0.1*prior_logvar_loss
+    #prior_logvar_loss = F.mse_loss(prior_logvars, target_logvar.expand_as(prior_logvars))
+    #batch_loss += 100*recon_loss + slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + 0.1*prior_logvar_loss
+    batch_loss += 100*recon_loss
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
         os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
     
-    if params["TC_minimization"]:
-      disc_input = torch.flatten(z_noise, -2)
-      D_joint = guide.tc_discriminator(disc_input)
-      tc_loss = torch.square(torch.mean(D_joint[:, :1] - D_joint[:, 1:]))
-      fake_z_noise, perms = permute_dims(disc_input, guide.slot_dim)
-      batch_loss += TC_coeff*tc_loss
-      assert not torch.isnan(tc_loss).any()
-    else:
-      tc_loss = torch.tensor(0.)
-      
-    kl_noise = 0.
-    prior_means_d = prior_means.detach()
-    prior_logvars_d = prior_logvars.detach()
-    for i in range(L):
-      kl_noise += compute_kl_gaussians(mu_noise[:, :, i, :],
-                                       logvar_noise[:, :, i, :],
-                                       prior_means_d[:, :, i, :],
-                                       prior_logvars_d[:, :, i, :])
-      # logger.info(f"{i} - {kl_noise}")
-    
-    # if params["causal_dropout_prob"] < 1.:
-    #   log_det = compute_log_det(guide.L_slopes)
-    #   assert not torch.isnan(log_det).any()
+    # if params["TC_minimization"]:
+    #   disc_input = torch.flatten(z_noise, -2)
+    #   D_joint = guide.tc_discriminator(disc_input)
+    #   tc_loss = torch.square(torch.mean(D_joint[:, :1] - D_joint[:, 1:]))
+    #   fake_z_noise, perms = permute_dims(disc_input, guide.slot_dim)
+    #   batch_loss += TC_coeff*tc_loss
+    #   assert not torch.isnan(tc_loss).any()
     # else:
-    #   log_det = torch.tensor(0.)
-    # batch_loss += alpha*(kl_noise - log_det_coeff*log_det)
-    log_det = compute_log_det(guide.L_slopes)
-    batch_loss += alpha * 0.1 * kl_noise - log_det_coeff*log_det
+    #   tc_loss = torch.tensor(0.)
+      
+    # kl_noise = 0.
+    # prior_means_d = prior_means.detach()
+    # prior_logvars_d = prior_logvars.detach()
+    # for i in range(L):
+    #   kl_noise += compute_kl_gaussians(mu_noise[:, :, i, :],
+    #                                    logvar_noise[:, :, i, :],
+    #                                    prior_means_d[:, :, i, :],
+    #                                    prior_logvars_d[:, :, i, :])
+    
+
+    # log_det = compute_log_det(guide.L_slopes)
+    # batch_loss += alpha * 0.1 * kl_noise - log_det_coeff*log_det
     
     batch_loss.backward()
     optimizer.step()
@@ -240,7 +236,7 @@ for epoch in range(params["training_epochs"]):
     else:
       disc_tc_loss = torch.tensor(0.)
     
-    aux_attn = guide.attn.reshape((B, params["num_slots"], 32, 32))
+    aux_attn = guide.attn.reshape((B, params["num_slots"], 16, 16))
     if (epoch % epoch_step == 0 or epoch == 0) and not printed:
       fig, ax = plt.subplots(1, 6)
       ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
@@ -256,20 +252,20 @@ for epoch in range(params["training_epochs"]):
       plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
       plt.close()
 
-    with torch.no_grad():
+    # with torch.no_grad():
       
-      prior_means_distance_e = torch.sum(torch.square(prior_means_d[:, :, 0] - prior_means_d[:, :, 1]), dim=-1) # [B, N]
+    #   prior_means_distance_e = torch.sum(torch.square(prior_means_d[:, :, 0] - prior_means_d[:, :, 1]), dim=-1) # [B, N]
       
-      u_min = torch.zeros(1, 1, L).to(DEVICE) # Label = 0
-      u_max = torch.ones(1, 1, L).to(DEVICE) # Label = 1
+    #   u_min = torch.zeros(1, 1, L).to(DEVICE) # Label = 0
+    #   u_max = torch.ones(1, 1, L).to(DEVICE) # Label = 1
       
-      mu_min, _ = guide.prior(u_min) 
-      mu_max, _ = guide.prior(u_max)
+    #   mu_min, _ = guide.prior(u_min) 
+    #   mu_max, _ = guide.prior(u_max)
         
-      # Calculate the Euclidean distance in the 16D space
-      dist = []
-      for i in range(L):
-        dist.append(torch.norm(mu_max[:, :, i] - mu_min[:, :, i]))   
+    #   # Calculate the Euclidean distance in the 16D space
+    #   dist = []
+    #   for i in range(L):
+    #     dist.append(torch.norm(mu_max[:, :, i] - mu_min[:, :, i]))   
 
     printed = True
     
@@ -280,37 +276,36 @@ for epoch in range(params["training_epochs"]):
 
   dict_to_log = {'train_loss': epoch_train_loss}
   dict_to_log["rec_loss"] = recon_loss
-  dict_to_log["pred_loss"] = guide.pred_loss
-  #dict_to_log["noise_pred_loss"] = guide.noise_pred_loss
-  dict_to_log["slot_rec_loss"] = slot_recon_loss
-  dict_to_log["log_det"] = log_det
-  dict_to_log["log_det_coeff"] = log_det_coeff
-  dict_to_log["kl_noise"] = kl_noise
-  dict_to_log["alpha"] = alpha
+  # dict_to_log["pred_loss"] = guide.pred_loss
+  # dict_to_log["slot_rec_loss"] = slot_recon_loss
+  # dict_to_log["log_det"] = log_det
+  # dict_to_log["log_det_coeff"] = log_det_coeff
+  # dict_to_log["kl_noise"] = kl_noise
+  # dict_to_log["alpha"] = alpha
 
-  dict_to_log["logvar_loss"] = prior_logvar_loss
+  # dict_to_log["logvar_loss"] = prior_logvar_loss
   
-  dict_to_log["prior_means_distance_e"] = torch.mean(prior_means_distance_e)
-  dict_to_log["LR"] = epoch_lr
+  # dict_to_log["prior_means_distance_e"] = torch.mean(prior_means_distance_e)
+  # dict_to_log["LR"] = epoch_lr
 
-  for i in range(L):
-    dict_to_log[f"mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(mu_noise[:, :, i, :], dim=-1))
-    dict_to_log[f"prior_mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(prior_means[:, :, i, :], dim=-1))
+  # for i in range(L):
+  #   dict_to_log[f"mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(mu_noise[:, :, i, :], dim=-1))
+  #   dict_to_log[f"prior_mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(prior_means[:, :, i, :], dim=-1))
     
-    dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(logvar_noise[:, :, i, :], dim=-1))
-    dict_to_log[f"prior_logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(prior_logvars[:, :, i, :], dim=-1))
+  #   dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(logvar_noise[:, :, i, :], dim=-1))
+  #   dict_to_log[f"prior_logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(prior_logvars[:, :, i, :], dim=-1))
 
-    dict_to_log[f"s_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ss[:, :, i, :], dim=-1))
-    dict_to_log[f"t_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ts[:, :, i, :], dim=-1))
+  #   dict_to_log[f"s_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ss[:, :, i, :], dim=-1))
+  #   dict_to_log[f"t_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ts[:, :, i, :], dim=-1))
 
-    dict_to_log[f"dist_{params['latent_vars'][i]}"] = dist[i]
+  #   dict_to_log[f"dist_{params['latent_vars'][i]}"] = dist[i]
 
-    dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
+  #   dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
 
-  dict_to_log["causal_dropout_prob"] = params["causal_dropout_prob"]
-  if params["TC_minimization"]:
-    dict_to_log["latent_TC"] = tc_loss
-    dict_to_log["latent_TC_disc"] = disc_tc_loss
+  # dict_to_log["causal_dropout_prob"] = params["causal_dropout_prob"]
+  # if params["TC_minimization"]:
+  #   dict_to_log["latent_TC"] = tc_loss
+  #   dict_to_log["latent_TC_disc"] = disc_tc_loss
   
   
   torch.save(guide.state_dict(), GUIDE_PATH+'/guide_'+str(epoch)+'.pth')
