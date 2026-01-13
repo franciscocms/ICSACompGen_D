@@ -61,6 +61,7 @@ class InvSlotAttentionGuide(nn.Module):
                                                 num_slots=params["num_slots"],
                                                 num_iterations=3,
                                                 hid_dim=self.slot_dim,
+                                                init_resolution=params["resolution"],
                                                 softmax=True,
                                                 sampling=False)
 

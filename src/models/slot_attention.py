@@ -24,6 +24,7 @@ class SlotAttentionAutoEncoder(nn.Module):
         num_slots,
         num_iterations,
         hid_dim,
+        init_resolution,
         softmax=True,
         sampling=True,
     ):
@@ -56,7 +57,7 @@ class SlotAttentionAutoEncoder(nn.Module):
             use_sampling=sampling,
         )
 
-        self.spatial_broadcast = self.decoder_cnn.init_resolution[0]
+        self.spatial_broadcast = init_resolution[0]
 
         self.use_softmax = softmax
 
