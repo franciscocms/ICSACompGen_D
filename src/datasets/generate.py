@@ -58,7 +58,7 @@ def generate_scene(params, scene_id=0, A=None, train_set=True):
 
   assert A != None
   
-  n_objects = params["num_slots"]
+  n_objects = 2
 
   scene_dict = {}
   scene_dict["scene_id"] = scene_id
