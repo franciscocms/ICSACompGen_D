@@ -516,7 +516,7 @@ class SlotAttentionAutoEncoder(nn.Module):
         x = self.encoder_cnn(x)  # CNN Backbone.
         x = F.layer_norm(x, x.shape[1:])
         x = self.fc1(x)
-        x = F.relu(x)
+        x = F.elu(x)
         x = self.fc2(x)  # Feedforward network on set.
         # `x` has shape: [batch_size, width*height, input_size].
 
@@ -645,7 +645,7 @@ class SlotAttention(nn.Module):
             slots = self.gru(updates.reshape(-1, d), slots_prev.reshape(-1, d))
 
             slots = slots.reshape(b, -1, d)
-            slots = slots + self.fc2(F.relu(self.fc1(self.norm_pre_ff(slots))))
+            slots = slots + self.fc2(F.elu(self.fc1(self.norm_pre_ff(slots))))
 
         return slots
 
@@ -687,13 +687,13 @@ class SlotAttentionEncoder(nn.Module):
 
     def forward(self, x):
         x = self.conv1(x)
-        x = F.relu(x)
+        x = F.elu(x)
         x = self.conv2(x)
-        x = F.relu(x)
+        x = F.elu(x)
         x = self.conv3(x)
-        x = F.relu(x)
+        x = F.elu(x)
         x = self.conv4(x)
-        x = F.relu(x)
+        x = F.elu(x)
         # logger.info(f"1: {x.shape}")
         x = x.permute(0, 2, 3, 1)
         # logger.info(f"2: {x.shape}")
@@ -711,11 +711,11 @@ class SlotAttentionDecoder(nn.Module):
         self.decoder_initial_size = resolution
 
         self.conv_list = nn.ModuleList(
-            [nn.Conv2d(hid_dim, ch_dim, 5, padding=2), nn.ReLU()]
+            [nn.Conv2d(hid_dim, ch_dim, 5, padding=2), nn.ELU()]
         )
         for i in range(2):
             self.conv_list.append(nn.Conv2d(ch_dim, ch_dim, 5, padding=2))
-            self.conv_list.append(nn.ReLU())
+            self.conv_list.append(nn.ELU())
 
         self.conv_list.append(nn.Conv2d(ch_dim, 4, 3, padding=1))
 
