@@ -505,7 +505,7 @@ class SlotAttentionAutoEncoder(nn.Module):
             use_sampling=sampling,
         )
 
-        self.spatial_broadcast = 8
+        self.spatial_broadcast = 16
 
         self.use_softmax = softmax
 
@@ -535,12 +535,12 @@ class SlotAttentionAutoEncoder(nn.Module):
             .repeat((1, self.spatial_broadcast, self.spatial_broadcast, 1))
         )
 
-        # logger.info(f"7 (slots broadcasted): {slots.shape}")
+        #logger.info(f"7 (slots broadcasted): {slots.shape}")
 
         # `out` has shape: [batch_size*num_slots, width, height, num_channels+1].
         out = self.decoder_cnn(slots)
         
-        # logger.info(f"8 (decoder out): {out.shape}")
+        #logger.info(f"8 (decoder out): {out.shape}")
 
         # Undo combination of slot and batch dimension; split alpha masks.
         reconstructions, masks = out.reshape(
