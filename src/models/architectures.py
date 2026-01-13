@@ -505,7 +505,7 @@ class SlotAttentionAutoEncoder(nn.Module):
             use_sampling=sampling,
         )
 
-        self.spatial_broadcast = 128
+        self.spatial_broadcast = 8
 
         self.use_softmax = softmax
 
@@ -679,10 +679,12 @@ class SoftPositionEmbed(nn.Module):
 class SlotAttentionEncoder(nn.Module):
     def __init__(self, resolution, hid_dim, ch_dim):
         super().__init__()
-        self.conv1 = nn.Conv2d(3, ch_dim, 5, padding=2)
-        self.conv2 = nn.Conv2d(ch_dim, ch_dim, 5, padding=2)
-        self.conv3 = nn.Conv2d(ch_dim, ch_dim, 5, padding=2)
-        self.conv4 = nn.Conv2d(ch_dim, hid_dim, 5, padding=2)
+        self.conv1 = nn.Conv2d(3, ch_dim, 4, 2, 1)
+        self.conv2 = nn.Conv2d(ch_dim, ch_dim, 4, 2, 1)
+        self.conv3 = nn.Conv2d(ch_dim, ch_dim, 4, 2, 1)
+        self.conv4 = nn.Conv2d(ch_dim, hid_dim, 4, 2, 1)
+
+        resolution = (8, 8)
         self.encoder_pos = SoftPositionEmbed(hid_dim, resolution)
 
     def forward(self, x):
@@ -708,16 +710,16 @@ class SlotAttentionDecoder(nn.Module):
     def __init__(self, ch_dim, hid_dim, resolution):
         super().__init__()
 
-        self.decoder_initial_size = resolution
+        self.decoder_initial_size = (8, 8)
 
         self.conv_list = nn.ModuleList(
-            [nn.Conv2d(hid_dim, ch_dim, 5, padding=2), nn.ELU()]
+            [nn.ConvTranspose2d(hid_dim, ch_dim, 4, 2, 1), nn.ELU()]
         )
         for i in range(2):
-            self.conv_list.append(nn.Conv2d(ch_dim, ch_dim, 5, padding=2))
+            self.conv_list.append(nn.Conv2d(ch_dim, ch_dim, 4, 2, 1))
             self.conv_list.append(nn.ELU())
 
-        self.conv_list.append(nn.Conv2d(ch_dim, 4, 3, padding=1))
+        self.conv_list.append(nn.Conv2d(ch_dim, 4, 4, 2, 1))
 
         self.decoder_pos = SoftPositionEmbed(hid_dim, self.decoder_initial_size)
         self.resolution = resolution
