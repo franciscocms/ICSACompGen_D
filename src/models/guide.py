@@ -61,7 +61,7 @@ class InvSlotAttentionGuide(nn.Module):
                                                 num_slots=params["num_slots"],
                                                 num_iterations=3,
                                                 hid_dim=self.slot_dim,
-                                                softmax=False,
+                                                softmax=True,
                                                 sampling=False)
 
         # self.noise_nets = nn.ModuleDict()
