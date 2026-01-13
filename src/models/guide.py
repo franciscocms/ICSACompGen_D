@@ -66,7 +66,7 @@ class InvSlotAttentionGuide(nn.Module):
         elif model_name == "sa-mesh":
             self.model = AutoEncoder(num_slots=params["num_slots"],
                                      slot_dim=self.slot_dim,
-                                     init_dim=self.slot_dim,
+                                     init_dim=64,
                                      num_iterations=3,
                                      resolution=params["resolution"],
                                      init_decoder_res = (32, 32),

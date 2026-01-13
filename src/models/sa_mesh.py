@@ -213,7 +213,9 @@ class AutoEncoder(nn.Module):
 
         # Convolutional encoder with position embedding.
         x = self.encoder(x)  # CNN Backbone.
+        logger.info(f"1: {x.shape}")
         x = F.layer_norm(x, x.shape[1:])
+        
         x = self.mlp(x)
 
         # Slot Attention module.
