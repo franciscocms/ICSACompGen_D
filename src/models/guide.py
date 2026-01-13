@@ -16,8 +16,9 @@ import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
-from src.utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape
-from src.models.architectures import SlotAttentionAutoEncoder, SlotAttentionEncoder, SlotAttentionDecoder, NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor
+from src.models.architectures import NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor
+from src.models.slot_attention import SlotAttentionAutoEncoder, SlotAttentionEncoder, SlotAttentionDecoder
+from src.models.sa_mesh import AutoEncoder
 from src.utils.loss import compute_matching_cost
 
 import logging
@@ -31,7 +32,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 """Slot Attention-based auto-encoder for object discovery."""
 class InvSlotAttentionGuide(nn.Module):
-    def __init__(self, resolution, num_iterations, latent_dim, nlatents, A):
+    def __init__(self, model_name, resolution, num_iterations, latent_dim, nlatents, A):
         """Builds the Slot Attention-based auto-encoder.
         Args:
         resolution: Tuple of integers specifying width and height of input image.
@@ -48,25 +49,28 @@ class InvSlotAttentionGuide(nn.Module):
         #self.slot_dim = self.L*self.ldim*4
         self.slot_dim = self.L*self.ldim
 
-        # self.model = SlotMLPAdditive(
-        #     in_channels = 3,
-        #     n_slots = 2,
-        #     n_slot_latents = self.slot_dim,
-        # ).to(device)
+        if model_name == "slot_attention":
+            slot_encoder = SlotAttentionEncoder(resolution=params["resolution"],
+                                                hid_dim=self.slot_dim,
+                                                ch_dim=32)
+            slot_decoder = SlotAttentionDecoder(ch_dim=32,
+                                                hid_dim=self.slot_dim,
+                                                resolution=params["resolution"])
+            self.model = SlotAttentionAutoEncoder(slot_encoder,
+                                                slot_decoder,
+                                                params["num_slots"],
+                                                num_iterations=3,
+                                                hid_dim=self.slot_dim,
+                                                softmax=False,
+                                                sampling=False)
+        elif model_name == "sa-mesh":
+            self.model = AutoEncoder(num_slots=params["num_slots"],
+                                     slot_dim=self.slot_dim,
+                                     init_dim=self.slot_dim,
+                                     num_iterations=3,
+                                     resolution=params["resolution"],
+                                     softmax=False)
 
-        slot_encoder = SlotAttentionEncoder(resolution=params["resolution"],
-                                            hid_dim=self.slot_dim,
-                                            ch_dim=32)
-        slot_decoder = SlotAttentionDecoder(ch_dim=32,
-                                            hid_dim=self.slot_dim,
-                                            resolution=params["resolution"])
-        self.model = SlotAttentionAutoEncoder(slot_encoder,
-                                              slot_decoder,
-                                              params["num_slots"],
-                                              num_iterations=3,
-                                              hid_dim=self.slot_dim,
-                                              softmax=False,
-                                              sampling=False)
 
         self.noise_nets = nn.ModuleDict()
         self.noise_predictors = nn.ModuleDict()
