@@ -17,15 +17,15 @@ params = {
         "y_pos": [0.15, 0.85]
     },
     "factor_scaling": {
-        "scale": 20,
+        "scale": 12,
         "color": 360,
-        "x_pos": 128,
-        "y_pos": 128
+        "x_pos": 64,
+        "y_pos": 64
     },
     "n_dependencies": 1,
-    "train_dataset_len": 50000,
+    "train_dataset_len": 1000,
     "test_dataset_len": 5000,
-    "resolution": (128, 128),
+    "resolution": (64, 64),
     "num_slots": 2 + 1,
     "batch_size": 128, # 256 for 32GB
     "lr": 1e-3, # 256 with 1e-4 -- 512 for 1e-3

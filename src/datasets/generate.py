@@ -27,9 +27,10 @@ def color_to_rgb(color):
 
 def check_overlap(attributes_list):
   object_1, object_2 = attributes_list
+  dim = params["resolution"][0]
 
-  x_cond = abs(object_1[-2]*127 - object_2[-2]*127) <= (object_1[0]/2 + object_2[0]/2) * params["factor_scaling"]["scale"]
-  y_cond = abs(object_1[-1]*127 - object_2[-1]*127) <= (object_1[0]/2 + object_2[0]/2) * params["factor_scaling"]["scale"]
+  x_cond = abs(object_1[-2]*dim - object_2[-2]*dim) <= (object_1[0]/2 + object_2[0]/2) * params["factor_scaling"]["scale"]
+  y_cond = abs(object_1[-1]*dim - object_2[-1]*dim) <= (object_1[0]/2 + object_2[0]/2) * params["factor_scaling"]["scale"]
   if x_cond and y_cond: return True
   else: return False
 
@@ -116,7 +117,7 @@ def generate_scene(params, scene_id=0, A=None, train_set=True):
       }
 
   #img = pillowrender.render(shape_obj, size_obj, color_obj, locx_obj, locy_obj, BACKGROUND_COLOR)
-  img = render(attributes_list)
+  img = render(attributes_list, resolution=params["resolution"])
   return img, scene_dict
 
 
