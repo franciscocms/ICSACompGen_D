@@ -716,10 +716,10 @@ class SlotAttentionDecoder(nn.Module):
             [nn.ConvTranspose2d(hid_dim, ch_dim, 4, 2, 1), nn.ELU()]
         )
         for i in range(2):
-            self.conv_list.append(nn.Conv2d(ch_dim, ch_dim, 4, 2, 1))
+            self.conv_list.append(nn.ConvTranspose2d(ch_dim, ch_dim, 4, 2, 1))
             self.conv_list.append(nn.ELU())
 
-        self.conv_list.append(nn.Conv2d(ch_dim, 4, 4, 2, 1))
+        self.conv_list.append(nn.ConvTranspose2d(ch_dim, 4, 4, 2, 1))
 
         self.decoder_pos = SoftPositionEmbed(hid_dim, self.decoder_initial_size)
         self.resolution = resolution
