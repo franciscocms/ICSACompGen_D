@@ -520,7 +520,7 @@ class SlotAttentionAutoEncoder(nn.Module):
         x = self.fc2(x)  # Feedforward network on set.
         # `x` has shape: [batch_size, width*height, input_size].
 
-        # logger.info(f"5: {x.shape}")
+        logger.info(f"5: {x.shape}")
 
         # Slot Attention module.
         return self.slot_attention(x)
@@ -567,7 +567,7 @@ class SlotAttentionAutoEncoder(nn.Module):
     ) -> Dict[str, Any]:
         hat_z = self.encode(x)
         
-        # logger.info(f"6 (slots): {hat_z.shape}")
+        logger.info(f"6 (slots): {hat_z.shape}")
 
         hat_x, figures, masks, reconstructions = self.decode(hat_z)
 
@@ -696,13 +696,13 @@ class SlotAttentionEncoder(nn.Module):
         x = F.elu(x)
         x = self.conv4(x)
         x = F.elu(x)
-        # logger.info(f"1: {x.shape}")
+        logger.info(f"1: {x.shape}")
         x = x.permute(0, 2, 3, 1)
-        # logger.info(f"2: {x.shape}")
+        logger.info(f"2: {x.shape}")
         x = self.encoder_pos(x)
-        # logger.info(f"3: {x.shape}")
+        logger.info(f"3: {x.shape}")
         x = torch.flatten(x, 1, 2)
-        # logger.info(f"4: {x.shape}")
+        logger.info(f"4: {x.shape}")
         return x
 
 
@@ -726,9 +726,11 @@ class SlotAttentionDecoder(nn.Module):
 
     def forward(self, x):
         x = self.decoder_pos(x)
+        logger.info(x.shape)
         x = x.permute(0, 3, 1, 2)
         for conv_layer in self.conv_list:
             x = conv_layer(x)
+            logger.info(x.shape)
 
         x = x[:, :, : self.resolution[0], : self.resolution[1]]
         x = x.permute(0, 2, 3, 1)
