@@ -27,10 +27,10 @@ params = {
     "test_dataset_len": 5000,
     "resolution": (64, 64),
     "num_slots": 2,
-    "batch_size": 128, # 256 for 32GB
-    "lr": 1e-4, # 256 with 1e-4 -- 512 for 1e-3
+    "batch_size": 256, # 256 for 32GB
+    "lr": 1e-3, # 256 with 1e-4 -- 512 for 1e-3
     "training_from_scratch" : True,
-    "training_epochs": 1, # 400 
+    "training_epochs": 400, # 400 
     "epoch_step": 10,
     "running_type": "train", # train, debug, eval, inspect
     "epoch_to_load" : 90, 

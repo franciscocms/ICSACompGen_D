@@ -166,9 +166,9 @@ for epoch in range(params["training_epochs"]):
     optimizer.zero_grad()
   
     #slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat, figs = guide(img, target)
-    slots, img_hat, figs = guide(img, target)
+    slots, img_hat, figs, decoder_masks = guide(img, target)
 
-    logger.info(f"figs: {figs.shape}")
+    #logger.info(f"figs: {figs.shape}")
     
     #logger.info(f"img: {img.shape} and img_hat: {img_hat.shape}")
     
@@ -239,16 +239,22 @@ for epoch in range(params["training_epochs"]):
     
     aux_attn = guide.attn.reshape((B, params["num_slots"], params["resolution"][0], params["resolution"][1]))
     if (epoch % epoch_step == 0 or epoch == 0) and not printed:
-      fig, ax = plt.subplots(1, 2 + 2*params["num_slots"])
+      fig, ax = plt.subplots(1, 2 + 3*params["num_slots"])
       ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
+      ax[0].set_title("img")
       ax[1].imshow(np.transpose(img_hat[0].detach().cpu().numpy(), (1, 2, 0)))
+      ax[1].set_title["recon"]
       k = 0
       for j in range(params["num_slots"]):
-        ax[j+2+k].imshow(aux_attn[0, j].detach().cpu().numpy())
-        ax[j+3+k].imshow(np.transpose(figs[j, 0].detach().cpu().numpy(), (1, 2, 0)))
+        ax[3*j+2].imshow(aux_attn[0, j].detach().cpu().numpy())
+        ax[3*j+2].set_title(f"attn mask {j}")
+        ax[3*j+3].imshow(np.transpose(decoder_masks[j, 0].detach().cpu().numpy(), (1, 2, 0)))
+        ax[3*j+3].set_title(f"dec mask {j}")
+        ax[3*j+4].imshow(np.transpose(figs[j, 0].detach().cpu().numpy(), (1, 2, 0)))
+        ax[3*j+4].set_title(f"recon {j}")
         k += 1
 
-      for j in range(2 + 2*params["num_slots"]):
+      for j in range(2 + 3*params["num_slots"]):
         ax[j].grid(False)
         ax[j].axis('off')   
       plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
@@ -271,7 +277,7 @@ for epoch in range(params["training_epochs"]):
 
     printed = True
 
-    break
+    #break
     
     
   epoch_train_loss /= num_iters

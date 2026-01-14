@@ -112,6 +112,7 @@ class InvSlotAttentionGuide(nn.Module):
         img_hat = output_dict["reconstructed_image"]
         recon_figures = output_dict["reconstructed_figures"]
         slots = output_dict["predicted_latents"]
+        decoder_masks = output_dict["reconstructed_masks"]
 
         #slots = self.slot_encoder(img)
 
@@ -191,5 +192,5 @@ class InvSlotAttentionGuide(nn.Module):
         # self.noise_pred_loss = torch.stack(self.noise_pred_loss)
         
         #return slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat, recon_figures
-        return slots, img_hat, recon_figures
+        return slots, img_hat, recon_figures, decoder_masks
         
