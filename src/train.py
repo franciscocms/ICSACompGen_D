@@ -168,10 +168,6 @@ for epoch in range(params["training_epochs"]):
     #slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat, figs = guide(img, target)
     slots, img_hat, figs, decoder_masks = guide(img, target)
 
-    #logger.info(f"figs: {figs.shape}")
-    
-    #logger.info(f"img: {img.shape} and img_hat: {img_hat.shape}")
-    
     recon_loss = recon_loss_fn(img_hat, img)
     #slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
 
@@ -243,7 +239,7 @@ for epoch in range(params["training_epochs"]):
       ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
       ax[0].set_title("img")
       ax[1].imshow(np.transpose(img_hat[0].detach().cpu().numpy(), (1, 2, 0)))
-      ax[1].set_title["recon"]
+      ax[1].set_title("recon")
       k = 0
       for j in range(params["num_slots"]):
         ax[3*j+2].imshow(aux_attn[0, j].detach().cpu().numpy())
