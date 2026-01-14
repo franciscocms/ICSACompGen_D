@@ -167,6 +167,8 @@ for epoch in range(params["training_epochs"]):
   
     #slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat, figs = guide(img, target)
     slots, img_hat, figs = guide(img, target)
+
+    logger.info(f"figs: {figs.shape}")
     
     #logger.info(f"img: {img.shape} and img_hat: {img_hat.shape}")
     
@@ -268,6 +270,8 @@ for epoch in range(params["training_epochs"]):
     #     dist.append(torch.norm(mu_max[:, :, i] - mu_min[:, :, i]))   
 
     printed = True
+
+    break
     
     
   epoch_train_loss /= num_iters
