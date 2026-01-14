@@ -23,12 +23,12 @@ params = {
         "y_pos": 64
     },
     "n_dependencies": 1,
-    "train_dataset_len": 10000,
+    "train_dataset_len": 50000,
     "test_dataset_len": 5000,
     "resolution": (64, 64),
     "num_slots": 2 + 1,
     "batch_size": 128, # 256 for 32GB
-    "lr": 1e-5, # 256 with 1e-4 -- 512 for 1e-3
+    "lr": 1e-4, # 256 with 1e-4 -- 512 for 1e-3
     "training_from_scratch" : True,
     "training_epochs": 400, 
     "epoch_step": 10,
@@ -43,7 +43,7 @@ params = {
     "causal_dropout_prob": 0., # 0.6 for models with causal flow, 1.0 for models without
     "latent_dim" : 16,
     "check_attn": True,
-    "jobID": 97,  
+    "jobID": 98,  
     "mesh_iters": 4,
     "mesh_lr": 5, 
     "mesh_noise": 1e-3,
