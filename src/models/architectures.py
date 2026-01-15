@@ -98,8 +98,7 @@ class SlotMLPAdditive(torch.nn.Module):
         self.n_slot_latents = n_slot_latents
         self.no_overlap = no_overlap
         self.encoder = SlotEncoder(in_channels, n_slots, n_slot_latents)
-        self.decoder = SlotMLPAdditiveDecoder(in_channels, n_slots, n_slot_latents)
-        self.model_name = "SlotMLPAdditive"        
+        self.decoder = SlotMLPAdditiveDecoder(in_channels, n_slots, n_slot_latents)       
 
     def forward(
         self,

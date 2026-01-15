@@ -16,9 +16,8 @@ import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
-from src.models.architectures import NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor
+from src.models.architectures import SlotMLPAdditive, NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor
 from src.models.slot_attention import SlotAttentionAutoEncoder, SlotAttentionEncoder, SlotAttentionDecoder
-from src.models.sa_mesh import AutoEncoder
 from src.utils.loss import compute_matching_cost
 
 import logging
@@ -48,22 +47,32 @@ class InvSlotAttentionGuide(nn.Module):
         self.ldim = latent_dim
         #self.slot_dim = self.L*self.ldim*4
         self.slot_dim = self.L*self.ldim
+        self.model_name = model_name
 
-        slot_encoder = SlotAttentionEncoder(resolution=params["resolution"],
-                                            hid_dim=self.slot_dim,
-                                            ch_dim=32)
-        slot_decoder = SlotAttentionDecoder(ch_dim=32,
-                                            hid_dim=self.slot_dim,
-                                            resolution=params["resolution"],
-                                            init_resolution=params["resolution"])
-        self.model = SlotAttentionAutoEncoder(encoder=slot_encoder,
-                                                decoder=slot_decoder,
-                                                num_slots=params["num_slots"],
-                                                num_iterations=3,
+        if model_name == "slot_attention":
+            slot_encoder = SlotAttentionEncoder(resolution=params["resolution"],
                                                 hid_dim=self.slot_dim,
-                                                init_resolution=params["resolution"],
-                                                softmax=True,
-                                                sampling=True)
+                                                ch_dim=32)
+            slot_decoder = SlotAttentionDecoder(ch_dim=32,
+                                                hid_dim=self.slot_dim,
+                                                resolution=params["resolution"],
+                                                init_resolution=params["resolution"])
+            self.model = SlotAttentionAutoEncoder(encoder=slot_encoder,
+                                                    decoder=slot_decoder,
+                                                    num_slots=params["num_slots"],
+                                                    num_iterations=3,
+                                                    hid_dim=self.slot_dim,
+                                                    init_resolution=params["resolution"],
+                                                    softmax=True,
+                                                    sampling=True)
+        elif model_name == "additiveAE":
+            self.model = SlotMLPAdditive(in_channels=3,
+                                         n_slots=params["num_slots"],
+                                         n_slot_latents=self.slot_dim,
+                                         )
+        else:
+            raise ValueError(f"{model_name} is not a valid model name!")
+
 
         self.noise_nets = nn.ModuleDict()
         self.noise_predictors = nn.ModuleDict()
@@ -108,11 +117,14 @@ class InvSlotAttentionGuide(nn.Module):
         #assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
 
         output_dict = self.model(img)
-        self.attn = output_dict["attn"]
         img_hat = output_dict["reconstructed_image"]
         recon_figures = output_dict["reconstructed_figures"]
         slots = output_dict["predicted_latents"]
-        decoder_masks = output_dict["reconstructed_masks"]
+        if self.model_name == "slot_attention":
+            decoder_masks = output_dict["reconstructed_masks"]
+            self.attn = output_dict["attn"]
+        else:
+            decoder_masks = None
 
         slots = slots.detach()
         slots = (slots - slots.mean(dim=(0, 1), keepdim=True)) / slots.std(dim=(0, 1), keepdim=True)

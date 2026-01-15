@@ -70,7 +70,7 @@ A = torch.tensor([
 logger.info(f"\nA: {A}\n")
 torch.manual_seed(params["random_seed"])
 
-guide = InvSlotAttentionGuide(model_name="slot_attention",
+guide = InvSlotAttentionGuide(model_name="additiveAE", #["slot_attention", "additiveAE"]
                               resolution = params['resolution'],
                               num_iterations = 3,
                               latent_dim = params["latent_dim"],
@@ -228,28 +228,44 @@ for epoch in range(params["training_epochs"]):
     # else:
     #   disc_tc_loss = torch.tensor(0.)
     
-    aux_attn = guide.attn.reshape((B, params["num_slots"], params["resolution"][0], params["resolution"][1]))
-    if (epoch % epoch_step == 0 or epoch == 0) and not printed:
-      fig, ax = plt.subplots(1, 2 + 3*params["num_slots"])
-      ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
-      ax[0].set_title("img")
-      ax[1].imshow(np.transpose(img_hat[0].detach().cpu().numpy(), (1, 2, 0)))
-      ax[1].set_title("recon")
-      k = 0
-      for j in range(params["num_slots"]):
-        ax[3*j+2].imshow(aux_attn[0, j].detach().cpu().numpy())
-        ax[3*j+2].set_title(f"attn mask {j}")
-        ax[3*j+3].imshow(np.transpose(decoder_masks[j, 0].detach().cpu().numpy(), (1, 2, 0)))
-        ax[3*j+3].set_title(f"dec mask {j}")
-        ax[3*j+4].imshow(np.transpose(figs[j, 0].detach().cpu().numpy(), (1, 2, 0)))
-        ax[3*j+4].set_title(f"recon {j}")
-        k += 1
-
-      for j in range(2 + 3*params["num_slots"]):
-        ax[j].grid(False)
-        ax[j].axis('off')   
-      plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
-      plt.close()
+    if guide.model_name == "slot_attention":
+      aux_attn = guide.attn.reshape((B, params["num_slots"], params["resolution"][0], params["resolution"][1]))
+      if (epoch % epoch_step == 0 or epoch == 0) and not printed:
+        fig, ax = plt.subplots(1, 2 + 3*params["num_slots"])
+        ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
+        ax[0].set_title("img")
+        ax[1].imshow(np.transpose(img_hat[0].detach().cpu().numpy(), (1, 2, 0)))
+        ax[1].set_title("recon")
+        k = 0
+        for j in range(params["num_slots"]):
+          ax[3*j+2].imshow(aux_attn[0, j].detach().cpu().numpy())
+          ax[3*j+2].set_title(f"attn mask {j}")
+          ax[3*j+3].imshow(np.transpose(decoder_masks[j, 0].detach().cpu().numpy(), (1, 2, 0)))
+          ax[3*j+3].set_title(f"dec mask {j}")
+          ax[3*j+4].imshow(np.transpose(figs[j, 0].detach().cpu().numpy(), (1, 2, 0)))
+          ax[3*j+4].set_title(f"recon {j}")
+          k += 1
+        for j in range(2 + 3*params["num_slots"]):
+          ax[j].grid(False)
+          ax[j].axis('off')   
+        plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
+        plt.close()
+    
+    elif guide.model_name == "additiveAE":
+      if (epoch % epoch_step == 0 or epoch == 0) and not printed:
+        fig, ax = plt.subplots(1, 2 + params["num_slots"])
+        ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
+        ax[0].set_title("img")
+        ax[1].imshow(np.transpose(img_hat[0].detach().cpu().numpy(), (1, 2, 0)))
+        ax[1].set_title("recon")
+        for j in range(params["num_slots"]):
+          ax[j+2].imshow(np.transpose(figs[j, 0].detach().cpu().numpy(), (1, 2, 0)))
+          ax[j+2].set_title(f"recon {j}")
+        for j in range(2 + params["num_slots"]):
+          ax[j].grid(False)
+          ax[j].axis('off')   
+        plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
+        plt.close()
 
     with torch.no_grad():
       
