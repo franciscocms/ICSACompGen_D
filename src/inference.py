@@ -105,14 +105,11 @@ def main():
         for i, var in enumerate(params["latent_vars"]):
 
             dict_to_log = {}
-
-            if i == 0: j = 1
-            elif i == 1: j = 0
             
             logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
             
             model = LinearProbe(z_noise.size(-1), 1).to(device)
-            optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+            optimizer = torch.optim.AdamW(model.parameters(), lr=3e-3)
 
             n_train_samples = int(train_val_test_split[0]*z_noise.size(0))
             n_val_samples = n_train_samples + int(train_val_test_split[1]*z_noise.size(0))
