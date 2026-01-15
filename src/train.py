@@ -70,7 +70,7 @@ A = torch.tensor([
 logger.info(f"\nA: {A}\n")
 torch.manual_seed(params["random_seed"])
 
-guide = InvSlotAttentionGuide(model_name="additiveAE", #["slot_attention", "additiveAE"]
+guide = InvSlotAttentionGuide(model_name=params["model_name"], #["slot_attention", "additiveAE"]
                               resolution = params['resolution'],
                               num_iterations = 3,
                               latent_dim = params["latent_dim"],

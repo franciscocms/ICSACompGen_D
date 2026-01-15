@@ -26,6 +26,7 @@ params = {
     "train_dataset_len": 50000,
     "test_dataset_len": 5000,
     "resolution": (64, 64),
+    "model_name": "additiveAE",
     "num_slots": 2,
     "batch_size": 64, # 256 for 32GB
     "lr": 4e-4, # 256 with 1e-4 -- 512 for 1e-3

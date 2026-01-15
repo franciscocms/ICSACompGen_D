@@ -54,7 +54,7 @@ def main():
         [1., 0.],
     ])
 
-    guide = InvSlotAttentionGuide(model_name="slot_attention",
+    guide = InvSlotAttentionGuide(model_name=params["model_name"],
                                   resolution = params['resolution'],
                                   num_iterations = 3,
                                   latent_dim = params["latent_dim"],
