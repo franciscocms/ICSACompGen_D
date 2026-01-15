@@ -120,6 +120,7 @@ class SlotMLPAdditive(torch.nn.Module):
                 - hat_z: latent vectors for input image
                 - figures: figures visualizing each latent vector
         """
+        logger.info("before encoder")
         hat_z = self.encoder(x)
         hat_x, figures = self.decoder(hat_z)
 
@@ -138,8 +139,11 @@ class SlotEncoder(torch.nn.Module):
         self.encoder = get_encoder(in_channels, n_slots * n_slot_latents)
 
     def forward(self, x):
+        logger.info(x.shape)
         x = self.encoder(x)
+        logger.info(x.shape)
         out = x.view(-1, self.n_slots, self.n_slot_latents)
+        logger.info(x.shape)
         return out
 
 class SlotMLPAdditiveDecoder(torch.nn.Module):
