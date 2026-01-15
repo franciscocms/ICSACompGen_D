@@ -94,9 +94,11 @@ if CHECK_ATTN and TRAINING_FROM_SCRATCH:
     except OSError:
       logger.info("Error occurred while deleting files.")
 
-optimizer = torch.optim.Adam(guide.parameters(), lr=params["lr"])
-if params["TC_minimization"]:
-  dis_optimizer = torch.optim.Adam(guide.tc_discriminator.parameters(), lr=params["lr"] * 0.1)
+optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=2)
+
+# if params["TC_minimization"]:
+#   dis_optimizer = torch.optim.Adam(guide.tc_discriminator.parameters(), lr=params["lr"] * 0.1)
 
 # instatiate dataset and dataloader
 dataset_dir = "/nas-ctm01/datasets/public/CG/train"
@@ -116,11 +118,16 @@ for epoch in range(params["training_epochs"]):
 
   guide.epoch = epoch
 
-  # update lr every 50 epochs
+  if scheduler.get_last_lr()[0] >= 1e-7:
+    scheduler.step()
   
-  for group in optimizer.param_groups:
-    # if epoch % 50 == 0 and epoch != 0:
-    #   group['lr'] /= 2
+  if scheduler.get_last_lr()[0] > params["lr"]:
+    optimizer.param_groups[0]["lr"] = params["lr"]
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer, step_size=50, gamma=0.5
+    )
+
+  for group in optimizer.param_groups:    
     epoch_lr = group['lr']
   
 
@@ -210,28 +217,28 @@ for epoch in range(params["training_epochs"]):
 
     #logger.info(num_iters)
     
-    if params["TC_minimization"]:
-      for name, param in guide.tc_discriminator.named_parameters():
-        param.requires_grad = True
+    # if params["TC_minimization"]:
+    #   for name, param in guide.tc_discriminator.named_parameters():
+    #     param.requires_grad = True
       
-      fake_z_noise = fake_z_noise.detach()
-      disc_input = disc_input.detach()
-      D_perm = guide.tc_discriminator(fake_z_noise)
-      D_joint = guide.tc_discriminator(disc_input)
-      ones = torch.ones(D_perm.size(0), dtype=torch.long, device=DEVICE)
-      zeros = torch.zeros(D_perm.size(0), dtype=torch.long, device=DEVICE)
-      disc_tc_loss = torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
-      assert not torch.isnan(disc_tc_loss).any()
+    #   fake_z_noise = fake_z_noise.detach()
+    #   disc_input = disc_input.detach()
+    #   D_perm = guide.tc_discriminator(fake_z_noise)
+    #   D_joint = guide.tc_discriminator(disc_input)
+    #   ones = torch.ones(D_perm.size(0), dtype=torch.long, device=DEVICE)
+    #   zeros = torch.zeros(D_perm.size(0), dtype=torch.long, device=DEVICE)
+    #   disc_tc_loss = torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
+    #   assert not torch.isnan(disc_tc_loss).any()
       
-      dis_optimizer.zero_grad()
-      disc_tc_loss.backward()
-      dis_optimizer.step()
+    #   dis_optimizer.zero_grad()
+    #   disc_tc_loss.backward()
+    #   dis_optimizer.step()
 
-      if epoch % epoch_step == 0 and not printed:
-        logger.info(f"real batches pred: {torch.mean(D_joint)}")
-        logger.info(f"fake batches pred: {torch.mean(D_perm)}")
-    else:
-      disc_tc_loss = torch.tensor(0.)
+    #   if epoch % epoch_step == 0 and not printed:
+    #     logger.info(f"real batches pred: {torch.mean(D_joint)}")
+    #     logger.info(f"fake batches pred: {torch.mean(D_perm)}")
+    # else:
+    #   disc_tc_loss = torch.tensor(0.)
     
     aux_attn = guide.attn.reshape((B, params["num_slots"], params["resolution"][0], params["resolution"][1]))
     if (epoch % epoch_step == 0 or epoch == 0) and not printed:
@@ -292,7 +299,7 @@ for epoch in range(params["training_epochs"]):
   # dict_to_log["logvar_loss"] = prior_logvar_loss
   
   # dict_to_log["prior_means_distance_e"] = torch.mean(prior_means_distance_e)
-  # dict_to_log["LR"] = epoch_lr
+  dict_to_log["LR"] = epoch_lr
 
   # for i in range(L):
   #   dict_to_log[f"mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(mu_noise[:, :, i, :], dim=-1))
