@@ -125,7 +125,7 @@ def main():
             probe_dl_val = DataLoader(probe_ds_val, len(probe_ds_val), shuffle=False, generator=torch.Generator(device='cuda'))
             probe_dl_test = DataLoader(probe_ds_test, len(probe_ds_test), shuffle=False, generator=torch.Generator(device='cuda'))
 
-            training_epochs = 100
+            training_epochs = 200
             best_loss = 1.
             for epoch in range(training_epochs):
                 epoch_train_loss = 0.
