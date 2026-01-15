@@ -114,7 +114,7 @@ class InvSlotAttentionGuide(nn.Module):
         B, _, _, _ = img.shape
         n_s = params['num_slots'] 
 
-        #assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
+        assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
 
         output_dict = self.model(img)
         img_hat = output_dict["reconstructed_image"]
