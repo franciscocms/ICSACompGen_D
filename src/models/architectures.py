@@ -27,7 +27,10 @@ class View(nn.Module):
         self.size = size
 
     def forward(self, tensor):
-        return tensor.view(self.size)
+        logger.info(f"before view: {tensor.shape}")
+        out = tensor.view(self.size)
+        logger.info(f"after view: {out.shape}")
+        return out
 
 def get_encoder(in_channels, out_dim):
     """
