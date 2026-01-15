@@ -146,8 +146,6 @@ class InvSlotAttentionGuide(nn.Module):
         logvar_noise = torch.stack(logvar_noise).permute(1, 2, 0, 3)  # [B, N, L, d]
         assert z_noise.size(2) == self.L
 
-        if params["running_type"] == "eval": return z_noise.reshape(B, n_s, self.L, self.ldim)
-
         #slots_d = slots.detach()
         preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
@@ -194,12 +192,17 @@ class InvSlotAttentionGuide(nn.Module):
         
         z_noise_d = mu_noise.detach()
         self.noise_pred_loss = []
+        all_noise_preds = []
         for i, var in enumerate(params["latent_vars"]):
             noise_preds = self.noise_predictors[var](z_noise_d[:, :, i, :])
             if noise_preds.size(-1) == 1: noise_preds = noise_preds.squeeze(-1)
             noise_pred_loss, _ = compute_matching_cost(noise_preds, labels[:, :, i]) 
             self.noise_pred_loss.append(noise_pred_loss)
+            all_noise_preds.append(noise_preds.unsqueeze(-1))
+        all_noise_preds = torch.stack(all_noise_preds, dim=-1)
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
+
+        if params["running_type"] == "eval": return all_noise_preds
         
         return slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat, recon_figures, decoder_masks
         #return slots, img_hat, recon_figures, decoder_masks
