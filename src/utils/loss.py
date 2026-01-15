@@ -16,7 +16,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def compute_matching_cost(preds, labels):
   B = preds.size(0)
-  assert preds.shape == labels.shape
+  assert preds.shape == labels.shape, f"{preds.shape} is different from {labels.shape}"
   
   preds = preds.unsqueeze(2)
   labels_u = labels.unsqueeze(1)
