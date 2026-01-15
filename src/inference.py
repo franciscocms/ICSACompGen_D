@@ -54,12 +54,13 @@ def main():
         [1., 0.],
     ])
 
-    guide = InvSlotAttentionGuide(resolution = params['resolution'],
-                              num_iterations = 3,
-                              latent_dim = params["latent_dim"],
-                              nlatents = len(params["latent_vars"]),
-                              A = A
-                              ).to(device)
+    guide = InvSlotAttentionGuide(model_name="slot_attention",
+                                  resolution = params['resolution'],
+                                  num_iterations = 3,
+                                  latent_dim = params["latent_dim"],
+                                  nlatents = len(params["latent_vars"]),
+                                  A = A
+                                  ).to(device)
 
     GUIDE_PATH = f"{main_dir}/checkpoint-{params['jobID']}/guide_{params['epoch_to_load']}.pth"
     guide.load_state_dict(torch.load(GUIDE_PATH))
