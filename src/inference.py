@@ -32,10 +32,6 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(device)
 main_dir = os.path.abspath(__file__+'/../')
 
-run = wandb.init(project="ICSA",
-                  name=f"{params['jobID']}_inference"
-                  )
-
 def main():    
 
     assert params["running_type"] == "eval"
@@ -86,7 +82,6 @@ def main():
 
         noise_preds = torch.tensor([])  
         targets = torch.tensor([])      
-
         with torch.no_grad():
             for img, target in dataloader:
                 img = img.to(device)
@@ -99,14 +94,8 @@ def main():
         logger.info(noise_preds.shape)
         logger.info(targets.shape)
         
-        for i, var in enumerate(params["latent_vars"]):
-
-            dict_to_log = {}
-            
+        for i, var in enumerate(params["latent_vars"]):            
             logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
-            
-            logger.info(noise_preds.shape)
-            logger.info(targets.shape)
             
             r2_score, a_target, a_preds = hungarian_r2_score(noise_preds[:, :, i], targets[:, :, i])
 
@@ -119,4 +108,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    wandb.finish()
