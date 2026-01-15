@@ -177,18 +177,19 @@ class InvSlotAttentionGuide(nn.Module):
         slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
         #slot_hat = self.causal_decoder(torch.flatten(mu_noise, -2))
 
-        if self.epoch % 10 == 0 and self.iter == 0:
-            logger.info(f"\nslots mean: {torch.mean(torch.mean(slots, dim=-1))}")
-            logger.info(f"slot hat mean: {torch.mean(torch.mean(slot_hat, dim=-1))}")
+        if params["running_type"] == "train":
+            if self.epoch % 10 == 0 and self.iter == 0:
+                logger.info(f"\nslots mean: {torch.mean(torch.mean(slots, dim=-1))}")
+                logger.info(f"slot hat mean: {torch.mean(torch.mean(slot_hat, dim=-1))}")
 
-            logger.info(f"\nslots std: {torch.mean(torch.std(slots, dim=-1))}")
-            logger.info(f"slot hat std: {torch.mean(torch.std(slot_hat, dim=-1))}")
-            
-            logger.info(f"\nslots min: {torch.mean(torch.amin(slots, dim=-1))}")
-            logger.info(f"slot hat min: {torch.mean(torch.amin(slot_hat, dim=-1))}")
+                logger.info(f"\nslots std: {torch.mean(torch.std(slots, dim=-1))}")
+                logger.info(f"slot hat std: {torch.mean(torch.std(slot_hat, dim=-1))}")
+                
+                logger.info(f"\nslots min: {torch.mean(torch.amin(slots, dim=-1))}")
+                logger.info(f"slot hat min: {torch.mean(torch.amin(slot_hat, dim=-1))}")
 
-            logger.info(f"\nslots max: {torch.mean(torch.amax(slots, dim=-1))}")
-            logger.info(f"slot hat max: {torch.mean(torch.amax(slot_hat, dim=-1))}")
+                logger.info(f"\nslots max: {torch.mean(torch.amax(slots, dim=-1))}")
+                logger.info(f"slot hat max: {torch.mean(torch.amax(slot_hat, dim=-1))}")
         
         z_noise_d = mu_noise.detach()
         self.noise_pred_loss = []
@@ -198,7 +199,7 @@ class InvSlotAttentionGuide(nn.Module):
             if noise_preds.size(-1) == 1: noise_preds = noise_preds.squeeze(-1)
             noise_pred_loss, _ = compute_matching_cost(noise_preds, labels[:, :, i]) 
             self.noise_pred_loss.append(noise_pred_loss)
-            all_noise_preds.append(noise_preds.unsqueeze(-1))
+            all_noise_preds.append(noise_preds)
         all_noise_preds = torch.stack(all_noise_preds, dim=-1)
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
 
