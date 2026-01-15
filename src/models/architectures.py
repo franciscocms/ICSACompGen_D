@@ -27,9 +27,7 @@ class View(nn.Module):
         self.size = size
 
     def forward(self, tensor):
-        logger.info(f"before view: {tensor.shape}")
         out = tensor.view(self.size)
-        logger.info(f"after view: {out.shape}")
         return out
 
 def get_encoder(in_channels, out_dim):
@@ -45,8 +43,8 @@ def get_encoder(in_channels, out_dim):
         nn.ELU(),
         nn.Conv2d(32, 32, 4, 2, 1),
         nn.ELU(),
-        View((-1, 32 * 8 * 8)),
-        nn.Linear(32 * 8 * 8, 256),
+        View((-1, 32 * 4 * 4)),
+        nn.Linear(32 * 4 * 4, 256),
         nn.ELU(),
         nn.Linear(256, 256),
         nn.ELU(),
@@ -67,9 +65,9 @@ def get_decoder(in_dim, out_channels):
         nn.ELU(),
         nn.Linear(256, 256),
         nn.ELU(),
-        nn.Linear(256, 32 * 8 * 8),
+        nn.Linear(256, 32 * 4 * 4),
         nn.ELU(),
-        View((-1, 32, 8, 8)),
+        View((-1, 32, 4, 4)),
         nn.ConvTranspose2d(32, 32, 4, 2, 1),
         nn.ELU(),
         nn.ConvTranspose2d(32, 32, 4, 2, 1),
@@ -123,7 +121,6 @@ class SlotMLPAdditive(torch.nn.Module):
                 - hat_z: latent vectors for input image
                 - figures: figures visualizing each latent vector
         """
-        logger.info("before encoder")
         hat_z = self.encoder(x)
         hat_x, figures = self.decoder(hat_z)
 
@@ -142,11 +139,8 @@ class SlotEncoder(torch.nn.Module):
         self.encoder = get_encoder(in_channels, n_slots * n_slot_latents)
 
     def forward(self, x):
-        logger.info(x.shape)
         x = self.encoder(x)
-        logger.info(x.shape)
         out = x.view(-1, self.n_slots, self.n_slot_latents)
-        logger.info(x.shape)
         return out
 
 class SlotMLPAdditiveDecoder(torch.nn.Module):

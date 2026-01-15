@@ -116,8 +116,6 @@ class InvSlotAttentionGuide(nn.Module):
 
         assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
 
-        logger.info(f"{img.shape} - {labels.shape}")
-
         output_dict = self.model(img)
         img_hat = output_dict["reconstructed_image"]
         recon_figures = output_dict["reconstructed_figures"]
@@ -151,9 +149,6 @@ class InvSlotAttentionGuide(nn.Module):
         if params["running_type"] == "eval": return z_noise.reshape(B, n_s, self.L, self.ldim)
 
         #slots_d = slots.detach()
-        
-        logger.info(slots.shape)
-
         preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
 
