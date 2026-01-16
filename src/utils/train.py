@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 
 import sys
 sys.path.insert(0, '../..') # add parent-parent dir
@@ -13,11 +14,22 @@ class BetaScheduler:
         self.current_step = 0
 
     def get_beta(self):
+        # if self.current_step >= self.warmup_steps:
+        #     return self.end_beta
+        
+        # # Linear interpolation
+        # fraction = self.current_step / self.warmup_steps
+        # beta = self.start_beta + fraction * (self.end_beta - self.start_beta)
+        # self.current_step += 1
+        # return beta
+
+        self.current_step += 1
+        
         if self.current_step >= self.warmup_steps:
             return self.end_beta
-        
-        # Linear interpolation
-        fraction = self.current_step / self.warmup_steps
-        beta = self.start_beta + fraction * (self.end_beta - self.start_beta)
-        self.current_step += 1
-        return beta
+
+        if self.current_step <= 0:
+            return self.start_beta
+
+        t = self.current_step / (self.warmup_steps - 1)
+        return np.exp((self.current_step - self.warmup_steps) * 0.1) * self.end_beta

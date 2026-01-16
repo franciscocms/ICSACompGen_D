@@ -90,7 +90,7 @@ if CHECK_ATTN and TRAINING_FROM_SCRATCH:
 
 optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=2)
-beta_scheduler = BetaScheduler(0.01, 1., 50)
+beta_scheduler = BetaScheduler(0., 1., 50)
 
 # if params["TC_minimization"]:
 #   dis_optimizer = torch.optim.Adam(guide.tc_discriminator.parameters(), lr=params["lr"] * 0.1)
