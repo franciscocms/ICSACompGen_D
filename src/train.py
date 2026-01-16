@@ -193,7 +193,7 @@ for epoch in range(params["training_epochs"]):
     
 
     log_det = compute_log_det(guide.L_slopes)
-    batch_loss += alpha * kl_beta * kl_noise - log_det_coeff*log_det
+    batch_loss += kl_beta * (kl_noise - log_det_coeff*log_det)
     
     batch_loss.backward()
     optimizer.step()
