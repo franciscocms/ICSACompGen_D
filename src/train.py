@@ -163,7 +163,7 @@ for epoch in range(params["training_epochs"]):
     recon_loss = recon_loss_fn(img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
 
-    target_logvar = torch.tensor(-4.0).to(DEVICE)
+    target_logvar = torch.tensor(-2.0).to(DEVICE)
     prior_logvar_loss = F.mse_loss(prior_logvars, target_logvar.expand_as(prior_logvars))
     batch_loss += 100*recon_loss + slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + 0.1*prior_logvar_loss
     #batch_loss += 100*recon_loss
