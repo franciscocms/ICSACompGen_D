@@ -16,6 +16,7 @@ from models.guide import InvSlotAttentionGuide
 from main import params
 from utils.guide import permute_dims, linear_scheduler, exp_scheduler
 from utils.loss import compute_log_det, compute_kl_gaussians
+from utils.train import BetaScheduler
 from datasets.data_utils import MyDataset
 
 import wandb # type: ignore
@@ -55,13 +56,6 @@ L = len(params["latent_vars"])
 logger.info(params)
 
 l_to_label = {i: l for i, l in enumerate(params["latent_vars"])}
-# A = torch.tensor([
-#     [0., 0., 0., 0.],
-#     [1., 0., 0., 0.],
-#     [0., 0., 0., 0.],
-#     [0., 0., 0., 0.],
-#   ])
-
 A = torch.tensor([
   [0., 0.],
   [1., 0.],
@@ -96,6 +90,7 @@ if CHECK_ATTN and TRAINING_FROM_SCRATCH:
 
 optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=2)
+beta_scheduler = BetaScheduler(0.01, 1., 50)
 
 # if params["TC_minimization"]:
 #   dis_optimizer = torch.optim.Adam(guide.tc_discriminator.parameters(), lr=params["lr"] * 0.1)
@@ -142,6 +137,8 @@ for epoch in range(params["training_epochs"]):
   log_det_coeff = 0. # 0.001
   #guide.learn_transform = 0. if epoch < 20 else 1.
   guide.learn_transform = 1.
+
+  kl_beta = beta_scheduler.get_beta()
 
   # update gradient computation flags
   if params["TC_minimization"]:
@@ -196,7 +193,7 @@ for epoch in range(params["training_epochs"]):
     
 
     log_det = compute_log_det(guide.L_slopes)
-    batch_loss += alpha * 0.01 * kl_noise - log_det_coeff*log_det
+    batch_loss += alpha * kl_beta * kl_noise - log_det_coeff*log_det
     
     batch_loss.backward()
     optimizer.step()
@@ -267,10 +264,9 @@ for epoch in range(params["training_epochs"]):
         plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
         plt.close()
 
-    with torch.no_grad():
-      
+    with torch.no_grad():      
       prior_means_distance_e = torch.sum(torch.square(prior_means_d[:, :, 0] - prior_means_d[:, :, 1]), dim=-1) # [B, N]
-      
+
       u_min = torch.zeros(1, 1, L).to(DEVICE) # Label = 0
       u_max = torch.ones(1, 1, L).to(DEVICE) # Label = 1
       
@@ -299,6 +295,7 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["log_det_coeff"] = log_det_coeff
   dict_to_log["kl_noise"] = kl_noise
   dict_to_log["alpha"] = alpha
+  dict_to_log["beta"] = kl_beta
 
   dict_to_log["logvar_loss"] = prior_logvar_loss
   
