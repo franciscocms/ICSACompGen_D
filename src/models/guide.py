@@ -159,10 +159,10 @@ class InvSlotAttentionGuide(nn.Module):
         
         # causal flow forward
         if self.learn_transform == 1:
-            z_scm, self.L_slopes, ss, ts = self.causal_flow(mu_noise)
+            z_scm, self.L_slopes, ss, ts = self.causal_flow(z_noise)
             self.ss, self.ts = ss, ts
         else:
-            z_scm = mu_noise 
+            z_scm = z_noise 
             self.L_slopes, self.ss, self.ts = torch.zeros(B, n_s, self.L, self.ldim), torch.zeros(B, n_s, self.L, self.ldim), torch.zeros(B, n_s, self.L, self.ldim)
 
         # if self.epoch % 10 == 0 and self.iter == 0:
@@ -191,7 +191,7 @@ class InvSlotAttentionGuide(nn.Module):
                 logger.info(f"\nslots max: {torch.mean(torch.amax(slots, dim=-1))}")
                 logger.info(f"slot hat max: {torch.mean(torch.amax(slot_hat, dim=-1))}")
         
-        z_noise_d = mu_noise.detach()
+        z_noise_d = z_noise.detach()
         self.noise_pred_loss = []
         all_noise_preds = []
         for i, var in enumerate(params["latent_vars"]):
