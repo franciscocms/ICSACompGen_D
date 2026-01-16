@@ -134,7 +134,7 @@ for epoch in range(params["training_epochs"]):
   #alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
   alpha = params["alpha"]
   #alpha = (1 - torch.sigmoid(torch.tensor(20 - epoch)*100))*params["alpha"]
-  log_det_coeff = 0. # 0.001
+  log_det_coeff = 0.1 # 0.001
   #guide.learn_transform = 0. if epoch < 20 else 1.
   guide.learn_transform = 1.
 
