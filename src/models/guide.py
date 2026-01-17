@@ -159,11 +159,12 @@ class InvSlotAttentionGuide(nn.Module):
         
         # causal flow forward
         if self.learn_transform == 1:
-            z_scm, self.L_slopes, ss, ts = self.causal_flow(z_noise)
-            self.ss, self.ts = ss, ts
+            z_scm, ss, ts, log_det = self.causal_flow(z_noise)
+            self.ss, self.ts, self.log_det = ss, ts, log_det
         else:
             z_scm = z_noise 
-            self.L_slopes, self.ss, self.ts = torch.zeros(B, n_s, self.L, self.ldim), torch.zeros(B, n_s, self.L, self.ldim), torch.zeros(B, n_s, self.L, self.ldim)
+            self.ss, self.ts = torch.zeros(B, n_s, self.L, self.ldim), torch.zeros(B, n_s, self.L, self.ldim)
+            self.log_det = 0.
 
         # if self.epoch % 10 == 0 and self.iter == 0:
         #     for i in range(self.L):

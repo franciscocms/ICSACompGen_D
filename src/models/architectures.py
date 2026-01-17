@@ -273,27 +273,31 @@ class CausalDecoder(nn.Module):
 class MLP(nn.Module):
     def __init__(self, nin, nout, nh, f_act="identity"):
         super().__init__()
+        # self.net = nn.Sequential(
+        #     nn.Linear(nin, nh),
+        #     # nn.ELU(),
+        #     # nn.Linear(nh, nh),
+        #     nn.ELU(),
+        #     nn.Linear(nh, nout),
+        # )
+        # if f_act == "softmax": self.f_act = nn.Softmax(dim=-1)
+        # elif f_act == "sigmoid": self.f_act = nn.Sigmoid()
+        # elif f_act == "tanh": self.f_act = nn.Tanh()
+        # elif f_act == "identity": self.f_act = nn.Identity()
+        # elif f_act == "softplus": self.f_act = nn.Softplus()
+
         self.net = nn.Sequential(
             nn.Linear(nin, nh),
-            # nn.ELU(),
-            # nn.Linear(nh, nh),
-            nn.ELU(),
+            nn.LeakyReLU(0.2),
+            nn.Linear(nh, nh),
+            nn.LeakyReLU(0.2),
+            nn.Linear(nh, nh),
+            nn.LeakyReLU(0.2),
             nn.Linear(nh, nout),
         )
-        if f_act == "softmax": self.f_act = nn.Softmax(dim=-1)
-        elif f_act == "sigmoid": self.f_act = nn.Sigmoid()
-        elif f_act == "tanh": self.f_act = nn.Tanh()
-        elif f_act == "identity": self.f_act = nn.Identity()
-        elif f_act == "softplus": self.f_act = nn.Softplus()
-
-        # nn.init.zeros_(self.net[-1].weight)
-        # nn.init.zeros_(self.net[-1].bias)
 
     def forward(self, x, mask=None):
-        if mask == None: 
-            return self.f_act(self.net(x))
-        else:
-            return self.f_act(self.net(x * mask))
+        return self.net(x)
         
 class Predictor(nn.Module):
     def __init__(self, nin, nhidden, nout):
@@ -357,7 +361,7 @@ class Flow(nn.Module):
         assert not torch.isnan(s).any()
         assert not torch.isnan(t).any()
 
-        s = s - s.mean(dim=-1, keepdim=True)
+        # s = s - s.mean(dim=-1, keepdim=True)
         
         z_i = torch.exp(s) * eps + t
         return z_i, s, t
@@ -366,33 +370,55 @@ class MultivariateCausalFlow(nn.Module):
     def __init__(self, L, ldim, A):
         super().__init__()
         
-        self.L, self.ldim, self.A = L, ldim, A
-        self.nf = nn.ModuleDict()
-        for i in range(L):
-            self.nf[str(i)] = Flow(L, ldim, A, f_act="tanh") # instead of "tanh"
+        self.s_base = nn.Parameter(torch.randn(1, 1, ldim), requires_grad=True)
+        self.t_base = nn.Parameter(torch.randn(1, 1, ldim), requires_grad=True)
+        self.s_cond = MLP(ldim, ldim, ldim*4)
+        self.t_cond = MLP(ldim, ldim, ldim*4)
+        
 
-    def forward(self, eps):
-        z = torch.zeros_like(eps).to(device)
-        L_slopes = torch.tensor([]).to(device)
-        ss = torch.tensor([]).to(device)
-        ts = torch.tensor([]).to(device)
+    def forward(self, eps):        
+        
+        B, N, _, _ = eps.shape
+        
+        s0 = self.s_base.expand(B, N, -1)
+        t0 = self.t_base.expand(B, N, -1)
+        z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
+        s1 = self.s_cond(z0)
+        t1 = self.t_cond(z0)
+        z1 = torch.exp(s1)*eps[:, :, 1, :] + t1
 
-        total_dims = self.L*self.ldim
-        for i in range(self.L):
-            if 1 in self.A[i, :]:
-                mask = self.A[i, :].repeat(self.ldim, 1).T.reshape(total_dims).to(device)  
-                # logger.info(f"computing child params...")
-            else:
-                mask = torch.zeros(total_dims).to(device)
-                # logger.info(f"computing root params...")
+        z = torch.cat((z0.unsqueeze(-2), z1.unsqueeze(-2)), dim=-2)
+        ss = torch.cat((s0.unsqueeze(-2), s1.unsqueeze(-2)), dim=-2)
+        ts = torch.cat((t0.unsqueeze(-2), t1.unsqueeze(-2)), dim=-2)   
+
+        log_det = torch.sum(s0, dim=-1) + torch.sum(s1, dim=-1)
+        log_det = torch.mean(log_det)       
+
+        return z, ss, ts, log_det
+    
+    
+    # def forward(self, eps):
+    #     z = torch.zeros_like(eps).to(device)
+    #     L_slopes = torch.tensor([]).to(device)
+    #     ss = torch.tensor([]).to(device)
+    #     ts = torch.tensor([]).to(device)
+
+    #     total_dims = self.L*self.ldim
+    #     for i in range(self.L):
+    #         if 1 in self.A[i, :]:
+    #             mask = self.A[i, :].repeat(self.ldim, 1).T.reshape(total_dims).to(device)  
+    #             # logger.info(f"computing child params...")
+    #         else:
+    #             mask = torch.zeros(total_dims).to(device)
+    #             # logger.info(f"computing root params...")
             
-            z[:, :, i, :], s, t = self.nf[str(i)](eps[:, :, i, :], z, mask)
-            L_slopes = torch.cat((L_slopes, s.unsqueeze(-2)), dim=-2)
+    #         z[:, :, i, :], s, t = self.nf[str(i)](eps[:, :, i, :], z, mask)
+    #         L_slopes = torch.cat((L_slopes, s.unsqueeze(-2)), dim=-2)
             
-            ss = torch.cat((ss, s.unsqueeze(-2)), dim=-2)
-            ts = torch.cat((ts, t.unsqueeze(-2)), dim=-2)
+    #         ss = torch.cat((ss, s.unsqueeze(-2)), dim=-2)
+    #         ts = torch.cat((ts, t.unsqueeze(-2)), dim=-2)
 
-        return z, L_slopes, ss, ts
+    #     return z, L_slopes, ss, ts
 
 class GaussianMLP(nn.Module):
     def __init__(self, nlayers, hid_act, nin, nout, nh, learn_var):

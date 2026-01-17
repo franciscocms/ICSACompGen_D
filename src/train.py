@@ -134,7 +134,7 @@ for epoch in range(params["training_epochs"]):
   #alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
   alpha = params["alpha"]
   #alpha = (1 - torch.sigmoid(torch.tensor(20 - epoch)*100))*params["alpha"]
-  log_det_coeff = 0. # 0.1
+  log_det_coeff = 1. # 0.1
   #guide.learn_transform = 0. if epoch < 20 else 1.
   guide.learn_transform = 1.
 
@@ -163,7 +163,7 @@ for epoch in range(params["training_epochs"]):
     recon_loss = recon_loss_fn(img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
 
-    target_logvar = torch.tensor(-2.0).to(DEVICE)
+    target_logvar = torch.tensor(-4.0).to(DEVICE)
     prior_logvar_loss = F.mse_loss(prior_logvars, target_logvar.expand_as(prior_logvars))
     batch_loss += 100*recon_loss + slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + 0.1*prior_logvar_loss
     #batch_loss += 100*recon_loss
@@ -192,7 +192,7 @@ for epoch in range(params["training_epochs"]):
                                        prior_logvars_d[:, :, i, :])
     
 
-    log_det = compute_log_det(guide.L_slopes)
+    log_det = guide.log_det
     batch_loss += kl_beta * (kl_noise - log_det_coeff*log_det)
     
     batch_loss.backward()
