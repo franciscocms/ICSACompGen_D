@@ -202,6 +202,9 @@ for epoch in range(params["training_epochs"]):
       prior_log_z += log_normal(z_scm[:, :, i],
                                 cp[:, :, i],
                                 cp_v[:, :, i])
+      
+      logger.info(prior_log_z.shape)
+
     log_det = guide.log_det
     batch_loss += kl_beta * (kl_noise - log_det_coeff*log_det - prior_log_z)
     
