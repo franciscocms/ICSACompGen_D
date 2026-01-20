@@ -16,7 +16,7 @@ from models.guide import InvSlotAttentionGuide
 from main import params
 from utils.guide import permute_dims, linear_scheduler, exp_scheduler
 from utils.loss import compute_log_det, compute_kl_gaussians
-from utils.train import BetaScheduler
+from utils.train import BetaScheduler, log_normal
 from datasets.data_utils import MyDataset
 
 import wandb # type: ignore
@@ -179,7 +179,7 @@ for epoch in range(params["training_epochs"]):
     logvar_noise = logvar_noise.reshape(B*params["num_slots"], L*ldim)
     logvar_prior_noise = torch.ones_like(logvar_noise).to(DEVICE)
     kl_noise += compute_kl_gaussians(mu_noise, logvar_noise, mu_prior_noise, logvar_prior_noise)
-    batch_loss += kl_beta * kl_noise
+    #batch_loss += kl_beta * kl_noise
 
     
     if params["TC_minimization"]:
@@ -193,14 +193,17 @@ for epoch in range(params["training_epochs"]):
       tc_loss = torch.tensor(0.)
 
     cp_v = torch.ones_like(cp).to(DEVICE)
-    prior_kl = 0.
+    prior_log_z = 0.
     for i in range(L):
-      prior_kl += compute_kl_gaussians(z_scm[:, :, i, :],
-                                      cp_v[:, :, i, :],
-                                      cp[:, :, i, :],
-                                      cp_v[:, :, i, :])
+      # prior_kl += compute_kl_gaussians(z_scm[:, :, i, :],
+      #                                 cp_v[:, :, i, :],
+      #                                 cp[:, :, i, :],
+      #                                 cp_v[:, :, i, :])
+      prior_log_z += log_normal(z_scm[:, :, i],
+                                cp[:, :, i],
+                                cp_v[:, :, i])
     log_det = guide.log_det
-    batch_loss += kl_beta * (prior_kl - log_det_coeff*log_det)
+    batch_loss += kl_beta * (kl_noise - log_det_coeff*log_det - prior_log_z)
     
     batch_loss.backward()
     optimizer.step()
@@ -287,6 +290,7 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["log_det"] = log_det
   dict_to_log["log_det_coeff"] = log_det_coeff
   dict_to_log["kl_noise"] = kl_noise
+  dict_to_log["z_log_prior"] = prior_log_z
   dict_to_log["alpha"] = alpha
   dict_to_log["beta"] = kl_beta
 
@@ -299,7 +303,7 @@ for epoch in range(params["training_epochs"]):
     # dict_to_log[f"mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(mu_noise[:, :, i, :], dim=-1))
     # dict_to_log[f"prior_mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(prior_means[:, :, i, :], dim=-1))
     
-    # dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(logvar_noise[:, :, i, :], dim=-1))
+    dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(logvar_noise[:, :, i, :], dim=-1))
     # dict_to_log[f"prior_logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(prior_logvars[:, :, i, :], dim=-1))
 
     dict_to_log[f"s_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ss[:, :, i, :], dim=-1))
