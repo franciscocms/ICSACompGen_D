@@ -174,7 +174,12 @@ class InvSlotAttentionGuide(nn.Module):
                 logger.info(f"slot hat min: {torch.mean(torch.amin(slot_hat, dim=-1))}")
 
                 logger.info(f"\nslots max: {torch.mean(torch.amax(slots, dim=-1))}")
-                logger.info(f"slot hat max: {torch.mean(torch.amax(slot_hat, dim=-1))}")                
+                logger.info(f"slot hat max: {torch.mean(torch.amax(slot_hat, dim=-1))}") 
+
+                logger.info(f"\nz mean: {torch.mean(z_scm, dim=(0, 1, 3))}")
+                logger.info(f"\nz prior mean: {torch.mean(cp, dim=(0, 1, 3))}")
+
+
         
         z_noise_d = z_noise.detach()
         self.noise_pred_loss = []
