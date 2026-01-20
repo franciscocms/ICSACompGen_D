@@ -91,7 +91,7 @@ if CHECK_ATTN and TRAINING_FROM_SCRATCH:
 
 optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=2)
-beta_scheduler = BetaScheduler(0., 1., 50)
+beta_scheduler = BetaScheduler(0., 1., 100)
 
 # if params["TC_minimization"]:
 #   dis_optimizer = torch.optim.Adam(guide.tc_discriminator.parameters(), lr=params["lr"] * 0.1)
@@ -135,7 +135,7 @@ for epoch in range(params["training_epochs"]):
   #alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
   alpha = params["alpha"]
   #alpha = (1 - torch.sigmoid(torch.tensor(20 - epoch)*100))*params["alpha"]
-  log_det_coeff = 1. # 0.1
+  log_det_coeff = 0.01 # 0.1
   #guide.learn_transform = 0. if epoch < 20 else 1.
   guide.learn_transform = 1.
 
@@ -166,7 +166,7 @@ for epoch in range(params["training_epochs"]):
 
     target_logvar = torch.tensor(-4.0).to(DEVICE)
     prior_logvar_loss = F.mse_loss(logvar_noise, target_logvar.expand_as(logvar_noise))
-    batch_loss += 100*recon_loss + slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + 0.1*prior_logvar_loss
+    batch_loss += 100*recon_loss + 10*slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + 0.1*prior_logvar_loss
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
@@ -205,7 +205,7 @@ for epoch in range(params["training_epochs"]):
     prior_log_z = torch.mean(prior_log_z)
 
     log_det = guide.log_det
-    batch_loss += kl_beta * (kl_noise - log_det_coeff*log_det - prior_log_z)
+    batch_loss += kl_beta * (0.1*kl_noise - log_det_coeff*log_det - 0.1*prior_log_z)
     
     batch_loss.backward()
     optimizer.step()
