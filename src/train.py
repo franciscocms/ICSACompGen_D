@@ -301,6 +301,7 @@ for epoch in range(params["training_epochs"]):
   # dict_to_log["prior_means_distance_e"] = torch.mean(prior_means_distance_e)
   dict_to_log["LR"] = epoch_lr
 
+  logvar_noise = logvar_noise.reshape(B, params["num_slots"], L, ldim)
   for i in range(L):
     # dict_to_log[f"mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(mu_noise[:, :, i, :], dim=-1))
     # dict_to_log[f"prior_mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(prior_means[:, :, i, :], dim=-1))
