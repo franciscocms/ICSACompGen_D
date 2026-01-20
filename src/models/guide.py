@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
-from src.models.architectures import SlotMLPAdditive, NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor
+from src.models.architectures import SlotMLPAdditive, NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, PriorMultivariateCausalFlow
 from src.models.slot_attention import SlotAttentionAutoEncoder, SlotAttentionEncoder, SlotAttentionDecoder
 from src.utils.loss import compute_matching_cost
 
@@ -95,9 +95,12 @@ class InvSlotAttentionGuide(nn.Module):
         self.causal_flow = MultivariateCausalFlow(self.L,
                                                   self.ldim,
                                                   self.A)
-        self.prior = ConditionalGaussianPrior(self.L,
-                                              self.ldim,
-                                              learn_var=True)
+        # self.prior = ConditionalGaussianPrior(self.L,
+        #                                       self.ldim,
+        #                                       learn_var=True)
+        
+        self.prior = PriorMultivariateCausalFlow(self.ldim)
+
         self.predictor = Predictor(self.slot_dim,
                                    self.slot_dim,
                                    self.L)
@@ -128,11 +131,10 @@ class InvSlotAttentionGuide(nn.Module):
 
         slots = slots.detach()
         slots = (slots - slots.mean(dim=(0, 1), keepdim=True)) / slots.std(dim=(0, 1), keepdim=True)
-
-        # logger.info(f"mean: {slots.mean()}")
-        # logger.info(f"std: {slots.std()}")
-        # logger.info(f"min: {slots.min()}")
-        # logger.info(f"max: {slots.max()}\n")
+        
+        # regress attributes from slots to get an aligned version of labels
+        preds = self.predictor(slots)
+        self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
 
         z_noise, mu_noise, logvar_noise = [], [], []           
         for var in params["latent_vars"]:
@@ -144,18 +146,7 @@ class InvSlotAttentionGuide(nn.Module):
         z_noise = torch.stack(z_noise).permute(1, 2, 0, 3)            # [B, N, L, d] => 'L' refers to the number of categorical latents
         mu_noise = torch.stack(mu_noise).permute(1, 2, 0, 3)          # [B, N, L, d]
         logvar_noise = torch.stack(logvar_noise).permute(1, 2, 0, 3)  # [B, N, L, d]
-        assert z_noise.size(2) == self.L
-
-        #slots_d = slots.detach()
-        preds = self.predictor(slots)
-        self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
-
-        # compute the conditionally factorial prior for noise representations
-        if self.prior.learn_var:
-            prior_means, prior_logvars = self.prior(aligned_u_m)
-        else:
-            prior_means = self.prior(aligned_u_m)
-            prior_logvars = -3. * torch.ones_like(prior_means).to(device)
+        assert z_noise.size(2) == self.L        
         
         # causal flow forward
         if self.learn_transform == 1:
@@ -165,18 +156,11 @@ class InvSlotAttentionGuide(nn.Module):
             z_scm = z_noise 
             self.ss, self.ts = torch.zeros(B, n_s, self.L, self.ldim), torch.zeros(B, n_s, self.L, self.ldim)
             self.log_det = 0.
-
-        # if self.epoch % 10 == 0 and self.iter == 0:
-        #     for i in range(self.L):
-        #         logger.info(f"\nvar {i}")
-        #         logger.info(f"s mean: {torch.mean(torch.mean(self.ss[:, :, i, :], dim=-1))}")
-        #         logger.info(f"s std: {torch.mean(torch.std(self.ss[:, :, i, :], dim=-1))}")
-        #         logger.info(f"s min: {torch.mean(torch.amin(self.ss[:, :, i, :], dim=-1))}")
-        #         logger.info(f"s max: {torch.mean(torch.amax(self.ss[:, :, i, :], dim=-1))}")
         
+        # compute the causally disentangled prior p(z|u) to push z representations
+        cp = self.prior(aligned_u_m, z_scm)        
         
         slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
-        #slot_hat = self.causal_decoder(torch.flatten(mu_noise, -2))
 
         if params["running_type"] == "train":
             if self.epoch % 10 == 0 and self.iter == 0:
@@ -190,7 +174,7 @@ class InvSlotAttentionGuide(nn.Module):
                 logger.info(f"slot hat min: {torch.mean(torch.amin(slot_hat, dim=-1))}")
 
                 logger.info(f"\nslots max: {torch.mean(torch.amax(slots, dim=-1))}")
-                logger.info(f"slot hat max: {torch.mean(torch.amax(slot_hat, dim=-1))}")
+                logger.info(f"slot hat max: {torch.mean(torch.amax(slot_hat, dim=-1))}")                
         
         z_noise_d = z_noise.detach()
         self.noise_pred_loss = []
@@ -206,6 +190,5 @@ class InvSlotAttentionGuide(nn.Module):
 
         if params["running_type"] == "eval": return all_noise_preds
         
-        return slots, img_hat, z_noise, mu_noise, logvar_noise, prior_means, prior_logvars, z_scm, slot_hat, recon_figures, decoder_masks
-        #return slots, img_hat, recon_figures, decoder_masks
+        return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, cp, slot_hat, recon_figures, decoder_masks
         
