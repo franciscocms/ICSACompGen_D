@@ -179,6 +179,15 @@ class InvSlotAttentionGuide(nn.Module):
                 logger.info(f"\nz mean: {torch.mean(z_scm, dim=(0, 1, 3))}")
                 logger.info(f"\nz prior mean: {torch.mean(cp, dim=(0, 1, 3))}")
 
+                logger.info(f"\nz std: {torch.mean(torch.std(z_scm, dim=-1), dim=(0, 1))}")
+                logger.info(f"\nz prior std: {torch.mean(torch.std(cp, dim=-1), dim=(0, 1))}")
+
+                logger.info(f"\nz min: {torch.mean(torch.amin(z_scm, dim=-1), dim=(0, 1))}")
+                logger.info(f"\nz prior min: {torch.mean(torch.amin(cp, dim=-1), dim=(0, 1))}")
+
+                logger.info(f"\nz max: {torch.mean(torch.amax(z_scm, dim=-1), dim=(0, 1))}")
+                logger.info(f"\nz prior max: {torch.mean(torch.amax(cp, dim=-1), dim=(0, 1))}")
+
 
         
         z_noise_d = z_noise.detach()
