@@ -174,9 +174,9 @@ for epoch in range(params["training_epochs"]):
     
     # noise prior: isotropic Gaussian
     kl_noise = 0.
-    mu_noise = mu_noise.view(B*params["num_slots"], L*ldim)
+    mu_noise = mu_noise.reshape(B*params["num_slots"], L*ldim)
     mu_prior_noise = torch.zeros_like(mu_noise).to(DEVICE)
-    logvar_noise = logvar_noise.view(B*params["num_slots"], L*ldim)
+    logvar_noise = logvar_noise.reshape(B*params["num_slots"], L*ldim)
     logvar_prior_noise = torch.ones_like(logvar_noise).to(DEVICE)
     kl_noise += compute_kl_gaussians(mu_noise, logvar_noise, mu_prior_noise, logvar_prior_noise)
     batch_loss += kl_beta * kl_noise
