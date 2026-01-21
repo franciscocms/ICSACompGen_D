@@ -203,7 +203,7 @@ class InvSlotAttentionGuide(nn.Module):
             self.noise_pred_loss.append(noise_pred_loss)
             all_noise_preds.append(noise_preds)
 
-            flatt_noise_pred_loss, _ = compute_matching_cost(self.flatt_noise_predictor[var](torch.flatten(z_noise_d, dim=-2)).squeeze(-1), labels[:, :, i])
+            flatt_noise_pred_loss, _ = compute_matching_cost(self.flatt_noise_predictor[var](torch.flatten(z_noise_d, -2)).squeeze(-1), labels[:, :, i])
             self.flatt_noise_pred_loss.append(flatt_noise_pred_loss)
 
         all_noise_preds = torch.stack(all_noise_preds, dim=-1)
