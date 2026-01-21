@@ -112,7 +112,7 @@ class InvSlotAttentionGuide(nn.Module):
         self.learn_transform = 0.
         
     
-    def forward(self, img, labels):
+    def forward(self, img, labels, step=0):
 
         B, _, _, _ = img.shape
         n_s = params['num_slots'] 
@@ -129,11 +129,14 @@ class InvSlotAttentionGuide(nn.Module):
         else:
             decoder_masks = None
 
-        slots = slots.detach()
+        if step < 100:
+            slots = slots.detach()
+        
         slots = (slots - slots.mean(dim=(0, 1), keepdim=True)) / slots.std(dim=(0, 1), keepdim=True)
         
         # regress attributes from slots to get an aligned version of labels
-        preds = self.predictor(slots)
+        slots_d = slots.detach()
+        preds = self.predictor(slots_d)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
 
         z_noise, mu_noise, logvar_noise = [], [], []           
