@@ -81,14 +81,18 @@ def main():
         dataloader = DataLoader(dataset, 64, shuffle=False, generator=torch.Generator(device='cuda'))
 
         noise_preds = torch.tensor([])  
+        flat_noise_preds = torch.tensor([])  
         targets = torch.tensor([])      
         with torch.no_grad():
             for img, target in dataloader:
                 img = img.to(device)
                 target = target.to(device)
                 
-                batch_noise_preds = guide(img, target) # [B, N, L]
+                batch_noise_preds, batch_flat_noise_preds = guide(img, target) # [B, N, L]
+                
                 noise_preds = torch.cat((noise_preds, batch_noise_preds), dim=0)
+                flat_noise_preds = torch.cat((flat_noise_preds, batch_flat_noise_preds), dim=0)
+
                 targets = torch.cat((targets, target), dim=0)             
         
         logger.info(noise_preds.shape)
@@ -97,7 +101,8 @@ def main():
         for i, var in enumerate(params["latent_vars"]):            
             logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
             
-            r2_score, a_target, a_preds = hungarian_r2_score(noise_preds[:, :, i], targets[:, :, i])
+            # r2_score, a_target, a_preds = hungarian_r2_score(noise_preds[:, :, i], targets[:, :, i])
+            r2_score, a_target, a_preds = hungarian_r2_score(flat_noise_preds[:, :, i], targets[:, :, i])
 
             plt.scatter(a_target, a_preds, s=2)
             plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}.png")
