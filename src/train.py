@@ -93,8 +93,8 @@ optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=2)
 beta_scheduler = BetaScheduler(0., 1., 100)
 
-# if params["TC_minimization"]:
-#   dis_optimizer = torch.optim.Adam(guide.tc_discriminator.parameters(), lr=params["lr"] * 0.1)
+if params["TC_minimization"]:
+  dis_optimizer = torch.optim.Adam(guide.tc_discriminator.parameters(), lr=params["lr"] * 0.1)
 
 # instatiate dataset and dataloader
 dataset_dir = "/nas-ctm01/datasets/public/CG/train"
@@ -179,15 +179,14 @@ for epoch in range(params["training_epochs"]):
     logvar_noise = logvar_noise.reshape(B*params["num_slots"], L*ldim)
     logvar_prior_noise = torch.ones_like(logvar_noise).to(DEVICE)
     kl_noise += compute_kl_gaussians(mu_noise, logvar_noise, mu_prior_noise, logvar_prior_noise)
-    #batch_loss += kl_beta * kl_noise
-
     
     if params["TC_minimization"]:
       disc_input = torch.flatten(z_noise, -2)
       D_joint = guide.tc_discriminator(disc_input)
       tc_loss = torch.square(torch.mean(D_joint[:, :1] - D_joint[:, 1:]))
       fake_z_noise, perms = permute_dims(disc_input, guide.slot_dim)
-      batch_loss += TC_coeff*tc_loss
+      batch_loss += kl_beta * TC_coeff * tc_loss
+      
       assert not torch.isnan(tc_loss).any()
     else:
       tc_loss = torch.tensor(0.)
@@ -214,28 +213,28 @@ for epoch in range(params["training_epochs"]):
 
     #logger.info(num_iters)
     
-    # if params["TC_minimization"]:
-    #   for name, param in guide.tc_discriminator.named_parameters():
-    #     param.requires_grad = True
+    if params["TC_minimization"]:
+      for name, param in guide.tc_discriminator.named_parameters():
+        param.requires_grad = True
       
-    #   fake_z_noise = fake_z_noise.detach()
-    #   disc_input = disc_input.detach()
-    #   D_perm = guide.tc_discriminator(fake_z_noise)
-    #   D_joint = guide.tc_discriminator(disc_input)
-    #   ones = torch.ones(D_perm.size(0), dtype=torch.long, device=DEVICE)
-    #   zeros = torch.zeros(D_perm.size(0), dtype=torch.long, device=DEVICE)
-    #   disc_tc_loss = torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
-    #   assert not torch.isnan(disc_tc_loss).any()
+      fake_z_noise = fake_z_noise.detach()
+      disc_input = disc_input.detach()
+      D_perm = guide.tc_discriminator(fake_z_noise)
+      D_joint = guide.tc_discriminator(disc_input)
+      ones = torch.ones(D_perm.size(0), dtype=torch.long, device=DEVICE)
+      zeros = torch.zeros(D_perm.size(0), dtype=torch.long, device=DEVICE)
+      disc_tc_loss = torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
+      assert not torch.isnan(disc_tc_loss).any()
       
-    #   dis_optimizer.zero_grad()
-    #   disc_tc_loss.backward()
-    #   dis_optimizer.step()
+      dis_optimizer.zero_grad()
+      disc_tc_loss.backward()
+      dis_optimizer.step()
 
-    #   if epoch % epoch_step == 0 and not printed:
-    #     logger.info(f"real batches pred: {torch.mean(D_joint)}")
-    #     logger.info(f"fake batches pred: {torch.mean(D_perm)}")
-    # else:
-    #   disc_tc_loss = torch.tensor(0.)
+      # if epoch % epoch_step == 0 and not printed:
+      #   logger.info(f"real batches pred: {torch.mean(D_joint)}")
+      #   logger.info(f"fake batches pred: {torch.mean(D_perm)}")
+    else:
+      disc_tc_loss = torch.tensor(0.)
     
     if guide.model_name == "slot_attention":
       aux_attn = guide.attn.reshape((B, params["num_slots"], params["resolution"][0], params["resolution"][1]))
@@ -280,7 +279,6 @@ for epoch in range(params["training_epochs"]):
 
     #break
     
-    
   epoch_train_loss /= num_iters
   if epoch % epoch_step == 0:
     logger.info(f"epoch {epoch} - train_loss: {epoch_train_loss}")  
@@ -316,9 +314,9 @@ for epoch in range(params["training_epochs"]):
 
     dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
 
-  # if params["TC_minimization"]:
-  #   dict_to_log["latent_TC"] = tc_loss
-  #   dict_to_log["latent_TC_disc"] = disc_tc_loss
+  if params["TC_minimization"]:
+    dict_to_log["latent_TC"] = tc_loss
+    dict_to_log["latent_TC_disc"] = disc_tc_loss
   
   
   torch.save(guide.state_dict(), GUIDE_PATH+'/guide_'+str(epoch)+'.pth')
