@@ -164,7 +164,7 @@ for epoch in range(params["training_epochs"]):
 
     #target_logvar = torch.tensor(-4.0).to(DEVICE)
     #prior_logvar_loss = F.mse_loss(logvar_noise, target_logvar.expand_as(logvar_noise))
-    batch_loss += 100*recon_loss + 10*slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) #+ 0.1*prior_logvar_loss
+    batch_loss += 100*recon_loss + 10*slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss)
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
@@ -312,6 +312,7 @@ for epoch in range(params["training_epochs"]):
     #dict_to_log[f"dist_{params['latent_vars'][i]}"] = dist[i]
 
     dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
+    dict_to_log[f"flatt_noise_pred_loss_{params['latent_vars'][i]}"] = guide.flatt_noise_pred_loss[i]
 
   if params["TC_minimization"]:
     dict_to_log["latent_TC"] = tc_loss

@@ -76,6 +76,7 @@ class InvSlotAttentionGuide(nn.Module):
 
         self.noise_nets = nn.ModuleDict()
         self.noise_predictors = nn.ModuleDict()
+        self.flatt_noise_predictor = nn.ModuleDict()
         for var_name in params["latent_vars"]:
             self.noise_nets[var_name] = NoiseEncoder(nin = self.slot_dim,
                                             nh = self.ldim,
@@ -85,6 +86,8 @@ class InvSlotAttentionGuide(nn.Module):
             self.noise_predictors[var_name] = Predictor(self.ldim,
                                                         self.ldim,
                                                         1)
+        
+            self.flatt_noise_predictor[var_name] = Predictor(self.L*self.ldim, self.L*self.ldim, 1)
             
         
         
@@ -129,14 +132,12 @@ class InvSlotAttentionGuide(nn.Module):
         else:
             decoder_masks = None
 
-        if step < 100:
-            slots = slots.detach()
-        
+        slots = slots.detach()        
         slots = (slots - slots.mean(dim=(0, 1), keepdim=True)) / slots.std(dim=(0, 1), keepdim=True)
         
         # regress attributes from slots to get an aligned version of labels
-        slots_d = slots.detach()
-        preds = self.predictor(slots_d)
+        #slots_d = slots.detach()
+        preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
 
         z_noise, mu_noise, logvar_noise = [], [], []           
@@ -194,14 +195,21 @@ class InvSlotAttentionGuide(nn.Module):
         z_noise_d = z_noise.detach()
         self.noise_pred_loss = []
         all_noise_preds = []
+        self.flatt_noise_pred_loss = []
         for i, var in enumerate(params["latent_vars"]):
             noise_preds = self.noise_predictors[var](z_noise_d[:, :, i, :])
             if noise_preds.size(-1) == 1: noise_preds = noise_preds.squeeze(-1)
             noise_pred_loss, _ = compute_matching_cost(noise_preds, labels[:, :, i]) 
             self.noise_pred_loss.append(noise_pred_loss)
             all_noise_preds.append(noise_preds)
+
+            flatt_noise_pred_loss, _ = compute_matching_cost(self.flatt_noise_predictor[var](torch.flatten(z_noise_d, dim=-2)).squeeze(-1), labels[:, :, i])
+            self.flatt_noise_pred_loss.append(flatt_noise_pred_loss)
+
         all_noise_preds = torch.stack(all_noise_preds, dim=-1)
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
+        self.flatt_noise_pred_loss = torch.stack(self.flatt_noise_pred_loss)
+
 
         if params["running_type"] == "eval": return all_noise_preds
         
