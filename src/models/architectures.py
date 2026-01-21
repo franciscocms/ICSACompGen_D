@@ -309,34 +309,18 @@ class Predictor(nn.Module):
             nn.ELU(),
             nn.Linear(nhidden, nhidden),
             nn.ELU(),
-            nn.Linear(nhidden, nout)
-            #nn.Sigmoid()
+            nn.Linear(nhidden, nout),
+            nn.Sigmoid()
         )
         #self.net = nn.Linear(nin, nout)
-
-    def forward(self, slots):
-        B, N, d = slots.shape
-        out = self.net(slots)
-        return out
-
-class LinearProbe(nn.Module):
-    def __init__(self, nin, nout):
-        super().__init__()
-        
-        # nhidden = nin*4
-        # self.net = nn.Sequential(
-        #     nn.Linear(nin, nhidden),
-        #     nn.ELU(),
-        #     nn.Linear(nhidden, nhidden),
-        #     nn.ELU(),
-        #     nn.Linear(nhidden, nout)
-        # )
-        self.net = nn.Linear(nin, nout)
+        self.norm = nn.LayerNorm(nin)
 
     def forward(self, x):
+        B, N, d = x.shape
+        x = self.norm(x)
         out = self.net(x)
-        if out.size(-1) == 1: out = out.squeeze(-1)
         return out
+
 
 class Flow(nn.Module):
     def __init__(self, L, ldim, A=None, net_class=MLP, nh=100, f_act="identity"):
@@ -441,7 +425,7 @@ class PriorMultivariateCausalFlow(nn.Module):
         s0 = self.s_base.expand(B, N, -1)
         t0 = self.t_base.expand(B, N, -1)
         z0 = torch.exp(s0)*self.layer_0(u[:, :, 0].unsqueeze(-1)) + t0
-        
+
         s1 = self.s_cond(z0)
         t1 = self.t_cond(z0)
         z1 = torch.exp(s1)*self.layer_1(u[:, :, 1].unsqueeze(-1)) + t1
