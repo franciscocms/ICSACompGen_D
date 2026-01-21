@@ -15,7 +15,6 @@ sys.path.insert(0, '..') # add parent dir
 from models.guide import InvSlotAttentionGuide
 from main import params
 from datasets.data_utils import MyDataset, ProbeDataset
-from models.architectures import LinearProbe
 from utils.loss import hungarian_r2_score, compute_matching_cost
 
 import wandb # type: ignore
