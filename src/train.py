@@ -182,6 +182,7 @@ for epoch in range(params["training_epochs"]):
     
     if params["TC_minimization"]:
       disc_input = torch.flatten(z_noise, -2)
+      disc_input = torch.flatten(disc_input, 0, 1)
       D_joint = guide.tc_discriminator(disc_input)
       tc_loss = torch.square(torch.mean(D_joint[:, :1] - D_joint[:, 1:]))
       fake_z_noise, perms = permute_dims(disc_input, guide.slot_dim)
