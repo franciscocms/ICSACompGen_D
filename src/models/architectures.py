@@ -309,15 +309,15 @@ class Predictor(nn.Module):
             nn.ELU(),
             nn.Linear(nhidden, nhidden),
             nn.ELU(),
-            nn.Linear(nhidden, nout),
-            nn.Sigmoid()
+            nn.Linear(nhidden, nout)#,
+            #nn.Sigmoid()
         )
         #self.net = nn.Linear(nin, nout)
         self.norm = nn.LayerNorm(nin)
 
     def forward(self, x):
         B, N, d = x.shape
-        x = self.norm(x)
+        #x = self.norm(x)
         out = self.net(x)
         return out
 

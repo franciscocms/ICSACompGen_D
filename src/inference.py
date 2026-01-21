@@ -96,8 +96,11 @@ def main():
         
         for i, var in enumerate(params["latent_vars"]):            
             logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
+
+            if i == 0: j = 1
+            elif i == 1: j = 0
             
-            r2_score, a_target, a_preds = hungarian_r2_score(noise_preds[:, :, i], targets[:, :, i])
+            r2_score, a_target, a_preds = hungarian_r2_score(noise_preds[:, :, i], targets[:, :, j])
 
             plt.scatter(a_target, a_preds, s=2)
             plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}.png")
