@@ -134,7 +134,6 @@ class InvSlotAttentionGuide(nn.Module):
         #slots = (slots - slots.mean(dim=(0, 1), keepdim=True)) / slots.std(dim=(0, 1), keepdim=True)
         
         # regress attributes from slots to get an aligned version of labels
-        #slots_d = slots.detach()
         preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
 
