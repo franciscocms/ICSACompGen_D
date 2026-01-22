@@ -74,22 +74,20 @@ class InvSlotAttentionGuide(nn.Module):
             raise ValueError(f"{model_name} is not a valid model name!")
 
 
-        self.noise_nets = nn.ModuleDict()
+        
         self.noise_predictors = nn.ModuleDict()
         self.flatt_noise_predictor = nn.ModuleDict()
         for var_name in params["latent_vars"]:
-            self.noise_nets[var_name] = NoiseEncoder(nin = self.slot_dim,
-                                            nh = self.ldim,
-                                            nout = self.ldim,
-                                            slot_dim = self.slot_dim
-                                            )
             self.noise_predictors[var_name] = Predictor(self.ldim,
                                                         self.ldim,
                                                         1)
         
             self.flatt_noise_predictor[var_name] = Predictor(self.L*self.ldim, self.L*self.ldim, 1)
             
-        
+        self.noise_encoder = NoiseEncoder(nin = self.slot_dim,
+                                          nh = self.slot_dim*4,
+                                          nout = self.L*self.ldim
+                                          )
         
         self.causal_decoder = CausalDecoder(nin = self.L*self.ldim,
                                             nout = self.slot_dim
@@ -132,7 +130,7 @@ class InvSlotAttentionGuide(nn.Module):
         else:
             decoder_masks = None
 
-        slots = slots.detach()        
+        slots = slots.detach()
         slots = (slots - slots.mean(dim=(0, 1), keepdim=True)) / slots.std(dim=(0, 1), keepdim=True)
         
         # regress attributes from slots to get an aligned version of labels
@@ -140,17 +138,10 @@ class InvSlotAttentionGuide(nn.Module):
         preds = self.predictor(slots)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
 
-        z_noise, mu_noise, logvar_noise = [], [], []           
-        for var in params["latent_vars"]:
-            #logvars = torch.zeros(B, n_s, self.ldim).to(device)
-            mu, logvars, e = self.noise_nets[var].encode(slots)
-            z_noise.append(e)
-            mu_noise.append(mu)
-            logvar_noise.append(logvars) 
-        z_noise = torch.stack(z_noise).permute(1, 2, 0, 3)            # [B, N, L, d] => 'L' refers to the number of categorical latents
-        mu_noise = torch.stack(mu_noise).permute(1, 2, 0, 3)          # [B, N, L, d]
-        logvar_noise = torch.stack(logvar_noise).permute(1, 2, 0, 3)  # [B, N, L, d]
-        assert z_noise.size(2) == self.L        
+        mu_noise, logvar_noise, z_noise = self.noise_encoder.encode(slots)
+        mu_noise = mu_noise.reshape(mu_noise.size(0), mu_noise.size(1), self.L, self.ldim)
+        logvar_noise = logvar_noise.reshape(logvar_noise.size(0), logvar_noise.size(1), self.L, self.ldim)
+        z_noise = z_noise.reshape(z_noise.size(0), z_noise.size(1), self.L, self.ldim)       
         
         # causal flow forward
         if self.learn_transform == 1:

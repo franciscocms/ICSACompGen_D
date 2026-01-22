@@ -179,11 +179,13 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         return image, figures
     
 class Encoder(nn.Module):
-    def __init__(self, nin, nh, nout, slot_dim):
+    def __init__(self, nin, nh, nout):
         super().__init__()
 
         self.layers = nn.Sequential(
             nn.Linear(nin, nh),
+            nn.ELU(),
+            nn.Linear(nh, nh),
             nn.ELU(),
             nn.Linear(nh, nh),
             nn.ELU()
