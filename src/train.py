@@ -132,9 +132,7 @@ for epoch in range(params["training_epochs"]):
 
   # update coefficients
   TC_coeff = params["TC_coeff"]
-  #alpha = linear_scheduler(epoch, 20, 0., params["alpha"])
-  alpha = params["alpha"]
-  #alpha = (1 - torch.sigmoid(torch.tensor(20 - epoch)*100))*params["alpha"]
+  alpha = 1.
   log_det_coeff = 0.01 # 0.1
   #guide.learn_transform = 0. if epoch < 20 else 1.
   guide.learn_transform = 1.
@@ -164,7 +162,7 @@ for epoch in range(params["training_epochs"]):
 
     #target_logvar = torch.tensor(-4.0).to(DEVICE)
     #prior_logvar_loss = F.mse_loss(logvar_noise, target_logvar.expand_as(logvar_noise))
-    batch_loss += 100*recon_loss + 10*slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss)
+    batch_loss += 100*recon_loss + kl_beta * (10*slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
