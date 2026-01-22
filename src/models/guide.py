@@ -156,6 +156,9 @@ class InvSlotAttentionGuide(nn.Module):
         
         slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
 
+        for param in self.model.decoder.parameters():
+            param.requires_grad = False
+
         causal_img_hat, _ = self.model.decoder(slot_hat)
 
         if params["running_type"] == "train":
@@ -209,6 +212,9 @@ class InvSlotAttentionGuide(nn.Module):
             with torch.no_grad():
                 inf_recon_x, inf_recon_figs = self.model.decoder(slot_hat)
             return all_noise_preds, all_flat_noise_preds, inf_recon_x, inf_recon_figs
+        
+        for param in self.model.decoder.parameters():
+            param.requires_grad = True
         
         return slots, img_hat, causal_img_hat, z_noise, mu_noise, logvar_noise, z_scm, cp, slot_hat, recon_figures, decoder_masks
         
