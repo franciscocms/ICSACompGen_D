@@ -90,6 +90,7 @@ def main():
                 target = target.to(device)
                 
                 batch_noise_preds, batch_flat_noise_preds, inf_recon_x, inf_recon_figs = guide(img, target) # [B, N, L]
+                inf_recon_figs = inf_recon_figs.permute(1, 0, 2, 3, 4)
                 
                 noise_preds = torch.cat((noise_preds, batch_noise_preds), dim=0)
                 flat_noise_preds = torch.cat((flat_noise_preds, batch_flat_noise_preds), dim=0)
