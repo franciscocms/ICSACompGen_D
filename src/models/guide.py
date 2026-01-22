@@ -205,6 +205,7 @@ class InvSlotAttentionGuide(nn.Module):
 
         if params["running_type"] == "eval": 
             with torch.no_grad():
+                slot_hat = self.causal_decoder(torch.flatten(cp, -2))
                 inf_recon_x, inf_recon_figs = self.model.decoder(slot_hat)
             return all_noise_preds, all_flat_noise_preds, inf_recon_x, inf_recon_figs
         
