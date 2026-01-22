@@ -156,6 +156,8 @@ class InvSlotAttentionGuide(nn.Module):
         
         slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
 
+        causal_img_hat, _ = self.model.decoder(slot_hat)
+
         if params["running_type"] == "train":
             if self.epoch % 10 == 0 and self.iter == 0:
                 logger.info(f"\nslots mean: {torch.mean(torch.mean(slots, dim=-1))}")
@@ -205,9 +207,8 @@ class InvSlotAttentionGuide(nn.Module):
 
         if params["running_type"] == "eval": 
             with torch.no_grad():
-                slot_hat = self.causal_decoder(torch.flatten(cp, -2))
                 inf_recon_x, inf_recon_figs = self.model.decoder(slot_hat)
             return all_noise_preds, all_flat_noise_preds, inf_recon_x, inf_recon_figs
         
-        return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, cp, slot_hat, recon_figures, decoder_masks
+        return slots, img_hat, causal_img_hat, z_noise, mu_noise, logvar_noise, z_scm, cp, slot_hat, recon_figures, decoder_masks
         

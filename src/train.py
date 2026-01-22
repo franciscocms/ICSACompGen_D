@@ -156,13 +156,14 @@ for epoch in range(params["training_epochs"]):
     batch_loss = 0.
     optimizer.zero_grad()
   
-    slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, cp, slot_hat, figs, decoder_masks = guide(img, target, step=epoch)
+    slots, img_hat, causal_img_hat, z_noise, mu_noise, logvar_noise, z_scm, cp, slot_hat, figs, decoder_masks = guide(img, target, step=epoch)
     recon_loss = recon_loss_fn(img_hat, img)
+    causal_recon_loss = recon_loss_fn(causal_img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
 
     #target_logvar = torch.tensor(-4.0).to(DEVICE)
     #prior_logvar_loss = F.mse_loss(logvar_noise, target_logvar.expand_as(logvar_noise))
-    batch_loss += 100*recon_loss + kl_beta * (10*slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
+    batch_loss += 100*recon_loss + kl_beta * (100*causal_recon_loss + 10*slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
@@ -278,6 +279,7 @@ for epoch in range(params["training_epochs"]):
 
   dict_to_log = {'train_loss': epoch_train_loss}
   dict_to_log["rec_loss"] = recon_loss
+  dict_to_log["causal_rec_loss"] = causal_recon_loss
   dict_to_log["pred_loss"] = guide.pred_loss
   dict_to_log["slot_rec_loss"] = slot_recon_loss
   dict_to_log["log_det"] = log_det
