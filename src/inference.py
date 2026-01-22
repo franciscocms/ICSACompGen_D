@@ -108,7 +108,7 @@ def main():
             ax[i, 1].imshow(np.transpose(inf_recon_x[i].detach().cpu().numpy(), (1, 2, 0)))
             ax[i, 1].set_title("recon")
             for j in range(params["num_slots"]):
-                ax[i, j+2].imshow(np.transpose(inf_recon_figs[j, 0].detach().cpu().numpy(), (1, 2, 0)))
+                ax[i, j+2].imshow(np.transpose(inf_recon_figs[j, i].detach().cpu().numpy(), (1, 2, 0)))
                 ax[i, j+2].set_title(f"recon {j}")
             for j in range(2 + params["num_slots"]):
                 ax[i, j].grid(False)
