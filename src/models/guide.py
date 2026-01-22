@@ -131,7 +131,7 @@ class InvSlotAttentionGuide(nn.Module):
             decoder_masks = None
 
         slots = slots.detach()
-        slots = (slots - slots.mean(dim=(0, 1), keepdim=True)) / slots.std(dim=(0, 1), keepdim=True)
+        #slots = (slots - slots.mean(dim=(0, 1), keepdim=True)) / slots.std(dim=(0, 1), keepdim=True)
         
         # regress attributes from slots to get an aligned version of labels
         #slots_d = slots.detach()
@@ -206,7 +206,6 @@ class InvSlotAttentionGuide(nn.Module):
 
         if params["running_type"] == "eval": 
             with torch.no_grad():
-                slot_hat = (slot_hat * slots.std(dim=(0, 1), keepdim=True)) + slots.mean(dim=(0, 1), keepdim=True)
                 inf_recon_x, inf_recon_figs = self.model.decoder(slot_hat)
             return all_noise_preds, all_flat_noise_preds, inf_recon_x, inf_recon_figs
         
