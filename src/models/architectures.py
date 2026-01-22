@@ -425,10 +425,10 @@ class PriorMultivariateCausalFlow(nn.Module):
         t0 = self.t_base.expand(B, N, -1)
         z0 = torch.exp(s0)*self.layer_0(u[:, :, 0].unsqueeze(-1)) + t0
 
-        s1 = self.s_cond(z0)
-        t1 = self.t_cond(z0)
-        # s1 = self.s_cond(z[:, :, 0])
-        # t1 = self.t_cond(z[:, :, 0])
+        # s1 = self.s_cond(z0)
+        # t1 = self.t_cond(z0)
+        s1 = self.s_cond(z[:, :, 0])
+        t1 = self.t_cond(z[:, :, 0])
         z1 = torch.exp(s1)*self.layer_1(u[:, :, 1].unsqueeze(-1)) + t1
 
         z = torch.cat((z0.unsqueeze(-2), z1.unsqueeze(-2)), dim=-2)
