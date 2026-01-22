@@ -423,22 +423,22 @@ class PriorMultivariateCausalFlow(nn.Module):
         
         s0 = self.s_base.expand(B, N, -1)
         t0 = self.t_base.expand(B, N, -1)
-        z0 = torch.exp(s0)*self.layer_0(u[:, :, 0].unsqueeze(-1)) + t0
+        cp0 = torch.exp(s0)*self.layer_0(u[:, :, 0].unsqueeze(-1)) + t0
 
         # s1 = self.s_cond(z0)
         # t1 = self.t_cond(z0)
         s1 = self.s_cond(z[:, :, 0])
         t1 = self.t_cond(z[:, :, 0])
-        z1 = torch.exp(s1)*self.layer_1(u[:, :, 1].unsqueeze(-1)) + t1
+        cp1 = torch.exp(s1)*self.layer_1(u[:, :, 1].unsqueeze(-1)) + t1
 
-        z = torch.cat((z0.unsqueeze(-2), z1.unsqueeze(-2)), dim=-2)
+        cp = torch.cat((cp0.unsqueeze(-2), cp1.unsqueeze(-2)), dim=-2)
         ss = torch.cat((s0.unsqueeze(-2), s1.unsqueeze(-2)), dim=-2)
         ts = torch.cat((t0.unsqueeze(-2), t1.unsqueeze(-2)), dim=-2)   
 
         log_det = torch.sum(s0, dim=-1) + torch.sum(s1, dim=-1)
         log_det = torch.mean(log_det)       
 
-        return z
+        return cp
 
 class GaussianMLP(nn.Module):
     def __init__(self, nlayers, hid_act, nin, nout, nh, learn_var):
