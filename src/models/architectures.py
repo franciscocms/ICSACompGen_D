@@ -252,9 +252,9 @@ class Decoder(nn.Module):
         return out
 
 class NoiseEncoder(nn.Module):
-    def __init__(self, nin, nh, nout, slot_dim):
+    def __init__(self, nin, nh, nout):
         super().__init__()
-        self.encoder = Encoder(nin, nh, nout, slot_dim) 
+        self.encoder = Encoder(nin, nh, nout) 
         #self.encoder = IdentityEncoder(nin, nh, nout, slot_dim) 
 
     def encode(self, x):
