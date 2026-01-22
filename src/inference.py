@@ -81,21 +81,39 @@ def main():
 
         noise_preds = torch.tensor([])  
         flat_noise_preds = torch.tensor([])  
-        targets = torch.tensor([])      
+        targets = torch.tensor([])   
+        recon_x = torch.tensor([])
+        recon_figs = torch.tensor([])   
         with torch.no_grad():
             for img, target in dataloader:
                 img = img.to(device)
                 target = target.to(device)
                 
-                batch_noise_preds, batch_flat_noise_preds = guide(img, target) # [B, N, L]
+                batch_noise_preds, batch_flat_noise_preds, inf_recon_x, inf_recon_figs = guide(img, target) # [B, N, L]
                 
                 noise_preds = torch.cat((noise_preds, batch_noise_preds), dim=0)
                 flat_noise_preds = torch.cat((flat_noise_preds, batch_flat_noise_preds), dim=0)
+                # recon_x = torch.cat((recon_x, inf_recon_x), dim=0)
+                # recon_figs = torch.cat((recon_figs, inf_recon_figs), dim=0)
+                targets = torch.cat((targets, target), dim=0)  
 
-                targets = torch.cat((targets, target), dim=0)             
-        
         logger.info(noise_preds.shape)
         logger.info(targets.shape)
+
+        fig, ax = plt.subplots(5, 2 + params["num_slots"])
+        for i in range(5):
+            ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))
+            ax[i, 0].set_title("img")
+            ax[i, 1].imshow(np.transpose(inf_recon_x[i].detach().cpu().numpy(), (1, 2, 0)))
+            ax[i, 1].set_title("recon")
+            for j in range(params["num_slots"]):
+                ax[i, j+2].imshow(np.transpose(inf_recon_figs[j, 0].detach().cpu().numpy(), (1, 2, 0)))
+                ax[i, j+2].set_title(f"recon {j}")
+            for j in range(2 + params["num_slots"]):
+                ax[i, j].grid(False)
+                ax[i, j].axis('off')   
+        plt.savefig(f"{params['check_attn_folder']}/img_recon.png")
+        plt.close()  
         
         for i, var in enumerate(params["latent_vars"]):            
             logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")

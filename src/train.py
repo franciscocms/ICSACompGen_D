@@ -193,10 +193,6 @@ for epoch in range(params["training_epochs"]):
     cp_v = torch.ones_like(cp).to(DEVICE)
     prior_log_z = 0.
     for i in range(L):
-      # prior_kl += compute_kl_gaussians(z_scm[:, :, i, :],
-      #                                 cp_v[:, :, i, :],
-      #                                 cp[:, :, i, :],
-      #                                 cp_v[:, :, i, :])
       prior_log_z += log_normal(z_scm[:, :, i],
                                 cp[:, :, i],
                                 cp_v[:, :, i]).sum(-1)

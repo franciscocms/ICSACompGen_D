@@ -204,7 +204,10 @@ class InvSlotAttentionGuide(nn.Module):
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
         self.flatt_noise_pred_loss = torch.stack(self.flatt_noise_pred_loss)
 
-        if params["running_type"] == "eval": return all_noise_preds, all_flat_noise_preds
+        if params["running_type"] == "eval": 
+            with torch.no_grad():
+                inf_recon_x, inf_recon_figs = self.model.decoder(slot_hat)
+            return all_noise_preds, all_flat_noise_preds, inf_recon_x, inf_recon_figs
         
         return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, cp, slot_hat, recon_figures, decoder_masks
         
