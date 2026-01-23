@@ -93,7 +93,8 @@ class MyDataset(Dataset):
         self.target_path = os.path.join(self.dataset_path, "metadata_OOD")
          
       self.nscenes = len(glob.glob(os.path.join(self.img_path, "*.png")))
-      self.transform = transforms.Compose([transforms.ToTensor()])
+      self.transform = transforms.Compose([transforms.ToTensor(),
+                                           transforms.GaussianBlur(3, (0.5, 0.5))])
 
       logger.info(f"\ndataset length: {self.nscenes}\n")
 
