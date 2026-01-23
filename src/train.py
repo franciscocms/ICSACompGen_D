@@ -134,7 +134,7 @@ for epoch in range(params["training_epochs"]):
   TC_coeff = params["TC_coeff"]
   alpha = 1.
   log_det_coeff = 0.01 # 0.1
-  #guide.learn_transform = 0. if epoch < 20 else 1.
+  kl_coeff = 0.01
   guide.learn_transform = 1.
 
   kl_beta = beta_scheduler.get_beta()
@@ -198,7 +198,7 @@ for epoch in range(params["training_epochs"]):
     prior_log_z = torch.mean(prior_log_z)
 
     log_det = guide.log_det
-    batch_loss += kl_beta * (0.1*kl_noise - log_det_coeff*log_det - 0.1*prior_log_z)
+    batch_loss += kl_beta * (kl_coeff*kl_noise - log_det_coeff*log_det - 0.1*prior_log_z)
     
     batch_loss.backward()
     optimizer.step()
@@ -288,6 +288,7 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["z_log_prior"] = prior_log_z
   dict_to_log["alpha"] = alpha
   dict_to_log["beta"] = kl_beta
+  dict_to_log["kl_coeff"] = kl_coeff
 
   #dict_to_log["logvar_loss"] = prior_logvar_loss
   
