@@ -18,16 +18,14 @@ def compute_matching_cost(preds, labels):
   B = preds.size(0)
   assert preds.shape == labels.shape, f"{preds.shape} is different from {labels.shape}"
   
-  preds = preds.unsqueeze(2)
-  labels_u = labels.unsqueeze(1)
-  
-  # Cost is MSE across all L causal factors
-  # Result: [B, N, N]
-  
-  if len(preds.shape) == 4: # [B, N, 1, L]
-    cost_matrix = torch.sum((preds - labels_u)**2, dim=-1)
-  elif len(preds.shape) == 3: # [B, N, 1]
-    cost_matrix = torch.square(preds - labels_u)
+  if len(preds.shape) == 3: # [B, N, L]
+    #cost_matrix = torch.sum((preds - labels_u)**2, dim=-1)
+    cost_matrix = F.smooth_l1_loss(preds.unsqueeze(1).expand(-1, labels.size(1), -1, -1),
+                               labels.unsqueeze(2).expand(-1, -1, preds.size(1), -1), reduction="none").mean(-1)
+
+  elif len(preds.shape) == 2: # [B, N]
+    cost_matrix = F.smooth_l1_loss(preds.unsqueeze(1).expand(-1, labels.size(1), -1),
+                               labels.unsqueeze(2).expand(-1, -1, preds.size(1)), reduction="none")
   cost_matrix_ = cost_matrix.detach().cpu().numpy()
   
   indices = np.array([linear_sum_assignment(p) for p in cost_matrix_])
