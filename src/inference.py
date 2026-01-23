@@ -89,7 +89,7 @@ def main():
                 img = img.to(device)
                 target = target.to(device)
                 
-                batch_noise_preds, batch_flat_noise_preds, inf_recon_x, inf_recon_figs = guide(img, target) # [B, N, L]
+                batch_noise_preds, batch_flat_noise_preds, inf_recon_x, inf_recon_figs, img_hat, recon_figures = guide(img, target) # [B, N, L]
                 inf_recon_figs = inf_recon_figs.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
                 
                 noise_preds = torch.cat((noise_preds, batch_noise_preds), dim=0)
@@ -101,16 +101,24 @@ def main():
         logger.info(noise_preds.shape)
         logger.info(targets.shape)
 
-        fig, ax = plt.subplots(5, 2 + params["num_slots"])
+        fig, ax = plt.subplots(5, 3 + 2*params["num_slots"])
         for i in range(5):
             ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))
-            ax[i, 0].set_title("img")
-            ax[i, 1].imshow(np.transpose(inf_recon_x[i].detach().cpu().numpy(), (1, 2, 0)))
-            ax[i, 1].set_title("recon")
+            if i == 0: ax[i, 0].set_title("img")
+            ax[i, 1].imshow(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
+            if i == 0: ax[i, 1].set_title("img_hat")
+            ax[i, 2].imshow(np.transpose(inf_recon_x[i].detach().cpu().numpy(), (1, 2, 0)))
+            if i == 0: ax[i, 2].set_title("c_img_hat")
+
             for j in range(params["num_slots"]):
-                ax[i, j+2].imshow(np.transpose(inf_recon_figs[j, i].detach().cpu().numpy(), (1, 2, 0)))
-                ax[i, j+2].set_title(f"recon {j}")
-            for j in range(2 + params["num_slots"]):
+                ax[i, j+3].imshow(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)))
+                if i == 0: ax[i, j+3].set_title(f"figs {j}")
+            
+            for j in range(params["num_slots"]):
+                ax[i, j+5].imshow(np.transpose(inf_recon_figs[j, i].detach().cpu().numpy(), (1, 2, 0)))
+                if i == 0: ax[i, j+5].set_title(f"c_figs {j}")
+            
+            for j in range(3 + 2*params["num_slots"]):
                 ax[i, j].grid(False)
                 ax[i, j].axis('off')   
         plt.savefig(f"{params['check_attn_folder']}/img_recon.png")

@@ -209,7 +209,7 @@ class InvSlotAttentionGuide(nn.Module):
         self.flatt_noise_pred_loss = torch.stack(self.flatt_noise_pred_loss)
 
         if params["running_type"] == "eval": 
-            return all_noise_preds, all_flat_noise_preds, causal_img_hat, inf_recon_figs
+            return all_noise_preds, all_flat_noise_preds, causal_img_hat, inf_recon_figs, img_hat, recon_figures
         
         if params["running_type"] == "train":
             for param in self.model.decoder.parameters():
