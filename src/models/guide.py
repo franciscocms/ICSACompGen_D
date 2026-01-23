@@ -159,7 +159,7 @@ class InvSlotAttentionGuide(nn.Module):
         for param in self.model.decoder.parameters():
             param.requires_grad = False
 
-        causal_img_hat, _ = self.model.decoder(slot_hat)
+        causal_img_hat, inf_recon_figs = self.model.decoder(slot_hat)
 
         if params["running_type"] == "train":
             if self.epoch % 10 == 0 and self.iter == 0:
@@ -209,12 +209,11 @@ class InvSlotAttentionGuide(nn.Module):
         self.flatt_noise_pred_loss = torch.stack(self.flatt_noise_pred_loss)
 
         if params["running_type"] == "eval": 
-            with torch.no_grad():
-                inf_recon_x, inf_recon_figs = self.model.decoder(slot_hat)
-            return all_noise_preds, all_flat_noise_preds, inf_recon_x, inf_recon_figs
+            return all_noise_preds, all_flat_noise_preds, causal_img_hat, inf_recon_figs
         
-        for param in self.model.decoder.parameters():
-            param.requires_grad = True
+        if params["running_type"] == "train":
+            for param in self.model.decoder.parameters():
+                param.requires_grad = True
         
         return slots, img_hat, causal_img_hat, z_noise, mu_noise, logvar_noise, z_scm, cp, slot_hat, recon_figures, decoder_masks
         
