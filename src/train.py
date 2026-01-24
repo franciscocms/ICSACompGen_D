@@ -134,7 +134,7 @@ for epoch in range(params["training_epochs"]):
   TC_coeff = params["TC_coeff"]
   alpha = 1.
   log_det_coeff = 0.01 # 0.1
-  kl_coeff = 0.01
+  kl_coeff = 0.5
   guide.learn_transform = 1.
 
   kl_beta = beta_scheduler.get_beta()
