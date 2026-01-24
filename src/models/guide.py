@@ -154,26 +154,25 @@ class InvSlotAttentionGuide(nn.Module):
         # compute the causally disentangled prior p(z|u) to push z representations
         cp = self.prior(aligned_u_m, z_scm)        
         
-        slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
-
+        #slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
         for param in self.model.decoder.parameters():
             param.requires_grad = False
-
-        causal_img_hat, inf_recon_figs = self.model.decoder(slot_hat)
+        #causal_img_hat, inf_recon_figs = self.model.decoder(slot_hat)
+        causal_img_hat, inf_recon_figs = self.model.decoder(torch.flatten(z_scm, -2))
 
         if params["running_type"] == "train":
             if self.epoch % 10 == 0 and self.iter == 0:
-                logger.info(f"\nslots mean: {torch.mean(torch.mean(slots, dim=-1))}")
-                logger.info(f"slot hat mean: {torch.mean(torch.mean(slot_hat, dim=-1))}")
+                # logger.info(f"\nslots mean: {torch.mean(torch.mean(slots, dim=-1))}")
+                # logger.info(f"slot hat mean: {torch.mean(torch.mean(slot_hat, dim=-1))}")
 
-                logger.info(f"\nslots std: {torch.mean(torch.std(slots, dim=-1))}")
-                logger.info(f"slot hat std: {torch.mean(torch.std(slot_hat, dim=-1))}")
+                # logger.info(f"\nslots std: {torch.mean(torch.std(slots, dim=-1))}")
+                # logger.info(f"slot hat std: {torch.mean(torch.std(slot_hat, dim=-1))}")
                 
-                logger.info(f"\nslots min: {torch.mean(torch.amin(slots, dim=-1))}")
-                logger.info(f"slot hat min: {torch.mean(torch.amin(slot_hat, dim=-1))}")
+                # logger.info(f"\nslots min: {torch.mean(torch.amin(slots, dim=-1))}")
+                # logger.info(f"slot hat min: {torch.mean(torch.amin(slot_hat, dim=-1))}")
 
-                logger.info(f"\nslots max: {torch.mean(torch.amax(slots, dim=-1))}")
-                logger.info(f"slot hat max: {torch.mean(torch.amax(slot_hat, dim=-1))}") 
+                # logger.info(f"\nslots max: {torch.mean(torch.amax(slots, dim=-1))}")
+                # logger.info(f"slot hat max: {torch.mean(torch.amax(slot_hat, dim=-1))}") 
 
                 logger.info(f"\nz mean: {torch.mean(z_scm, dim=(0, 1, 3))}")
                 logger.info(f"\nz prior mean: {torch.mean(cp, dim=(0, 1, 3))}")
@@ -215,5 +214,6 @@ class InvSlotAttentionGuide(nn.Module):
             for param in self.model.decoder.parameters():
                 param.requires_grad = True
         
-        return slots, img_hat, causal_img_hat, z_noise, mu_noise, logvar_noise, z_scm, cp, slot_hat, recon_figures, decoder_masks
+        #return slots, img_hat, causal_img_hat, z_noise, mu_noise, logvar_noise, z_scm, cp, slot_hat, recon_figures, decoder_masks
+        return slots, img_hat, causal_img_hat, z_noise, mu_noise, logvar_noise, z_scm, cp, recon_figures, decoder_masks
         
