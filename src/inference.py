@@ -128,8 +128,8 @@ def main():
         for i, var in enumerate(params["latent_vars"]):            
             logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
             
-            r2_score, a_target, a_preds = hungarian_r2_score(noise_preds[:, :, i], targets[:, :, i])
-            #r2_score, a_target, a_preds = hungarian_r2_score(flat_noise_preds[:, :, i], targets[:, :, i])
+            #r2_score, a_target, a_preds = hungarian_r2_score(noise_preds[:, :, i], targets[:, :, i])
+            r2_score, a_target, a_preds = hungarian_r2_score(flat_noise_preds[:, :, i], targets[:, :, i])
 
             plt.scatter(a_target, a_preds, s=2)
             plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}.png")
