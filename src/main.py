@@ -36,7 +36,7 @@ params = {
     "running_type": "eval", # train, debug, eval, inspect
     "epoch_to_load" : 290, 
     "ood_eval": False,
-    "TC_minimization": False, # usually True
+    "TC_minimization": True, # usually True
     "alpha": 1., # usually 1.
     "beta": 1., 
     "TC_coeff": 1000., # usually 10
