@@ -156,14 +156,14 @@ for epoch in range(params["training_epochs"]):
     batch_loss = 0.
     optimizer.zero_grad()
   
-    #slots, img_hat, causal_img_hat, z_noise, mu_noise, logvar_noise, z_scm, cp, slot_hat, figs, decoder_masks = guide(img, target, step=epoch)
-    slots, img_hat, causal_img_hat, z_noise, mu_noise, logvar_noise, z_scm, cp, figs, decoder_masks = guide(img, target, step=epoch)
+    slots, img_hat, causal_img_hat, causal_recon_figs, z_noise, mu_noise, logvar_noise, z_scm, cp, slot_hat, figs, decoder_masks = guide(img, target, step=epoch)
     recon_loss = recon_loss_fn(img_hat, img)
     causal_recon_loss = recon_loss_fn(causal_img_hat, img)
-    #slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
+    slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
 
-    #batch_loss += 100*recon_loss + kl_beta * (100*causal_recon_loss + 10*slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
-    batch_loss += 100*recon_loss + kl_beta * (100*causal_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
+    #target_logvar = torch.tensor(-4.0).to(DEVICE)
+    #prior_logvar_loss = F.mse_loss(logvar_noise, target_logvar.expand_as(logvar_noise))
+    batch_loss += 100*recon_loss + kl_beta * (100*causal_recon_loss + 10*slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
@@ -255,17 +255,26 @@ for epoch in range(params["training_epochs"]):
     
     elif guide.model_name == "additiveAE":
       if (epoch % epoch_step == 0 or epoch == 0) and not printed:
-        fig, ax = plt.subplots(1, 2 + params["num_slots"])
-        ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
-        ax[0].set_title("img")
-        ax[1].imshow(np.transpose(img_hat[0].detach().cpu().numpy(), (1, 2, 0)))
-        ax[1].set_title("recon")
-        for j in range(params["num_slots"]):
-          ax[j+2].imshow(np.transpose(figs[j, 0].detach().cpu().numpy(), (1, 2, 0)))
-          ax[j+2].set_title(f"recon {j}")
-        for j in range(2 + params["num_slots"]):
-          ax[j].grid(False)
-          ax[j].axis('off')   
+        fig, ax = plt.subplots(5, 3 + 2*params["num_slots"])
+        for i in range(5):
+            ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))
+            if i == 0: ax[i, 0].set_title("img")
+            ax[i, 1].imshow(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
+            if i == 0: ax[i, 1].set_title("img_hat")
+            ax[i, 2].imshow(np.transpose(causal_img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
+            if i == 0: ax[i, 2].set_title("c_img_hat")
+
+            for j in range(params["num_slots"]):
+                ax[i, j+3].imshow(np.transpose(figs[j, i].detach().cpu().numpy(), (1, 2, 0)))
+                if i == 0: ax[i, j+3].set_title(f"figs {j}")
+            
+            for j in range(params["num_slots"]):
+                ax[i, j+5].imshow(np.transpose(causal_recon_figs[j, i].detach().cpu().numpy(), (1, 2, 0)))
+                if i == 0: ax[i, j+5].set_title(f"c_figs {j}")
+            
+            for j in range(3 + 2*params["num_slots"]):
+                ax[i, j].grid(False)
+                ax[i, j].axis('off')
         plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
         plt.close()   
 
@@ -281,7 +290,7 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["rec_loss"] = recon_loss
   dict_to_log["causal_rec_loss"] = causal_recon_loss
   dict_to_log["pred_loss"] = guide.pred_loss
-  #dict_to_log["slot_rec_loss"] = slot_recon_loss
+  dict_to_log["slot_rec_loss"] = slot_recon_loss
   dict_to_log["log_det"] = log_det
   dict_to_log["log_det_coeff"] = log_det_coeff
   dict_to_log["kl_noise"] = kl_noise
