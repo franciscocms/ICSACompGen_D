@@ -161,9 +161,6 @@ for epoch in range(params["training_epochs"]):
     causal_recon_loss = recon_loss_fn(causal_img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
 
-    logger.info(figs.shape)
-    logger.info(causal_recon_figs.shape)
-
     #target_logvar = torch.tensor(-4.0).to(DEVICE)
     #prior_logvar_loss = F.mse_loss(logvar_noise, target_logvar.expand_as(logvar_noise))
     batch_loss += 100*recon_loss + kl_beta * (100*causal_recon_loss + 10*slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
@@ -257,6 +254,9 @@ for epoch in range(params["training_epochs"]):
         plt.close()
     
     elif guide.model_name == "additiveAE":
+      
+      causal_recon_figs = causal_recon_figs.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
+      
       if (epoch % epoch_step == 0 or epoch == 0) and not printed:
         
         fig, ax = plt.subplots(5, 3 + 2*params["num_slots"])
