@@ -110,7 +110,6 @@ class InvSlotAttentionGuide(nn.Module):
         if params["TC_minimization"]: self.tc_discriminator = TCDiscriminator(self.L*self.ldim, self.L*self.ldim*4)
         self.epoch = 0
         self.iter = 0
-        self.learn_transform = 0.
         
     
     def forward(self, img, labels, step=0):
@@ -131,9 +130,6 @@ class InvSlotAttentionGuide(nn.Module):
             decoder_masks = None
 
         slots = slots.detach()
-        # slots_mean = slots.mean(dim=(0, 1), keepdim=True)
-        # slots_std = slots.std(dim=(0, 1), keepdim=True)
-        # slots = (slots - slots_mean) / slots_std
         
         # regress attributes from slots to get an aligned version of labels
         preds = self.predictor(slots)
@@ -145,13 +141,9 @@ class InvSlotAttentionGuide(nn.Module):
         z_noise = z_noise.reshape(z_noise.size(0), z_noise.size(1), self.L, self.ldim)       
         
         # causal flow forward
-        if self.learn_transform == 1:
-            z_scm, ss, ts, log_det = self.causal_flow(z_noise)
-            self.ss, self.ts, self.log_det = ss, ts, log_det
-        else:
-            z_scm = z_noise 
-            self.ss, self.ts = torch.zeros(B, n_s, self.L, self.ldim), torch.zeros(B, n_s, self.L, self.ldim)
-            self.log_det = 0.
+        z_scm, ss, ts, log_det = self.causal_flow(z_noise)
+        self.ss, self.ts, self.log_det = ss, ts, log_det
+        
         
         # compute the causally disentangled prior p(z|u) to push z representations
         cp = self.prior(aligned_u_m, z_scm)        
