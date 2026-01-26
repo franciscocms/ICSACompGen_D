@@ -170,11 +170,14 @@ for epoch in range(params["training_epochs"]):
     
     # noise prior: isotropic Gaussian
     kl_noise = 0.
-    mu_noise = mu_noise.reshape(B*params["num_slots"], L*ldim)
-    mu_prior_noise = torch.zeros_like(mu_noise).to(DEVICE)
-    logvar_noise = logvar_noise.reshape(B*params["num_slots"], L*ldim)
-    logvar_prior_noise = torch.ones_like(logvar_noise).to(DEVICE)
-    kl_noise += compute_kl_gaussians(mu_noise, logvar_noise, mu_prior_noise, logvar_prior_noise)
+    # mu_noise = mu_noise.reshape(B*params["num_slots"], L*ldim)
+    # mu_prior_noise = torch.zeros_like(mu_noise).to(DEVICE)
+    # logvar_noise = logvar_noise.reshape(B*params["num_slots"], L*ldim)
+    # logvar_prior_noise = torch.ones_like(logvar_noise).to(DEVICE)
+    
+    for i in range(L):
+      kl_noise += compute_kl_gaussians(mu_noise[:, :, i], logvar_noise[:, :, i], 
+                                       guide.mu_noise_prior[:, :, i], guide.logvar_noise_prior[:, :, i])
     
     if params["TC_minimization"]:
       disc_input = torch.flatten(z_noise, -2)

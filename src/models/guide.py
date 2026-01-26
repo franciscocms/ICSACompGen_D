@@ -96,9 +96,9 @@ class InvSlotAttentionGuide(nn.Module):
         self.causal_flow = MultivariateCausalFlow(self.L,
                                                   self.ldim,
                                                   self.A)
-        # self.prior = ConditionalGaussianPrior(self.L,
-        #                                       self.ldim,
-        #                                       learn_var=True)
+        self.noise_prior = ConditionalGaussianPrior(self.L,
+                                                    self.ldim,
+                                                    learn_var=True)
         
         self.prior = PriorMultivariateCausalFlow(self.ldim)
 
@@ -143,8 +143,9 @@ class InvSlotAttentionGuide(nn.Module):
         # causal flow forward
         z_scm, ss, ts, log_det = self.causal_flow(z_noise)
         self.ss, self.ts, self.log_det = ss, ts, log_det
-        
-        
+
+        self.mu_noise_prior, self.logvar_noise_prior = self.noise_prior(aligned_u_m)
+
         # compute the causally disentangled prior p(z|u) to push z representations
         cp = self.prior(aligned_u_m, z_scm)        
         
