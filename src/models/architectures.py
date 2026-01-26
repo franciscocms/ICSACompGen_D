@@ -457,11 +457,10 @@ class GaussianMLP(nn.Module):
         if learn_var: self.logvar = nn.Linear(nin, nout)
 
     def forward(self, x):
-        #x = self.net(x)
-        if self.learn_var:
-            return self.mean(x), self.logvar(x)
-        else:
-            return self.mean(x)    
+        mean = self.mean(x)
+        if self.learn_var: logvar = self.logvar(x)
+        else: logvar = torch.ones_like(mean)
+        return mean, logvar
         
 class ConditionalGaussianPrior(nn.Module):
     def __init__(self, L, ldim, learn_var=False):
