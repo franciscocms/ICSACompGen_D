@@ -200,7 +200,8 @@ for epoch in range(params["training_epochs"]):
     prior_log_z = torch.mean(prior_log_z)
 
     log_det = guide.log_det
-    batch_loss += kl_beta * (kl_coeff*kl_noise - log_det_coeff*log_det - 0.1*prior_log_z)
+    #batch_loss += kl_beta * (kl_coeff*kl_noise - log_det_coeff*log_det - 0.1*prior_log_z)
+    batch_loss += kl_beta * (kl_coeff*kl_noise - log_det_coeff*log_det)
     
     batch_loss.backward()
     optimizer.step()
