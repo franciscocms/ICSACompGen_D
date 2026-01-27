@@ -15,8 +15,8 @@ sys.path.insert(0, '..') # add parent dir
 from models.guide import InvSlotAttentionGuide
 from main import params
 from utils.guide import permute_dims, linear_scheduler, exp_scheduler
-from utils.loss import compute_log_det, compute_kl_gaussians
-from utils.train import BetaScheduler, log_normal
+from utils.loss import compute_log_det, compute_kl_gaussians, log_normal
+from utils.train import BetaScheduler
 from datasets.data_utils import MyDataset
 
 import wandb # type: ignore
@@ -179,7 +179,7 @@ for epoch in range(params["training_epochs"]):
     for i in range(L):
       # kl_noise += compute_kl_gaussians(mu_noise[:, :, i], logvar_noise[:, :, i], 
       #                                  guide.mu_noise_prior[:, :, i], guide.logvar_noise_prior[:, :, i])
-      log_e += torch.mean(log_normal(z_noise[:, :, i], guide.mu_noise_prior[:, :, i], guide.logvar_noise_prior[:, :, i]).sum(-1))
+      log_e += torch.mean(log_normal(z_noise[:, :, i], guide.mu_noise_prior[:, :, i], torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
     
     
     if params["TC_minimization"]:
