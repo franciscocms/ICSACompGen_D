@@ -169,16 +169,17 @@ for epoch in range(params["training_epochs"]):
         os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
     
     # noise prior: isotropic Gaussian
-    kl_noise = 0.
+    #kl_noise = 0.
     # mu_noise = mu_noise.reshape(B*params["num_slots"], L*ldim)
     # mu_prior_noise = torch.zeros_like(mu_noise).to(DEVICE)
     # logvar_noise = logvar_noise.reshape(B*params["num_slots"], L*ldim)
     # logvar_prior_noise = torch.ones_like(logvar_noise).to(DEVICE)
     
+    log_e = 0.
     for i in range(L):
       # kl_noise += compute_kl_gaussians(mu_noise[:, :, i], logvar_noise[:, :, i], 
       #                                  guide.mu_noise_prior[:, :, i], guide.logvar_noise_prior[:, :, i])
-      kl_noise += torch.mean(log_normal(z_noise[:, :, i], guide.mu_noise_prior[:, :, i], guide.logvar_noise_prior[:, :, i]).sum(-1))
+      log_e += torch.mean(log_normal(z_noise[:, :, i], guide.mu_noise_prior[:, :, i], guide.logvar_noise_prior[:, :, i]).sum(-1))
     
     
     if params["TC_minimization"]:
@@ -203,7 +204,7 @@ for epoch in range(params["training_epochs"]):
 
     log_det = guide.log_det
     #batch_loss += kl_beta * (kl_coeff*kl_noise - log_det_coeff*log_det - 0.1*prior_log_z)
-    batch_loss += kl_beta * (kl_coeff*kl_noise - log_det_coeff*log_det)
+    batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det)
     
     batch_loss.backward()
     optimizer.step()
@@ -303,7 +304,8 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["slot_rec_loss"] = slot_recon_loss
   dict_to_log["log_det"] = log_det
   dict_to_log["log_det_coeff"] = log_det_coeff
-  dict_to_log["kl_noise"] = kl_noise
+  #dict_to_log["kl_noise"] = kl_noise
+  dict_to_log["log_e"] = log_e
   #dict_to_log["z_log_prior"] = prior_log_z
   dict_to_log["alpha"] = alpha
   dict_to_log["beta"] = kl_beta
