@@ -155,7 +155,7 @@ for epoch in range(params["training_epochs"]):
     batch_loss = 0.
     optimizer.zero_grad()
   
-    slots, img_hat, causal_img_hat, causal_recon_figs, z_noise, mu_noise, logvar_noise, z_scm, cp, slot_hat, figs, decoder_masks = guide(img, target, step=epoch)
+    slots, img_hat, causal_img_hat, causal_recon_figs, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, figs, decoder_masks = guide(img, target, step=epoch)
     recon_loss = recon_loss_fn(img_hat, img)
     causal_recon_loss = recon_loss_fn(causal_img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
@@ -176,8 +176,10 @@ for epoch in range(params["training_epochs"]):
     # logvar_prior_noise = torch.ones_like(logvar_noise).to(DEVICE)
     
     for i in range(L):
-      kl_noise += compute_kl_gaussians(mu_noise[:, :, i], logvar_noise[:, :, i], 
-                                       guide.mu_noise_prior[:, :, i], guide.logvar_noise_prior[:, :, i])
+      # kl_noise += compute_kl_gaussians(mu_noise[:, :, i], logvar_noise[:, :, i], 
+      #                                  guide.mu_noise_prior[:, :, i], guide.logvar_noise_prior[:, :, i])
+      kl_noise += log_normal(z_noise[:, :, i], guide.mu_noise_prior[:, :, i], guide.logvar_noise_prior[:, :, i])
+    
     
     if params["TC_minimization"]:
       disc_input = torch.flatten(z_noise, -2)
@@ -191,13 +193,13 @@ for epoch in range(params["training_epochs"]):
     else:
       tc_loss = torch.tensor(0.)
 
-    cp_v = torch.ones_like(cp).to(DEVICE)
-    prior_log_z = 0.
-    for i in range(L):
-      prior_log_z += log_normal(z_scm[:, :, i],
-                                cp[:, :, i],
-                                cp_v[:, :, i]).sum(-1)
-    prior_log_z = torch.mean(prior_log_z)
+    # cp_v = torch.ones_like(cp).to(DEVICE)
+    # prior_log_z = 0.
+    # for i in range(L):
+    #   prior_log_z += log_normal(z_scm[:, :, i],
+    #                             cp[:, :, i],
+    #                             cp_v[:, :, i]).sum(-1)
+    # prior_log_z = torch.mean(prior_log_z)
 
     log_det = guide.log_det
     #batch_loss += kl_beta * (kl_coeff*kl_noise - log_det_coeff*log_det - 0.1*prior_log_z)
@@ -302,7 +304,7 @@ for epoch in range(params["training_epochs"]):
   dict_to_log["log_det"] = log_det
   dict_to_log["log_det_coeff"] = log_det_coeff
   dict_to_log["kl_noise"] = kl_noise
-  dict_to_log["z_log_prior"] = prior_log_z
+  #dict_to_log["z_log_prior"] = prior_log_z
   dict_to_log["alpha"] = alpha
   dict_to_log["beta"] = kl_beta
   dict_to_log["kl_coeff"] = kl_coeff
