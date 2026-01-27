@@ -178,7 +178,7 @@ for epoch in range(params["training_epochs"]):
     for i in range(L):
       # kl_noise += compute_kl_gaussians(mu_noise[:, :, i], logvar_noise[:, :, i], 
       #                                  guide.mu_noise_prior[:, :, i], guide.logvar_noise_prior[:, :, i])
-      kl_noise += log_normal(z_noise[:, :, i], guide.mu_noise_prior[:, :, i], guide.logvar_noise_prior[:, :, i])
+      kl_noise += torch.mean(log_normal(z_noise[:, :, i], guide.mu_noise_prior[:, :, i], guide.logvar_noise_prior[:, :, i]).sum(-1))
     
     
     if params["TC_minimization"]:
