@@ -361,16 +361,23 @@ class MultivariateCausalFlow(nn.Module):
         self.t_cond = MLP(ldim, ldim, ldim*4)
         
 
-    def forward(self, eps):        
+    def forward(self, eps, epoch):        
         
         B, N, _, _ = eps.shape
         
         s0 = self.s_base.expand(B, N, -1)
         t0 = self.t_base.expand(B, N, -1)
         z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
-        s1 = self.s_cond(z0)
-        t1 = self.t_cond(z0)
-        z1 = torch.exp(s1)*eps[:, :, 1, :] + t1
+        
+        flag = torch.distributions.Bernoulli(0.3).sample()
+        if epoch >= 100 and flag:
+            z1 = torch.randn_like(z0).to(device)
+            s1 = torch.zeros_like(s0).to(device)
+            t1 = torch.zeros_like(t0).to(device)
+        else:
+            s1 = self.s_cond(z0)
+            t1 = self.t_cond(z0)
+            z1 = torch.exp(s1)*eps[:, :, 1, :] + t1
 
         z = torch.cat((z0.unsqueeze(-2), z1.unsqueeze(-2)), dim=-2)
         ss = torch.cat((s0.unsqueeze(-2), s1.unsqueeze(-2)), dim=-2)
