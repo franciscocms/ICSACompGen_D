@@ -459,7 +459,7 @@ class GaussianMLP(nn.Module):
     def forward(self, x):
         mean = self.mean(x)
         if self.learn_var: logvar = self.logvar(x)
-        else: logvar = torch.ones_like(mean)
+        else: logvar = torch.zeros_like(mean)
         return mean, logvar
         
 class ConditionalGaussianPrior(nn.Module):
@@ -475,17 +475,12 @@ class ConditionalGaussianPrior(nn.Module):
         means, logvars = [], []
         for i in range(self.L):
             out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
-            if isinstance(out, tuple):
-                means.append(out[0])   
-                logvars.append(out[1]) 
-            else:
-                means.append(out)       
+            assert isinstance(out, tuple)
+            means.append(out[0])   
+            logvars.append(out[1])       
         means = torch.stack(means, -2)
-        if len(logvars) > 0:
-            logvars = torch.stack(logvars, -2)
-            return means, logvars
-        else:
-            return means
+        logvars = torch.stack(logvars, -2)
+        return means, logvars
 
 class TCDiscriminator(nn.Module):
     def __init__(self, input_dim, hidden_dim=128):
