@@ -364,17 +364,35 @@ class MultivariateCausalFlow(nn.Module):
     def forward(self, eps, epoch):        
         
         B, N, _, _ = eps.shape
-        
-        s0 = self.s_base.expand(B, N, -1)
-        t0 = self.t_base.expand(B, N, -1)
-        z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
-        
-        flag = torch.distributions.Bernoulli(0.3).sample()
+
+        flag = torch.distributions.Bernoulli(0.25).sample() # if we have interventional regime
         if epoch >= 100 and flag:
-            z1 = torch.randn_like(z0).to(device)
-            s1 = torch.zeros_like(s0).to(device)
-            t1 = torch.zeros_like(t0).to(device)
+            int_var = torch.distributions.Bernoulli(0.5).sample()
+            if int_var == 0:
+
+                s0 = torch.zeros_like(eps[:, :, 0, :]).to(device)
+                t0 = torch.zeros_like(eps[:, :, 0, :]).to(device)
+                z0 = torch.randn_like(eps[:, :, 0, :]).to(device)
+
+                s1 = self.s_cond(z0)
+                t1 = self.t_cond(z0)
+                z1 = torch.exp(s1)*eps[:, :, 1, :] + t1
+
+            else:
+        
+                s0 = self.s_base.expand(B, N, -1)
+                t0 = self.t_base.expand(B, N, -1)
+                z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
+        
+                z1 = torch.randn_like(z0).to(device)
+                s1 = torch.zeros_like(s0).to(device)
+                t1 = torch.zeros_like(t0).to(device)
         else:
+
+            s0 = self.s_base.expand(B, N, -1)
+            t0 = self.t_base.expand(B, N, -1)
+            z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
+
             s1 = self.s_cond(z0)
             t1 = self.t_cond(z0)
             z1 = torch.exp(s1)*eps[:, :, 1, :] + t1
