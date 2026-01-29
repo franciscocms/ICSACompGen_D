@@ -55,7 +55,7 @@ def sample_adjacency_matrix(params):
   return A
 
 
-def generate_scene(params, scene_id=0, A=None, train_set=True):
+def generate_scene(params, scene_id=0, A=None, train_set=True, ood=False):
 
   assert A != None
   
@@ -86,7 +86,7 @@ def generate_scene(params, scene_id=0, A=None, train_set=True):
           if len(parent) == 1:
             norm_parent = norm(object_attributes[parent], params["factor_ranges"][params["latent_vars"][parent]][0], params["factor_ranges"][params["latent_vars"][parent]][1])
             
-            if train_set or not params["ood_eval"]:
+            if train_set or not ood:
               sampled_value, _, _ = sample_identifiable_bounded_(norm_parent)
             else:
               sampled_value = sample_ood(norm_parent, params["factor_ranges"][factor])
@@ -122,7 +122,7 @@ def generate_scene(params, scene_id=0, A=None, train_set=True):
   return img, scene_dict
 
 
-def create_dirs(params, stage):
+def create_dirs(params, stage, ood=False):
   if stage == "train":
     subdir = "train"
   elif stage == "eval":
@@ -145,7 +145,7 @@ def create_dirs(params, stage):
   if not os.path.isdir(metadata_dir):
     os.mkdir(metadata_dir)
   
-  if params["ood_eval"] and stage == "eval":
+  if stage == "eval" and ood:
     img_dir = os.path.join(dir, "images_OOD")
     if not os.path.isdir(img_dir):
       os.mkdir(img_dir)
@@ -160,7 +160,6 @@ def generate_training_dataset(params):
     
   logger.info("starting train scenes generation...")
   
-  assert not params["ood_eval"]
   assert params["running_type"] == "train"
 
   dataset_dir = params["dataset_path"]
@@ -188,18 +187,20 @@ def generate_test_dataset(params, A=None):
   assert A != None
   assert params["running_type"] == "eval"
 
-  logger.info("starting test scenes generation...")
-
-  img_dir, metadata_dir = create_dirs(params, stage="eval")
+  
     
-  # generate scenes
-  for scene_id in range(params["test_dataset_len"]): 
-    img, scene_dict = generate_scene(params, scene_id, A, train_set=False)
-    # save scenes
-    with open(f"{metadata_dir}/{str(scene_id).zfill(len(str(params['test_dataset_len'])))}.json", "w") as outfile:
-      json.dump(scene_dict, outfile)  
-    img.save(f"{img_dir}/{str(scene_id).zfill(len(str(params['test_dataset_len'])))}.png")
-  logger.info(f"(test set): {scene_id} scenes stored...")
+  for ood in [False, True]:
+    logger.info(f"ood: {ood} - starting test scenes generation...")
+    
+    img_dir, metadata_dir = create_dirs(params, stage="eval")    
+    # generate scenes
+    for scene_id in range(params["test_dataset_len"]): 
+      img, scene_dict = generate_scene(params, scene_id, A, train_set=False, ood=ood)
+      # save scenes
+      with open(f"{metadata_dir}/{str(scene_id).zfill(len(str(params['test_dataset_len'])))}.json", "w") as outfile:
+        json.dump(scene_dict, outfile)  
+      img.save(f"{img_dir}/{str(scene_id).zfill(len(str(params['test_dataset_len'])))}.png")
+    logger.info(f"(test set): {scene_id} scenes stored...")
 
 if __name__ == "__main__":
 
