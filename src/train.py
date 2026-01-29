@@ -101,7 +101,7 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=2)
 beta_scheduler = BetaScheduler(0., 1., 100)
 if resume_epoch != 0: 
   optimizer.load_state_dict(checkpoint["optimizer"])
-  scheduler.load_state_dict(checkpoint["scheduler"])
+  scheduler = checkpoint["scheduler"]
   beta_scheduler.current_step = resume_epoch  
 
 if params["TC_minimization"]:
