@@ -191,7 +191,10 @@ def generate_test_dataset(params, A=None):
   for ood in [False, True]:
     logger.info(f"ood: {ood} - starting test scenes generation...")
     
-    img_dir, metadata_dir = create_dirs(params, stage="eval")    
+    img_dir, metadata_dir = create_dirs(params, stage="eval")   
+
+    logger.info(f"{img_dir} -- {metadata_dir}")
+
     # generate scenes
     for scene_id in range(params["test_dataset_len"]): 
       img, scene_dict = generate_scene(params, scene_id, A, train_set=False, ood=ood)
