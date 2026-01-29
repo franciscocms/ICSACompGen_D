@@ -191,7 +191,7 @@ def generate_test_dataset(params, A=None):
   for ood in [False, True]:
     logger.info(f"ood: {ood} - starting test scenes generation...")
     
-    img_dir, metadata_dir = create_dirs(params, stage="eval")   
+    img_dir, metadata_dir = create_dirs(params, stage="eval", ood=ood)   
 
     logger.info(f"{img_dir} -- {metadata_dir}")
 
