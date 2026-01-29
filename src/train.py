@@ -88,21 +88,21 @@ if CHECK_ATTN and TRAINING_FROM_SCRATCH:
           shutil.rmtree(folder_path)
     except OSError:
       logger.info("Error occurred while deleting files.")
-  
   resume_epoch = 0
+
 else:
   resume_epoch = params['epoch_to_load']
   logger.info(f"resume training from epoch {resume_epoch}...")
-  checkpoint_path = f"{main_dir}/checkpoint-{params['jobID']}/guide_{resume_epoch}.pth"
-  guide.load_state_dict(torch.load(checkpoint_path))
+  checkpoint = torch.load(f"{main_dir}/checkpoint-{params['jobID']}/guide_{resume_epoch}.pth")
+  guide.load_state_dict(checkpoint["model"])
   
 optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
-if resume_epoch != 0: 
-  optimizer.load_state_dict(torch.load(checkpoint_path)["optimizer"])
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=2)
 beta_scheduler = BetaScheduler(0., 1., 100)
-if resume_epoch != 0:
-  beta_scheduler.current_step = resume_epoch
+if resume_epoch != 0: 
+  optimizer.load_state_dict(checkpoint["optimizer"])
+  scheduler.load_state_dict(checkpoint["scheduler"])
+  beta_scheduler.current_step = resume_epoch  
 
 if params["TC_minimization"]:
   dis_optimizer = torch.optim.Adam(guide.tc_discriminator.parameters(), lr=params["lr"] * 0.1)
@@ -301,8 +301,6 @@ for epoch in range(resume_epoch, resume_epoch + params["training_epochs"]):
         plt.close()   
 
     printed = True
-
-    #break
     
   epoch_train_loss /= num_iters
   if epoch % epoch_step == 0:
@@ -347,8 +345,15 @@ for epoch in range(resume_epoch, resume_epoch + params["training_epochs"]):
     dict_to_log["latent_TC"] = tc_loss
     dict_to_log["latent_TC_disc"] = disc_tc_loss
   
-  
-  torch.save(guide.state_dict(), GUIDE_PATH+'/guide_'+str(epoch)+'.pth')
+  if epoch % epoch_step == 0:
+    checkpoint = {
+      'epoch': epoch,
+      'model': guide.state_dict(),
+      'optimizer': optimizer.state_dict(),
+      'scheduler': scheduler
+    }
+    torch.save(checkpoint, GUIDE_PATH + '/guide_' + str(epoch) + '.pth')
+
   run.log(dict_to_log)
 
 logger.info("\ntraining ended...")
