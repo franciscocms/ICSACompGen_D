@@ -131,11 +131,11 @@ def create_dirs(params, stage, ood=False):
     raise ValueError(f"stage {stage} is not valid!") 
 
   dir = os.path.join(params["dataset_path"], subdir)
-  if not os.path.isdir(dir):
-    os.mkdir(dir)
-  else:
-    shutil.rmtree(dir)
-    os.mkdir(dir)
+  # if not os.path.isdir(dir):
+  #   os.mkdir(dir)
+  # else:
+  #   shutil.rmtree(dir)
+  #   os.mkdir(dir)
 
   img_dir = os.path.join(dir, "images")
   if not os.path.isdir(img_dir):
@@ -187,7 +187,6 @@ def generate_test_dataset(params, A=None):
   assert A != None
   assert params["running_type"] == "eval"
 
-  
     
   for ood in [False, True]:
     logger.info(f"ood: {ood} - starting test scenes generation...")
