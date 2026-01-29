@@ -70,7 +70,7 @@ def main():
         shutil.rmtree(plots_dir)
         os.mkdir(plots_dir)
 
-    for OOD_EVAL in [False]:
+    for OOD_EVAL in [False, True]:
 
         logger.info(f"\nOOD: {OOD_EVAL}\n")
 
@@ -122,7 +122,8 @@ def main():
                 ax[i, j].grid(False)
                 ax[i, j].axis('off')  
 
-        plt.savefig(f"{params['check_attn_folder']}/img_recon.png")
+        if OOD_EVAL: plt.savefig(f"{params['check_attn_folder']}/img_recon_ood.png")
+        else: plt.savefig(f"{params['check_attn_folder']}/img_recon_id.png")
         plt.close()  
         
         for i, var in enumerate(params["latent_vars"]):            
@@ -134,7 +135,8 @@ def main():
                 r2_score, a_target, a_preds = hungarian_r2_score(noise_preds[:, :, i], targets[:, :, i])
 
             plt.scatter(a_target, a_preds, s=2)
-            plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}.png")
+            if OOD_EVAL: plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}_ood.png")
+            else: plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}_id.png")
             plt.close()
 
             logger.info(f"test r2 score: {r2_score}")
