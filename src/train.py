@@ -121,7 +121,7 @@ recon_loss_fn = nn.MSELoss()
 slot_rec_loss_crit = nn.MSELoss()
 
 guide.train()
-for epoch in range(resume_epoch, resume_epoch + params["training_epochs"]):
+for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 1):
 
   guide.epoch = epoch
 
@@ -345,7 +345,7 @@ for epoch in range(resume_epoch, resume_epoch + params["training_epochs"]):
     dict_to_log["latent_TC"] = tc_loss
     dict_to_log["latent_TC_disc"] = disc_tc_loss
   
-  if epoch % epoch_step == 0:
+  if epoch % epoch_step == 0 or epoch == params["training_epochs"]:
     checkpoint = {
       'epoch': epoch,
       'model': guide.state_dict(),
