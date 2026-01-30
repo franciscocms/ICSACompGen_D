@@ -130,7 +130,7 @@ class InvSlotAttentionGuide(nn.Module):
             decoder_masks = None
 
         # if step <= 290:
-        #     slots = slots.detach()
+        slots = slots.detach()
         
         # regress attributes from slots to get an aligned version of labels
         preds = self.predictor(slots)
