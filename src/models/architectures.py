@@ -367,7 +367,7 @@ class MultivariateCausalFlow(nn.Module):
 
         flag = torch.distributions.Bernoulli(0.25).sample() # if we have interventional regime
         if 290 >= epoch >= 100 and flag:
-            int_var = torch.distributions.Bernoulli(0.25).sample()
+            int_var = torch.distributions.Bernoulli(0.3).sample()
             if int_var == 0:
 
                 s0 = torch.zeros_like(eps[:, :, 0, :]).to(device)

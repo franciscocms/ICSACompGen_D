@@ -93,7 +93,8 @@ if CHECK_ATTN and TRAINING_FROM_SCRATCH:
 else:
   resume_epoch = params['epoch_to_load']
   logger.info(f"resume training from epoch {resume_epoch}...")
-  checkpoint = torch.load(f"{main_dir}/checkpoint-{params['jobID']}/guide_{resume_epoch}.pth", weights_only=False)
+  #checkpoint = torch.load(f"{main_dir}/checkpoint-{params['jobID']}/guide_{resume_epoch}.pth", weights_only=False)
+  checkpoint = torch.load(f"{main_dir}/checkpoint-142/guide_{resume_epoch}.pth", weights_only=False)
   guide.load_state_dict(checkpoint["model"])
   
 optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
