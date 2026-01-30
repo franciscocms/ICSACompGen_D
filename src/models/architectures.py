@@ -404,7 +404,7 @@ class MultivariateCausalFlow(nn.Module):
         log_det = torch.sum(s0, dim=-1) + torch.sum(s1, dim=-1)
         log_det = torch.mean(log_det)       
 
-        return z, ss, ts, log_det
+        return z, ss, ts, log_det, flag
     
     
     # def forward(self, eps):

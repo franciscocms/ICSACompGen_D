@@ -171,6 +171,13 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     causal_recon_loss = recon_loss_fn(causal_img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
 
+    if 290 >= epoch >= 100:
+      if guide.int_flag:
+        recon_loss = torch.zeros_like(recon_loss)
+        causal_recon_loss = torch.zeros_like(causal_recon_loss)
+        slot_recon_loss = torch.zeros_like(slot_recon_loss)
+
+
     #target_logvar = torch.tensor(-4.0).to(DEVICE)
     #prior_logvar_loss = F.mse_loss(logvar_noise, target_logvar.expand_as(logvar_noise))
     batch_loss += 100*recon_loss + kl_beta * (100*causal_recon_loss + 10*slot_recon_loss + guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))

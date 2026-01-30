@@ -130,10 +130,10 @@ class InvSlotAttentionGuide(nn.Module):
             decoder_masks = None
 
         # if step <= 290:
-        slots = slots.detach()
+        slots_d = slots.detach()
         
         # regress attributes from slots to get an aligned version of labels
-        preds = self.predictor(slots)
+        preds = self.predictor(slots_d)
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
 
         mu_noise, logvar_noise, z_noise = self.noise_encoder.encode(slots)
@@ -142,8 +142,8 @@ class InvSlotAttentionGuide(nn.Module):
         z_noise = z_noise.reshape(z_noise.size(0), z_noise.size(1), self.L, self.ldim)       
         
         # causal flow forward
-        z_scm, ss, ts, log_det = self.causal_flow(z_noise, step)
-        self.ss, self.ts, self.log_det = ss, ts, log_det
+        z_scm, ss, ts, log_det, int_flag = self.causal_flow(z_noise, step)
+        self.ss, self.ts, self.log_det, self.int_flag = ss, ts, log_det, int_flag
 
         self.mu_noise_prior, self.logvar_noise_prior = self.noise_prior(aligned_u_m)
 
