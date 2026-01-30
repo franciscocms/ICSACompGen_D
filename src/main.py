@@ -30,7 +30,7 @@ params = {
     "num_slots": 2,
     "batch_size": 64, # 256 for 32GB
     "lr": 4e-4, # 256 with 1e-4 -- 512 for 1e-3
-    "training_from_scratch" : False,
+    "training_from_scratch" : True,
     "training_epochs": 100, # 400 
     "epoch_step": 10,
     "running_type": "train", # train, debug, eval, inspect
