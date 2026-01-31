@@ -93,8 +93,8 @@ if CHECK_ATTN and TRAINING_FROM_SCRATCH:
 else:
   resume_epoch = params['epoch_to_load']
   logger.info(f"resume training from epoch {resume_epoch}...")
-  #checkpoint = torch.load(f"{main_dir}/checkpoint-{params['jobID']}/guide_{resume_epoch}.pth", weights_only=False)
-  checkpoint = torch.load(f"{main_dir}/checkpoint-142/guide_{resume_epoch}.pth", weights_only=False)
+  checkpoint = torch.load(f"{main_dir}/checkpoint-{params['jobID']}/guide_{resume_epoch}.pth", weights_only=False)
+  #checkpoint = torch.load(f"{main_dir}/checkpoint-142/guide_{resume_epoch}.pth", weights_only=False)
   guide.load_state_dict(checkpoint["model"])
   
 optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
@@ -172,12 +172,11 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     causal_recon_loss = recon_loss_fn(causal_img_hat, img)
     slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
 
-    if 290 >= epoch >= 100:
-      if guide.int_flag:
-        recon_loss = torch.zeros_like(recon_loss)
-        causal_recon_loss = torch.zeros_like(causal_recon_loss)
-        slot_recon_loss = torch.zeros_like(slot_recon_loss)
-
+    # if 290 >= epoch >= 100:
+    #   if guide.int_flag:
+    #     recon_loss = torch.zeros_like(recon_loss)
+    #     causal_recon_loss = torch.zeros_like(causal_recon_loss)
+    #     slot_recon_loss = torch.zeros_like(slot_recon_loss)
 
     #target_logvar = torch.tensor(-4.0).to(DEVICE)
     #prior_logvar_loss = F.mse_loss(logvar_noise, target_logvar.expand_as(logvar_noise))
@@ -213,17 +212,18 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     else:
       tc_loss = torch.tensor(0.)
 
-    # cp_v = torch.ones_like(cp).to(DEVICE)
-    # prior_log_z = 0.
-    # for i in range(L):
-    #   prior_log_z += log_normal(z_scm[:, :, i],
-    #                             cp[:, :, i],
-    #                             cp_v[:, :, i]).sum(-1)
-    # prior_log_z = torch.mean(prior_log_z)
+    cp_v = torch.ones_like(guide.prior_z).to(DEVICE)
+    prior_log_z = 0.
+    for i in range(L):
+      prior_log_z += log_normal(z_scm[:, :, i],
+                                guide.prior_z[:, :, i],
+                                cp_v[:, :, i]).sum(-1)
+    prior_log_z = torch.mean(prior_log_z)
 
     log_det = guide.log_det
     #batch_loss += kl_beta * (kl_coeff*kl_noise - log_det_coeff*log_det - 0.1*prior_log_z)
-    batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + torch.square(torch.mean(logvar_noise)))
+    #batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + torch.square(torch.mean(logvar_noise)))
+    batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + torch.square(torch.mean(logvar_noise)) - 0.1*prior_log_z)
     
     batch_loss.backward()
     optimizer.step()

@@ -148,7 +148,7 @@ class InvSlotAttentionGuide(nn.Module):
         self.mu_noise_prior, self.logvar_noise_prior = self.noise_prior(aligned_u_m)
 
         # compute the causally disentangled prior p(z|u) to push z representations
-        #cp = self.prior(aligned_u_m, z_scm)        
+        self.prior_z = self.prior(aligned_u_m, z_scm)        
         
         slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
 
