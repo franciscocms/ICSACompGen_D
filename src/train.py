@@ -213,17 +213,17 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       tc_loss = torch.tensor(0.)
 
     cp_v = torch.ones_like(guide.prior_z).to(DEVICE)
-    prior_log_z = 0.
+    log_z = 0.
     for i in range(L):
-      prior_log_z += log_normal(z_scm[:, :, i],
-                                guide.prior_z[:, :, i],
-                                cp_v[:, :, i]).sum(-1)
-    prior_log_z = torch.mean(prior_log_z)
+      log_z += log_normal(z_scm[:, :, i],
+                          guide.prior_z[:, :, i],
+                          cp_v[:, :, i]).sum(-1)
+    log_z = torch.mean(log_z)
 
     log_det = guide.log_det
     #batch_loss += kl_beta * (kl_coeff*kl_noise - log_det_coeff*log_det - 0.1*prior_log_z)
     #batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + torch.square(torch.mean(logvar_noise)))
-    batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + torch.square(torch.mean(logvar_noise)) - 0.1*prior_log_z)
+    batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + torch.square(torch.mean(logvar_noise)) - 0.1*log_z)
     
     batch_loss.backward()
     optimizer.step()
@@ -323,7 +323,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   dict_to_log["log_det_coeff"] = log_det_coeff
   #dict_to_log["kl_noise"] = kl_noise
   dict_to_log["log_e"] = log_e
-  #dict_to_log["z_log_prior"] = prior_log_z
+  dict_to_log["log_z"] = log_z
   dict_to_log["alpha"] = alpha
   dict_to_log["beta"] = kl_beta
   dict_to_log["kl_coeff"] = kl_coeff
