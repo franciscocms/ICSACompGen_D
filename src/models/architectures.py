@@ -234,7 +234,7 @@ class Decoder(nn.Module):
 
         self.nets = nn.ModuleDict()
         for i in range(len(params["latent_vars"])):
-            self.nets[i] = nn.Sequential(nn.Linear(nin, nhidden),
+            self.nets[str(i)] = nn.Sequential(nn.Linear(nin, nhidden),
                                          nn.ELU(), 
                                          nn.Linear(nhidden, nhidden),
                                          nn.ELU(),
@@ -247,7 +247,7 @@ class Decoder(nn.Module):
 
     def forward(self, z):
         # z: [B, N, L, d]
-        slot_hat = self.nets[0](z[:, :, 0]) + self.nets[1](z[:, :, 1])
+        slot_hat = self.nets["0"](z[:, :, 0]) + self.nets["1"](z[:, :, 1])
         return slot_hat
 
 class NoiseEncoder(nn.Module):
