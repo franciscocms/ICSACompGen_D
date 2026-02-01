@@ -222,7 +222,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     log_det = guide.log_det
     #batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + torch.square(torch.mean(logvar_noise)))
-    batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + 0.1*torch.square(torch.mean(logvar_noise)) - 0.1*log_z)
+    batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + 0.01*torch.square(torch.mean(logvar_noise)) - 0.1*log_z)
     #batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det - 0.1*log_z)
     
     batch_loss.backward()
