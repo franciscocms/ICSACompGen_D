@@ -34,13 +34,13 @@ params = {
     "training_epochs": 300, # 400 
     "epoch_step": 10,
     "running_type": "eval", # train, debug, eval, inspect
-    "epoch_to_load" : 50, 
+    "epoch_to_load" : 290, 
     "ood_eval": True,
     "TC_minimization": True, # usually True
     "alpha": 1., # usually 1.
     "beta": 1., 
     "TC_coeff": 1000., # usually 10
-    "regress_from_flatt": False,
+    "regress_from_flatt": True,
     "normalized_logdet": False,
     "causal_dropout_prob": 0., # 0.6 for models with causal flow, 1.0 for models without
     "latent_dim" : 4,
