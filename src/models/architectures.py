@@ -231,25 +231,24 @@ class Decoder(nn.Module):
         super().__init__()
         #self.proj = nn.Linear(nin, nout)
         nhidden = nin*4
-        self.layers = nn.Sequential(
-            nn.Linear(nin, nhidden),
-            nn.ELU(),
-            nn.Linear(nhidden, nhidden),
-            nn.ELU(),
-            nn.Linear(nhidden, nhidden),
-            nn.ELU(),
-            nn.Linear(nhidden, nhidden),
-            nn.ELU(),
-            nn.Linear(nhidden, nout),
-        )
+
+        self.nets = nn.ModuleDict()
+        for i in range(len(params["latent_vars"])):
+            self.nets[i] = nn.Sequential(nn.Linear(nin, nhidden),
+                                         nn.ELU(), 
+                                         nn.Linear(nhidden, nhidden),
+                                         nn.ELU(),
+                                         nn.Linear(nhidden, nhidden),
+                                         nn.ELU(),
+                                         nn.Linear(nhidden, nhidden),
+                                         nn.ELU(),
+                                         nn.Linear(nhidden, nout)
+                                         )
 
     def forward(self, z):
-        # z: [B, N, L*d]
-        batch_size, n_slots, features = z.size()
-        z = z.reshape(batch_size*n_slots, -1)
-        out = self.layers(z)
-        out = out.reshape(batch_size, n_slots, -1)
-        return out
+        # z: [B, N, L, d]
+        slot_hat = self.nets[0](z[:, :, 0]) + self.nets[1](z[:, :, 1])
+        return slot_hat
 
 class NoiseEncoder(nn.Module):
     def __init__(self, nin, nh, nout):

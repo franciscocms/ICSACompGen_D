@@ -89,7 +89,7 @@ class InvSlotAttentionGuide(nn.Module):
                                           nout = self.L*self.ldim
                                           )
         
-        self.causal_decoder = CausalDecoder(nin = self.L*self.ldim,
+        self.causal_decoder = CausalDecoder(nin = self.ldim,
                                             nout = self.slot_dim
                                             )
         
@@ -150,7 +150,7 @@ class InvSlotAttentionGuide(nn.Module):
         # compute the causally disentangled prior p(z|u) to push z representations
         self.prior_z = self.prior(aligned_u_m, z_scm)        
         
-        slot_hat = self.causal_decoder(torch.flatten(z_scm, -2))
+        slot_hat = self.causal_decoder(z_scm)
 
         for param in self.model.decoder.parameters():
             param.requires_grad = False
