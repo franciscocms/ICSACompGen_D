@@ -194,9 +194,9 @@ class InvSlotAttentionGuide(nn.Module):
         if params["running_type"] == "eval": 
             return all_noise_preds, all_flat_noise_preds, img_hat, recon_figures
         
-        if params["running_type"] == "train":
-            for param in self.model.decoder.parameters():
-                param.requires_grad = True
+        # if params["running_type"] == "train":
+        #     for param in self.model.decoder.parameters():
+        #         param.requires_grad = True
         
         return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, recon_figures
         
