@@ -522,14 +522,17 @@ class GaussianMLP(nn.Module):
         #     nin = nh
         # self.net = nn.Sequential(*self.net)
 
-        self.mean = alpha * nn.Linear(nin, nout)
+        self.mean = nn.Linear(nin, nout)
         
         #if learn_var: self.logvar =  nn.Sequential(nn.Linear(nin, nout), nn.Sigmoid())
-        if learn_var: self.logvar = beta * nn.Linear(nin, nout)
+        if learn_var: self.logvar = nn.Linear(nin, nout)
+
+        self.alpha = alpha
+        self.beta = beta
 
     def forward(self, x):
-        mean = self.mean(x)
-        if self.learn_var: logvar = self.logvar(x)
+        mean = self.alpha * self.mean(x)
+        if self.learn_var: logvar = self.beta * self.logvar(x)
         else: logvar = torch.zeros_like(mean)
         return mean, logvar
         
