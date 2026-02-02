@@ -271,6 +271,52 @@ class CausalDecoder(nn.Module):
         rec = self.decoder(z)
         return rec
 
+
+class FullNoiseEncoder(nn.Module):
+    def __init__(self, in_channels, n_slots, n_latents, latent_dim):
+        super().__init__()
+
+        out_dim = n_slots * n_latents * latent_dim
+        modules_list = [
+            nn.Conv2d(in_channels, 32, 4, 2, 1),
+            nn.ELU(),
+            nn.Conv2d(32, 32, 4, 2, 1),
+            nn.ELU(),
+            nn.Conv2d(32, 32, 4, 2, 1),
+            nn.ELU(),
+            nn.Conv2d(32, 32, 4, 2, 1),
+            nn.ELU(),
+            View((-1, 32 * 4 * 4)),
+            nn.Linear(32 * 4 * 4, 256),
+            nn.ELU(),
+            nn.Linear(256, 256),
+            nn.ELU(),
+            nn.Linear(256, 128),
+            nn.ELU(),
+            ]
+
+        self.encoder = nn.Sequential(*modules_list)
+        self.n_latents = n_latents
+        self.latent_dim = latent_dim
+        self.n_slots = n_slots
+        self.fc_mean = nn.Linear(128, out_dim)
+        self.fc_logvar = nn.Linear(128, out_dim)
+    
+    def encode(self, x):
+        x = self.encoder(x)
+        mean = self.fc_mean(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
+        logvar = self.fc_logvar(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
+        return mean, logvar
+
+    def forward(self, x):
+        mu, logvar = self.encoder(x)
+        stds = torch.exp(0.5*logvar)
+        z = mu + torch.randn_like(mu)*stds # reparameterization trick
+        return mu, logvar, z
+        
+
+
+
 class MLP(nn.Module):
     def __init__(self, nin, nout, nh, f_act="identity"):
         super().__init__()

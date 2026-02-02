@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
-from src.models.architectures import SlotMLPAdditive, NoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, PriorMultivariateCausalFlow
+from src.models.architectures import SlotMLPAdditive, SlotMLPAdditiveDecoder, FullNoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, PriorMultivariateCausalFlow
 from src.models.slot_attention import SlotAttentionAutoEncoder, SlotAttentionEncoder, SlotAttentionDecoder
 from src.utils.loss import compute_matching_cost
 
@@ -49,29 +49,31 @@ class InvSlotAttentionGuide(nn.Module):
         self.slot_dim = self.L*self.ldim
         self.model_name = model_name
 
-        if model_name == "slot_attention":
-            slot_encoder = SlotAttentionEncoder(resolution=params["resolution"],
-                                                hid_dim=self.slot_dim,
-                                                ch_dim=32)
-            slot_decoder = SlotAttentionDecoder(ch_dim=32,
-                                                hid_dim=self.slot_dim,
-                                                resolution=params["resolution"],
-                                                init_resolution=params["resolution"])
-            self.model = SlotAttentionAutoEncoder(encoder=slot_encoder,
-                                                    decoder=slot_decoder,
-                                                    num_slots=params["num_slots"],
-                                                    num_iterations=3,
-                                                    hid_dim=self.slot_dim,
-                                                    init_resolution=params["resolution"],
-                                                    softmax=True,
-                                                    sampling=True)
-        elif model_name == "additiveAE":
-            self.model = SlotMLPAdditive(in_channels=3,
-                                         n_slots=params["num_slots"],
-                                         n_slot_latents=self.slot_dim,
-                                         )
-        else:
-            raise ValueError(f"{model_name} is not a valid model name!")
+        # if model_name == "slot_attention":
+        #     slot_encoder = SlotAttentionEncoder(resolution=params["resolution"],
+        #                                         hid_dim=self.slot_dim,
+        #                                         ch_dim=32)
+        #     slot_decoder = SlotAttentionDecoder(ch_dim=32,
+        #                                         hid_dim=self.slot_dim,
+        #                                         resolution=params["resolution"],
+        #                                         init_resolution=params["resolution"])
+        #     self.model = SlotAttentionAutoEncoder(encoder=slot_encoder,
+        #                                             decoder=slot_decoder,
+        #                                             num_slots=params["num_slots"],
+        #                                             num_iterations=3,
+        #                                             hid_dim=self.slot_dim,
+        #                                             init_resolution=params["resolution"],
+        #                                             softmax=True,
+        #                                             sampling=True)
+        # elif model_name == "additiveAE":
+        #     self.model = SlotMLPAdditive(in_channels=3,
+        #                                  n_slots=params["num_slots"],
+        #                                  n_slot_latents=self.slot_dim,
+        #                                  )
+        # else:
+        #     raise ValueError(f"{model_name} is not a valid model name!")
+
+        
 
 
         
@@ -84,10 +86,15 @@ class InvSlotAttentionGuide(nn.Module):
         
             self.flatt_noise_predictor[var_name] = Predictor(self.L*self.ldim, self.L*self.ldim, 1)
             
-        self.noise_encoder = NoiseEncoder(nin = self.slot_dim,
-                                          nh = self.slot_dim*4,
-                                          nout = self.L*self.ldim
-                                          )
+        self.noise_encoder = FullNoiseEncoder(in_channels=3,
+                                              n_slots=params["num_slots"],
+                                              n_latents=self.L,
+                                              latent_dim=self.ldim)
+        
+        self.scene_decoder = SlotMLPAdditiveDecoder(in_channels=3,
+                                                    n_slots=params["num_slots"],
+                                                    n_slot_latents=self.slot_dim
+                                                    )
         
         self.causal_decoder = CausalDecoder(nin = self.ldim,
                                             nout = self.slot_dim
@@ -119,69 +126,49 @@ class InvSlotAttentionGuide(nn.Module):
 
         assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
 
-        output_dict = self.model(img)
-        img_hat = output_dict["reconstructed_image"]
-        recon_figures = output_dict["reconstructed_figures"]
-        slots = output_dict["predicted_latents"]
-        if self.model_name == "slot_attention":
-            decoder_masks = output_dict["reconstructed_masks"]
-            self.attn = output_dict["attn"]
-        else:
-            decoder_masks = None
+        # output_dict = self.model(img)
+        # img_hat = output_dict["reconstructed_image"]
+        # recon_figures = output_dict["reconstructed_figures"]
+        # slots = output_dict["predicted_latents"]
+        # if self.model_name == "slot_attention":
+        #     decoder_masks = output_dict["reconstructed_masks"]
+        #     self.attn = output_dict["attn"]
+        # else:
+        #     decoder_masks = None
 
-        # if step <= 290:
-        slots_d = slots.detach()
-        
+
         # regress attributes from slots to get an aligned version of labels
-        preds = self.predictor(slots_d)
-        self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
+        # preds = self.predictor(slots_d)
+        # self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
 
-        mu_noise, logvar_noise, z_noise = self.noise_encoder.encode(slots)
+        mu_noise, logvar_noise, z_noise = self.noise_encoder(img) # [B, N, L*ldim]
+        
+        # get initial predictions and aligned labels
+        mu_noise_d = mu_noise.detach()
+        preds = self.predictor(mu_noise_d)
+        self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
+        
+        # get latent-wise noise distributions
         mu_noise = mu_noise.reshape(mu_noise.size(0), mu_noise.size(1), self.L, self.ldim)
         logvar_noise = logvar_noise.reshape(logvar_noise.size(0), logvar_noise.size(1), self.L, self.ldim)
         z_noise = z_noise.reshape(z_noise.size(0), z_noise.size(1), self.L, self.ldim)       
         
         # causal flow forward
         z_scm, ss, ts, log_det, int_flag = self.causal_flow(z_noise, step)
-        self.ss, self.ts, self.log_det, self.int_flag = ss, ts, log_det, int_flag
-
+        self.ss, self.ts, self.log_det, self.int_flag = ss, ts, log_det, int_flag       
+        
+        # get noise prior conditioned on u
         self.mu_noise_prior, self.logvar_noise_prior = self.noise_prior(aligned_u_m)
 
-        # compute the causally disentangled prior p(z|u) to push z representations
+        # get the causally disentangled prior p(z|u) to push z representations
         self.prior_z = self.prior(aligned_u_m, z_scm)        
         
-        slot_hat = self.causal_decoder(z_scm)
+        slots = self.causal_decoder(z_scm)
 
-        for param in self.model.decoder.parameters():
-            param.requires_grad = False
+        # for param in self.model.decoder.parameters():
+        #     param.requires_grad = False
 
-        causal_img_hat, causal_recon_figs = self.model.decoder(slot_hat)
-
-        if params["running_type"] == "train":
-            if self.epoch % 10 == 0 and self.iter == 0:
-                logger.info(f"\nslots mean: {torch.mean(torch.mean(slots, dim=-1))}")
-                logger.info(f"slot hat mean: {torch.mean(torch.mean(slot_hat, dim=-1))}")
-
-                logger.info(f"\nslots std: {torch.mean(torch.std(slots, dim=-1))}")
-                logger.info(f"slot hat std: {torch.mean(torch.std(slot_hat, dim=-1))}")
-                
-                logger.info(f"\nslots min: {torch.mean(torch.amin(slots, dim=-1))}")
-                logger.info(f"slot hat min: {torch.mean(torch.amin(slot_hat, dim=-1))}")
-
-                logger.info(f"\nslots max: {torch.mean(torch.amax(slots, dim=-1))}")
-                logger.info(f"slot hat max: {torch.mean(torch.amax(slot_hat, dim=-1))}") 
-
-                # logger.info(f"\nz mean: {torch.mean(z_scm, dim=(0, 1, 3))}")
-                # logger.info(f"\nz prior mean: {torch.mean(cp, dim=(0, 1, 3))}")
-
-                # logger.info(f"\nz std: {torch.mean(torch.std(z_scm, dim=-1), dim=(0, 1))}")
-                # logger.info(f"\nz prior std: {torch.mean(torch.std(cp, dim=-1), dim=(0, 1))}")
-
-                # logger.info(f"\nz min: {torch.mean(torch.amin(z_scm, dim=-1), dim=(0, 1))}")
-                # logger.info(f"\nz prior min: {torch.mean(torch.amin(cp, dim=-1), dim=(0, 1))}")
-
-                # logger.info(f"\nz max: {torch.mean(torch.amax(z_scm, dim=-1), dim=(0, 1))}")
-                # logger.info(f"\nz prior max: {torch.mean(torch.amax(cp, dim=-1), dim=(0, 1))}")
+        img_hat, recon_figures = self.scene_decoder(slots)
 
         z_noise_d = z_noise.detach()
         self.noise_pred_loss = []
@@ -205,11 +192,11 @@ class InvSlotAttentionGuide(nn.Module):
         self.flatt_noise_pred_loss = torch.stack(self.flatt_noise_pred_loss)
 
         if params["running_type"] == "eval": 
-            return all_noise_preds, all_flat_noise_preds, causal_img_hat, causal_recon_figs, img_hat, recon_figures
+            return all_noise_preds, all_flat_noise_preds, img_hat, recon_figures
         
         if params["running_type"] == "train":
             for param in self.model.decoder.parameters():
                 param.requires_grad = True
         
-        return slots, img_hat, causal_img_hat, causal_recon_figs, z_noise, mu_noise, logvar_noise, z_scm, slot_hat, recon_figures, decoder_masks
+        return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, recon_figures
         
