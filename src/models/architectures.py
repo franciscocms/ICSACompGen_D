@@ -512,7 +512,7 @@ class PriorMultivariateCausalFlow(nn.Module):
         return cp
 
 class GaussianMLP(nn.Module):
-    def __init__(self, nlayers, hid_act, nin, nout, nh, learn_var):
+    def __init__(self, nlayers, hid_act, nin, nout, nh, learn_var, alpha, beta):
         super().__init__()
         self.learn_var = learn_var
         # self.net = []
@@ -522,10 +522,10 @@ class GaussianMLP(nn.Module):
         #     nin = nh
         # self.net = nn.Sequential(*self.net)
 
-        self.mean = nn.Linear(nin, nout)
+        self.mean = alpha * nn.Linear(nin, nout)
         
         #if learn_var: self.logvar =  nn.Sequential(nn.Linear(nin, nout), nn.Sigmoid())
-        if learn_var: self.logvar = nn.Linear(nin, nout)
+        if learn_var: self.logvar = beta * nn.Linear(nin, nout)
 
     def forward(self, x):
         mean = self.mean(x)
@@ -539,8 +539,11 @@ class ConditionalGaussianPrior(nn.Module):
         self.learn_var = learn_var
         self.L = L
         self.net = nn.ModuleDict()
+        
+        alpha = [0.2, 1.] 
+        beta = [1., 0.2]
         for i in range(self.L):
-            self.net[str(i)] = GaussianMLP(1, nn.ELU(), 1, ldim, ldim, learn_var)
+            self.net[str(i)] = GaussianMLP(1, nn.ELU(), 1, ldim, ldim, learn_var, alpha[i], beta[i])
 
     def forward(self, labels):
         means, logvars = [], []
