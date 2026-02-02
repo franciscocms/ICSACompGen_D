@@ -90,7 +90,7 @@ def main():
                 target = target.to(device)
                 
                 batch_noise_preds, batch_flat_noise_preds, img_hat, recon_figures = guide(img, target) # [B, N, L]
-                recon_figuress = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
+                recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
                 
                 noise_preds = torch.cat((noise_preds, batch_noise_preds), dim=0)
                 flat_noise_preds = torch.cat((flat_noise_preds, batch_flat_noise_preds), dim=0)
