@@ -529,9 +529,10 @@ class GaussianMLP(nn.Module):
         return mean, logvar
         
 class ConditionalGaussianPrior(nn.Module):
-    def __init__(self, L, ldim, learn_var=False):
+    def __init__(self, L, ldim, learn_var=False, clamp_var=False):
         super().__init__()
         self.learn_var = learn_var
+        self.clamp_var = clamp_var
         self.L = L
         self.net = nn.ModuleDict()
         
@@ -545,8 +546,13 @@ class ConditionalGaussianPrior(nn.Module):
         for i in range(self.L):
             out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
             assert isinstance(out, tuple)
-            means.append(out[0])   
-            logvars.append(out[1])       
+
+            mean, logvar = out[0], out[1]
+            if self.clamp_var:
+                logvar = torch.clamp(logvar, -4., 2.)
+                
+            means.append(mean)   
+            logvars.append(logvar)       
         means = torch.stack(means, -2)
         logvars = torch.stack(logvars, -2)
         return means, logvars
