@@ -122,14 +122,14 @@ def main():
                               params["latent_dim"],
                               1)
             
-            train_set = ProbeDataset(z_noise[:3000], targets[:3000], var_idx=i, split="train")
-            test_set = ProbeDataset(z_noise[3000:], targets[3000:], var_idx=i, split="test")
+            train_set = ProbeDataset(z_noise[:4000], targets[:4000], var_idx=i, split="train")
+            test_set = ProbeDataset(z_noise[4000:], targets[4000:], var_idx=i, split="test")
             train_loader = DataLoader(train_set, 64, shuffle=True, generator=torch.Generator(device='cuda'))
             test_loader = DataLoader(test_set, len(test_set), shuffle=False, generator=torch.Generator(device='cuda'))
 
             optimizer = torch.optim.AdamW(probe.parameters(), lr=1e-4, weight_decay=0.001)
             
-            for epoch in range(200):
+            for epoch in range(500):
                 train_loss = 0.
                 train_iters = 0
                 for e, target in train_loader:
@@ -157,7 +157,7 @@ def main():
                         r2_score, a_target, a_preds = hungarian_r2_score(pred, target)
 
                 train_loss /= train_iters
-                if epoch % 10 == 0:
+                if epoch % 50 == 0:
                     logger.info(f"epoch {epoch}:")
                     logger.info(f"train loss {train_loss} - test r2_score: {r2_score}")
 
