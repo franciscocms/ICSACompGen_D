@@ -89,7 +89,8 @@ class InvSlotAttentionGuide(nn.Module):
         self.noise_encoder = FullNoiseEncoder(in_channels=3,
                                               n_slots=params["num_slots"],
                                               n_latents=self.L,
-                                              latent_dim=self.ldim)
+                                              latent_dim=self.ldim,
+                                              stage=params["running_type"])
         
         self.scene_decoder = SlotMLPAdditiveDecoder(in_channels=3,
                                                     n_slots=params["num_slots"],
