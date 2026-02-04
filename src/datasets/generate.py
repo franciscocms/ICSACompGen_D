@@ -88,7 +88,7 @@ def generate_scene(params, scene_id=0, A=None, train_set=True, ood=False):
             
             if train_set or not ood:
               #sampled_value, _, _ = sample_identifiable_bounded_(norm_parent)
-              sampled_value = sample_id_linear(norm_parent, params["factor_ranges"][factor])
+              sampled_value = sample_id_linear(norm_parent)
             else:
               #sampled_value = sample_ood(norm_parent, params["factor_ranges"][factor])
               sampled_value = sample_ood_linear(norm_parent)
