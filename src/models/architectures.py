@@ -273,9 +273,10 @@ class CausalDecoder(nn.Module):
 
 
 class FullNoiseEncoder(nn.Module):
-    def __init__(self, in_channels, n_slots, n_latents, latent_dim):
+    def __init__(self, in_channels, n_slots, n_latents, latent_dim, stage="train"):
         super().__init__()
 
+        self.stage = stage
         out_dim = n_slots * n_latents * latent_dim
         modules_list = [
             nn.Conv2d(in_channels, 32, 4, 2, 1),
@@ -310,6 +311,7 @@ class FullNoiseEncoder(nn.Module):
 
     def forward(self, x):
         mu, logvar = self.encode(x)
+        if self.stage == "eval": logvar += torch.log(torch.tensor(5.))
         stds = torch.exp(0.5*logvar)
         z = mu + torch.randn_like(mu)*stds # reparameterization trick
         return mu, logvar, z
