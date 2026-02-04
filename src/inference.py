@@ -127,9 +127,9 @@ def main():
             train_loader = DataLoader(train_set, 64, shuffle=True, generator=torch.Generator(device='cuda'))
             test_loader = DataLoader(test_set, len(test_set), shuffle=False, generator=torch.Generator(device='cuda'))
 
-            optimizer = torch.optim.AdamW(probe.parameters(), lr=1e-3, weight_decay=0.001)
+            optimizer = torch.optim.AdamW(probe.parameters(), lr=1e-4, weight_decay=0.001)
             
-            for epoch in range(100):
+            for epoch in range(200):
                 train_loss = 0.
                 train_iters = 0
                 for e, target in train_loader:
