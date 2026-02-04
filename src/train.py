@@ -109,7 +109,7 @@ if params["TC_minimization"]:
   dis_optimizer = torch.optim.Adam(guide.tc_discriminator.parameters(), lr=params["lr"] * 0.1)
 
 # instatiate dataset and dataloader
-dataset_dir = "/nas-ctm01/datasets/public/CG/train"
+dataset_dir = os.path.join(params["dataset_path"], "train")
 img_dir = os.path.join(dataset_dir, "images")
 target_dir = os.path.join(dataset_dir, "metadata")
 

@@ -9,7 +9,7 @@ sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.utils.generate import render, norm
 from src.main import params
-from src.datasets.data_utils import sample_identifiable_bounded_, sample_ood
+from src.datasets.data_utils import sample_identifiable_bounded_, sample_ood, sample_id_linear, sample_ood_linear
 
 import logging
 logfile_name = f"generate.log"
@@ -87,9 +87,11 @@ def generate_scene(params, scene_id=0, A=None, train_set=True, ood=False):
             norm_parent = norm(object_attributes[parent], params["factor_ranges"][params["latent_vars"][parent]][0], params["factor_ranges"][params["latent_vars"][parent]][1])
             
             if train_set or not ood:
-              sampled_value, _, _ = sample_identifiable_bounded_(norm_parent)
+              #sampled_value, _, _ = sample_identifiable_bounded_(norm_parent)
+              sampled_value = sample_id_linear(norm_parent, params["factor_ranges"][factor])
             else:
-              sampled_value = sample_ood(norm_parent, params["factor_ranges"][factor])
+              #sampled_value = sample_ood(norm_parent, params["factor_ranges"][factor])
+              sampled_value = sample_ood_linear(norm_parent)
         else:
           # sample the value
           sampled_value = dist.Uniform(factor_min, factor_max).sample()

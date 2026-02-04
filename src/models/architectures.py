@@ -311,7 +311,6 @@ class FullNoiseEncoder(nn.Module):
 
     def forward(self, x):
         mu, logvar = self.encode(x)
-        if self.stage == "eval": logvar += torch.log(torch.tensor(3.))
         stds = torch.exp(0.5*logvar)
         z = mu + torch.randn_like(mu)*stds # reparameterization trick
         return mu, logvar, z

@@ -75,7 +75,7 @@ def main():
 
         logger.info(f"\nOOD: {OOD_EVAL}\n")
 
-        dataset_dir = "/nas-ctm01/datasets/public/CG/eval"
+        dataset_dir = os.path.join(params["dataset_path"], "eval")
 
         dataset = MyDataset(dataset_dir, OOD_EVAL)
         dataloader = DataLoader(dataset, 64, shuffle=False, generator=torch.Generator(device='cuda'))
