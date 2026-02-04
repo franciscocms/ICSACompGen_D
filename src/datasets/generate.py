@@ -133,8 +133,8 @@ def create_dirs(params, stage, ood=False):
     raise ValueError(f"stage {stage} is not valid!") 
 
   dir = os.path.join(params["dataset_path"], subdir)
-  # if not os.path.isdir(dir):
-  #   os.mkdir(dir)
+  if not os.path.isdir(dir):
+    os.mkdir(dir)
   # else:
   #   shutil.rmtree(dir)
   #   os.mkdir(dir)
