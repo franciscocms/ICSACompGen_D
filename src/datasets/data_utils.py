@@ -83,7 +83,7 @@ def process_targets(target_dict):
     return target
 
 class MyDataset(Dataset):
-  def __init__(self, dataset_path, ood=False):
+  def __init__(self, dataset_path, ood=False, inference=False):
       self.dataset_path = dataset_path
       if not ood:
         self.img_path = os.path.join(self.dataset_path, "images")
@@ -98,12 +98,16 @@ class MyDataset(Dataset):
 
       logger.info(f"\ndataset length: {self.nscenes}\n")
 
+      if inference:
+         self.img_path
+
   def __len__(self):
     return self.nscenes
   
   def __getitem__(self, idx):
     img_path = os.path.join(self.img_path, f"{str(idx).zfill(len(str(self.nscenes)))}.png")
     img = self.transform(Image.open(img_path))
+    
     target_path = os.path.join(self.target_path, f"{str(idx).zfill(len(str(self.nscenes)))}.json")
     target_dict = json.load(open(target_path))
     target = process_targets(target_dict)

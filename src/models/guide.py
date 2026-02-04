@@ -172,6 +172,9 @@ class InvSlotAttentionGuide(nn.Module):
 
         img_hat, recon_figures = self.scene_decoder(slots)
 
+        if params["running_type"] == "eval": 
+            return z_noise, img_hat, recon_figures
+
         z_noise_d = z_noise.detach()
         self.noise_pred_loss = []
         all_noise_preds, all_flat_noise_preds = [], []
@@ -192,9 +195,6 @@ class InvSlotAttentionGuide(nn.Module):
         all_flat_noise_preds = torch.stack(all_flat_noise_preds, dim=-1)
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
         self.flatt_noise_pred_loss = torch.stack(self.flatt_noise_pred_loss)
-
-        if params["running_type"] == "eval": 
-            return all_noise_preds, all_flat_noise_preds, img_hat, recon_figures
         
         # if params["running_type"] == "train":
         #     for param in self.model.decoder.parameters():

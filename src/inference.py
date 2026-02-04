@@ -13,6 +13,7 @@ import sys
 sys.path.insert(0, '..') # add parent dir
 
 from models.guide import InvSlotAttentionGuide
+from models.architectures import Predictor
 from main import params
 from datasets.data_utils import MyDataset, ProbeDataset
 from utils.loss import hungarian_r2_score, compute_matching_cost
@@ -79,26 +80,20 @@ def main():
         dataset = MyDataset(dataset_dir, OOD_EVAL)
         dataloader = DataLoader(dataset, 64, shuffle=False, generator=torch.Generator(device='cuda'))
 
-        noise_preds = torch.tensor([])  
-        flat_noise_preds = torch.tensor([])  
-        targets = torch.tensor([])   
-        recon_x = torch.tensor([])
-        recon_figs = torch.tensor([])   
+        z_noise = torch.tensor([])  
+        targets = torch.tensor([])    
         with torch.no_grad():
             for img, target in dataloader:
                 img = img.to(device)
                 target = target.to(device)
                 
-                batch_noise_preds, batch_flat_noise_preds, img_hat, recon_figures = guide(img, target) # [B, N, L]
+                batch_z_noise, img_hat, recon_figures = guide(img, target) # [B, N, L]
                 recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
                 
-                noise_preds = torch.cat((noise_preds, batch_noise_preds), dim=0)
-                flat_noise_preds = torch.cat((flat_noise_preds, batch_flat_noise_preds), dim=0)
-                # recon_x = torch.cat((recon_x, inf_recon_x), dim=0)
-                # recon_figs = torch.cat((recon_figs, inf_recon_figs), dim=0)
+                z_noise = torch.cat((z_noise, batch_z_noise), dim=0)
                 targets = torch.cat((targets, target), dim=0)  
 
-        logger.info(noise_preds.shape)
+        logger.info(z_noise.shape) # [B, N, L, d] -> B = 50k
         logger.info(targets.shape)
 
         fig, ax = plt.subplots(5, 2 + params["num_slots"])
@@ -123,10 +118,49 @@ def main():
         for i, var in enumerate(params["latent_vars"]):            
             logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
             
-            if params["regress_from_flatt"]:
-                r2_score, a_target, a_preds = hungarian_r2_score(flat_noise_preds[:, :, i], targets[:, :, i])
-            else:
-                r2_score, a_target, a_preds = hungarian_r2_score(noise_preds[:, :, i], targets[:, :, i])
+            probe = Predictor(params["latent_dim"],
+                              params["latent_dim"],
+                              1)
+            
+            train_set = ProbeDataset(z_noise[:3000], targets[:3000], var_idx=i, split="train")
+            test_set = ProbeDataset(z_noise[3000:], targets[3000:], var_idx=i, split="test")
+            train_loader = DataLoader(train_set, 64, shuffle=True, generator=torch.Generator(device='cuda'))
+            test_loader = DataLoader(test_set, len(test_set), shuffle=False, generator=torch.Generator(device='cuda'))
+
+            optimizer = torch.optim.AdamW(probe.parameters(), lr=1e-3, weight_decay=0.001)
+            
+            for epoch in range(100):
+                train_loss = 0.
+                train_iters = 0
+                for e, target in train_loader:
+                    e = e.to(device)
+                    target = target.to(device)
+
+                    pred = probe(e[:, :, i])
+                    if pred.size(-1) == 1: pred = pred.squeeze(-1)
+                    batch_loss, _ = compute_matching_cost(pred, target) 
+
+                    optimizer.zero_grad()
+                    batch_loss.backward()
+                    optimizer.step()
+
+                    train_loss += batch_loss.item()
+                    train_iters += 1
+                
+                with torch.no_grad():
+                    for e, target in test_loader:
+                        e = e.to(device)
+                        target = target.to(device)
+
+                        pred = probe(e[:, :, i])
+                        if pred.size(-1) == 1: pred = pred.squeeze(-1)
+                        r2_score, a_target, a_preds = hungarian_r2_score(pred, target)
+
+                train_loss /= train_iters
+                if epoch % 10 == 0:
+                    logger.info(f"epoch {epoch}:")
+                    logger.info(f"train loss {train_loss} - test r2_score: {r2_score}")
+
 
             plt.scatter(a_target, a_preds, s=2)
             if OOD_EVAL: plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}_ood.png")
