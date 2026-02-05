@@ -9,6 +9,7 @@ params = {
     "device": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
     "random_seed": 1,
     "dataset_path": "/nas-ctm01/datasets/public/CG_linear", # CG_linear -> 0.5, CG_linear_015 -> 0.15
+    "ID_window": 0.5,
     "latent_vars": ["scale", "color"], #, "x_pos", "y_pos"],
     "factor_ranges": {
         "scale": [0.3, 1.  ], # 0.5, 1.

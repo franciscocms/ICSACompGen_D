@@ -66,14 +66,14 @@ def sample_ood(parent, child_boundaries, threshold=4.):
 def normalize(x, min, max):
    return (x-min)/(max-min)
 
-def sample_id_linear(parent, window=0.15):
+def sample_id_linear(parent, window=params["ID_window"]):
   factor_min, factor_max = parent - window, parent + window
   if factor_min < 0: factor_min = 0
   if factor_max > 1: factor_max = 1
   sample = dist.Uniform(factor_min, factor_max).sample()
   return sample
    
-def sample_ood_linear(parent, window=0.15):
+def sample_ood_linear(parent, window=params["ID_window"]):
   if parent - window < 0:
       factor_min, factor_max = parent + window, 1.
   elif parent + window > 1.:
