@@ -10,7 +10,7 @@ params = {
     "random_seed": 1,
     "dataset_path": "/nas-ctm01/datasets/public/CG_linear_025", # CG_linear -> 0.5, CG_linear_015 -> 0.15
     "ID_window": 0.25,
-    "latent_vars": ["scale", "color"], #, "x_pos", "y_pos"],
+    "latent_vars": ["scale", "color", "x_pos", "y_pos"],
     "factor_ranges": {
         "scale": [0.3, 1.  ], # 0.5, 1.
         "color": [0.  , 1.  ],
@@ -31,8 +31,8 @@ params = {
     "num_slots": 2,
     "batch_size": 64, # 256 for 32GB
     "lr": 4e-4, # 256 with 1e-4 -- 512 for 1e-3
-    "training_from_scratch" : False,
-    "training_epochs": 200, # 400 
+    "training_from_scratch" : True,
+    "training_epochs": 300, # 400 
     "epoch_step": 10,
     "running_type": "train", # train, debug, eval, inspect
     "epoch_to_load" : 100, 

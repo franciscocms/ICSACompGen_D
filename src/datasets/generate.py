@@ -40,17 +40,17 @@ def sample_adjacency_matrix(params):
   # order of latents: scale, color, x-pos, y-pos
   # specified A: scale -> color
   
-  # A = torch.tensor([
-  #   [0., 0., 0., 0.],
-  #   [1., 0., 0., 0.],
-  #   [0., 0., 0., 0.],
-  #   [0., 0., 0., 0.],
-  # ])
-
   A = torch.tensor([
-    [0., 0.],
-    [1., 0.],
+    [0., 0., 0., 0.],
+    [1., 0., 0., 0.],
+    [0., 0., 0., 0.],
+    [0., 0., 0., 0.],
   ])
+
+  # A = torch.tensor([
+  #   [0., 0.],
+  #   [1., 0.],
+  # ])
 
   return A
 
