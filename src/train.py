@@ -124,6 +124,9 @@ slot_rec_loss_crit = nn.MSELoss()
 guide.train()
 for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 1):
 
+  for param in guide.parameters():
+    param.requires_grad = True
+
   guide.epoch = epoch
 
   if scheduler.get_last_lr()[0] >= 1e-7:
