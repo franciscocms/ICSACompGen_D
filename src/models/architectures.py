@@ -412,7 +412,7 @@ class MultivariateCausalFlow(nn.Module):
         
         B, N, _, _ = eps.shape
 
-        flag = torch.distributions.Bernoulli(0.2).sample() # if we have interventional regime
+        flag = torch.distributions.Bernoulli(0.9).sample() # if we have interventional regime
         
         s0 = self.s_base.expand(B, N, -1)
         t0 = self.t_base.expand(B, N, -1)

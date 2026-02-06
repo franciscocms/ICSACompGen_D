@@ -157,6 +157,17 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   
   printed = False
   num_iters = 0
+  epoch_recon_loss = 0.
+  epoch_pred_loss = 0.
+  epoch_noise_pred_loss = 0.
+  epoch_flatt_noise_pred_loss = 0.
+  epoch_log_e = 0.
+  epoch_tc_loss = 0.
+  epoch_log_z = 0.
+  epoch_log_det = 0.
+  epoch_logvar_noise = 0.
+  epoch_consistency_loss = 0. 
+  
   for img, target in train_dl:
     img = img.to(DEVICE)
     target = target.to(DEVICE)
@@ -242,8 +253,20 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     batch_loss.backward()
     optimizer.step()
-    epoch_train_loss += batch_loss 
     num_iters += 1
+
+    epoch_train_loss += batch_loss 
+    epoch_recon_loss += recon_loss
+    epoch_pred_loss += guide.pred_loss
+    epoch_noise_pred_loss += torch.mean(guide.noise_pred_loss)
+    epoch_flatt_noise_pred_loss += torch.mean(guide.flatt_noise_pred_loss)
+    epoch_log_e += log_e
+    epoch_tc_loss += tc_loss
+    epoch_log_z += log_z
+    epoch_log_det += log_det
+    epoch_logvar_noise += torch.square(torch.mean(logvar_noise))
+    epoch_consistency_loss += consistency_loss
+    
 
     #logger.info(num_iters)
     
@@ -320,18 +343,20 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         #         ax[i, j].grid(False)
         #         ax[i, j].axis('off')
 
-        fig, ax = plt.subplots(5, 2 + params["num_slots"])
+        fig, ax = plt.subplots(5, 3 + params["num_slots"])
         for i in range(5):
             ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))
             if i == 0: ax[i, 0].set_title("img")
             ax[i, 1].imshow(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
             if i == 0: ax[i, 1].set_title("img_hat")
+            ax[i, 2].imshow(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)))
+            if i == 0: ax[i, 2].set_title("int")
 
             for j in range(params["num_slots"]):
-                ax[i, j+2].imshow(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)))
-                if i == 0: ax[i, j+2].set_title(f"figs {j}")
+                ax[i, j+3].imshow(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)))
+                if i == 0: ax[i, j+3].set_title(f"figs {j}")
 
-            for j in range(2 + params["num_slots"]):
+            for j in range(3 + params["num_slots"]):
                 ax[i, j].grid(False)
                 ax[i, j].axis('off')
 
@@ -341,20 +366,32 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     printed = True
     
   epoch_train_loss /= num_iters
+  epoch_recon_loss /= num_iters
+  epoch_pred_loss /= num_iters
+  epoch_noise_pred_loss /= num_iters
+  epoch_flatt_noise_pred_loss /= num_iters
+  epoch_log_e /= num_iters
+  epoch_tc_loss /= num_iters
+  epoch_log_z /= num_iters
+  epoch_log_det /= num_iters
+  epoch_logvar_noise /= num_iters
+  epoch_consistency_loss /= num_iters
+
+
   if epoch % epoch_step == 0:
     logger.info(f"epoch {epoch} - train_loss: {epoch_train_loss}")  
 
   dict_to_log = {'train_loss': epoch_train_loss}
-  dict_to_log["rec_loss"] = recon_loss
+  dict_to_log["rec_loss"] = epoch_recon_loss
   #dict_to_log["causal_rec_loss"] = causal_recon_loss
-  dict_to_log["pred_loss"] = guide.pred_loss
+  dict_to_log["pred_loss"] = epoch_pred_loss
   #dict_to_log["slot_rec_loss"] = slot_recon_loss
-  dict_to_log["log_det"] = log_det
+  dict_to_log["log_det"] = epoch_log_det
   dict_to_log["log_det_coeff"] = log_det_coeff
   #dict_to_log["kl_noise"] = kl_noise
-  dict_to_log["log_e"] = log_e
-  dict_to_log["log_z"] = log_z
-  dict_to_log["consistency_loss"] = consistency_loss
+  dict_to_log["log_e"] = epoch_log_e
+  dict_to_log["log_z"] = epoch_log_z
+  dict_to_log["consistency_loss"] = epoch_consistency_loss
   dict_to_log["alpha"] = alpha
   dict_to_log["beta"] = kl_beta
   dict_to_log["kl_coeff"] = kl_coeff
