@@ -358,6 +358,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   #dict_to_log["kl_noise"] = kl_noise
   dict_to_log["log_e"] = log_e
   dict_to_log["log_z"] = log_z
+  dict_to_log["consistency_loss"] = consistency_loss
   dict_to_log["alpha"] = alpha
   dict_to_log["beta"] = kl_beta
   dict_to_log["kl_coeff"] = kl_coeff
