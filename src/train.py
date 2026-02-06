@@ -256,6 +256,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       batch_loss += kl_beta*consistency_loss
     else:
       consistency_loss = 0.
+      x_int = torch.zeros_like(img_hat)
 
     batch_loss.backward()
     optimizer.step()
@@ -299,56 +300,11 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     else:
       disc_tc_loss = torch.tensor(0.)
     
-    # if guide.model_name == "slot_attention":
-    #   aux_attn = guide.attn.reshape((B, params["num_slots"], params["resolution"][0], params["resolution"][1]))
-    #   if (epoch % epoch_step == 0 or epoch == 0) and not printed:
-    #     fig, ax = plt.subplots(1, 2 + 3*params["num_slots"])
-    #     ax[0].imshow(np.transpose(img[0].detach().cpu().numpy(), (1, 2, 0)))
-    #     ax[0].set_title("img")
-    #     ax[1].imshow(np.transpose(img_hat[0].detach().cpu().numpy(), (1, 2, 0)))
-    #     ax[1].set_title("recon")
-    #     k = 0
-    #     for j in range(params["num_slots"]):
-    #       ax[3*j+2].imshow(aux_attn[0, j].detach().cpu().numpy())
-    #       ax[3*j+2].set_title(f"attn mask {j}")
-    #       ax[3*j+3].imshow(np.transpose(decoder_masks[j, 0].detach().cpu().numpy(), (1, 2, 0)))
-    #       ax[3*j+3].set_title(f"dec mask {j}")
-    #       ax[3*j+4].imshow(np.transpose(figs[j, 0].detach().cpu().numpy(), (1, 2, 0)))
-    #       ax[3*j+4].set_title(f"recon {j}")
-    #       k += 1
-    #     for j in range(2 + 3*params["num_slots"]):
-    #       ax[j].grid(False)
-    #       ax[j].axis('off')   
-    #     plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
-    #     plt.close()
-    
     if guide.model_name == "additiveAE":
       
       recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
       
       if (epoch % epoch_step == 0 or epoch == 0) and not printed:
-        
-        # fig, ax = plt.subplots(5, 3 + 2*params["num_slots"])
-        # for i in range(5):
-        #     ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))
-        #     if i == 0: ax[i, 0].set_title("img")
-        #     ax[i, 1].imshow(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
-        #     if i == 0: ax[i, 1].set_title("img_hat")
-        #     ax[i, 2].imshow(np.transpose(causal_img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
-        #     if i == 0: ax[i, 2].set_title("c_img_hat")
-
-        #     for j in range(params["num_slots"]):
-        #         ax[i, j+3].imshow(np.transpose(figs[j, i].detach().cpu().numpy(), (1, 2, 0)))
-        #         if i == 0: ax[i, j+3].set_title(f"figs {j}")
-
-        #     for j in range(params["num_slots"]):
-        #         ax[i, j+5].imshow(np.transpose(causal_recon_figs[j, i].detach().cpu().numpy(), (1, 2, 0)))
-        #         if i == 0: ax[i, j+5].set_title(f"c_figs {j}")
-            
-        #     for j in range(3 + 2*params["num_slots"]):
-        #         ax[i, j].grid(False)
-        #         ax[i, j].axis('off')
-
         fig, ax = plt.subplots(5, 3 + params["num_slots"])
         for i in range(5):
             ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))
