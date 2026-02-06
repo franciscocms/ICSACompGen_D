@@ -235,6 +235,12 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       x_int, _ = guide.scene_decoder(slots_int)
       mu_noise_int, logvar_noise_int, z_noise_int = guide.noise_encoder(x_int)
 
+      logger.info(mu_noise_int.shape)
+      logger.info(logvar_noise_int.shape)
+      logger.info(mu_noise.shape)
+      logger.info(logvar_noise.shape)
+
+
       consistency_loss = recon_loss_fn(mu_noise_int[:, :, 0], mu_noise[:, :, 0]) + recon_loss_fn(logvar_noise_int[:, :, 0], logvar_noise[:, :, 0])
       batch_loss += kl_beta*consistency_loss
     else:
