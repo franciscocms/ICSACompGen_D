@@ -404,6 +404,13 @@ class MultivariateCausalFlow(nn.Module):
         
         self.s_base = nn.Parameter(torch.randn(1, 1, ldim), requires_grad=True)
         self.t_base = nn.Parameter(torch.randn(1, 1, ldim), requires_grad=True)
+
+        self.s2_base = nn.Parameter(torch.randn(1, 1, ldim), requires_grad=True)
+        self.t2_base = nn.Parameter(torch.randn(1, 1, ldim), requires_grad=True)
+
+        self.s3_base = nn.Parameter(torch.randn(1, 1, ldim), requires_grad=True)
+        self.t3_base = nn.Parameter(torch.randn(1, 1, ldim), requires_grad=True)
+
         self.s_cond = MLP(ldim, ldim, ldim*4)
         self.t_cond = MLP(ldim, ldim, ldim*4)
         
@@ -422,20 +429,40 @@ class MultivariateCausalFlow(nn.Module):
         t1 = self.t_cond(z0)
         z1 = torch.exp(s1)*eps[:, :, 1, :] + t1
 
+        s2 = self.s2_base.expand(B, N, -1)
+        t2 = self.t2_base.expand(B, N, -1)
+        z2 = torch.exp(s2)*eps[:, :, 2, :] + t2
+
+        s3 = self.s3_base.expand(B, N, -1)
+        t3 = self.t3_base.expand(B, N, -1)
+        z3 = torch.exp(s3)*eps[:, :, 3, :] + t3
+
         if epoch >= 100 and flag:
             # z1 is [B, N, d]
             with torch.no_grad():
                 z1_int, _ = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
                 z1_int = z1_int.view(B, N, -1)
-                self.z_int = torch.cat((z0.unsqueeze(-2), z1_int.unsqueeze(-2)), dim=-2)
+                self.z_int = torch.cat((z0.unsqueeze(-2),
+                                        z1_int.unsqueeze(-2),
+                                        z2.unsqueeze(-2),
+                                        z3.unsqueeze(-2)), dim=-2)
         else:
             self.z_int = None
 
-        z = torch.cat((z0.unsqueeze(-2), z1.unsqueeze(-2)), dim=-2)
-        ss = torch.cat((s0.unsqueeze(-2), s1.unsqueeze(-2)), dim=-2)
-        ts = torch.cat((t0.unsqueeze(-2), t1.unsqueeze(-2)), dim=-2)   
+        z = torch.cat((z0.unsqueeze(-2),
+                       z1.unsqueeze(-2),
+                       z2.unsqueeze(-2),
+                       z3.unsqueeze(-2)), dim=-2)
+        ss = torch.cat((s0.unsqueeze(-2),
+                        s1.unsqueeze(-2),
+                        s2.unsqueeze(-2),
+                        s3.unsqueeze(-2)), dim=-2)
+        ts = torch.cat((t0.unsqueeze(-2),
+                        t1.unsqueeze(-2),
+                        t2.unsqueeze(-2),
+                        t3.unsqueeze(-2)), dim=-2)   
 
-        log_det = torch.sum(s0, dim=-1) + torch.sum(s1, dim=-1)
+        log_det = torch.sum(s0, dim=-1) + torch.sum(s1, dim=-1) + torch.sum(s2, dim=-1) + torch.sum(s3, dim=-1)
         log_det = torch.mean(log_det)       
 
         return z, ss, ts, log_det, flag
