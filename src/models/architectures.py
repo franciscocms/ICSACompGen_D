@@ -501,8 +501,16 @@ class PriorMultivariateCausalFlow(nn.Module):
         self.s_cond = MLP(ldim, ldim, ldim*4)
         self.t_cond = MLP(ldim, ldim, ldim*4)
 
+        self.s2_base = nn.Parameter(torch.randn(1, 1, ldim), requires_grad=True)
+        self.t2_base = nn.Parameter(torch.randn(1, 1, ldim), requires_grad=True)
+
+        self.s3_base = nn.Parameter(torch.randn(1, 1, ldim), requires_grad=True)
+        self.t3_base = nn.Parameter(torch.randn(1, 1, ldim), requires_grad=True)
+
         self.layer_0 = nn.Linear(1, ldim)
         self.layer_1 = nn.Linear(1, ldim)
+        self.layer_2 = nn.Linear(1, ldim)
+        self.layer_3 = nn.Linear(1, ldim)
 
     def forward(self, u, z):
         B, N, _, _ = z.shape
@@ -517,11 +525,19 @@ class PriorMultivariateCausalFlow(nn.Module):
         t1 = self.t_cond(z[:, :, 0])
         cp1 = torch.exp(s1)*self.layer_1(u[:, :, 1].unsqueeze(-1)) + t1
 
-        cp = torch.cat((cp0.unsqueeze(-2), cp1.unsqueeze(-2)), dim=-2)
-        ss = torch.cat((s0.unsqueeze(-2), s1.unsqueeze(-2)), dim=-2)
-        ts = torch.cat((t0.unsqueeze(-2), t1.unsqueeze(-2)), dim=-2)   
+        s2 = self.s2_base.expand(B, N, -1)
+        t2 = self.t2_base.expand(B, N, -1)
+        cp2 = torch.exp(s2)*self.layer_2(u[:, :, 2].unsqueeze(-1)) + t2
 
-        log_det = torch.sum(s0, dim=-1) + torch.sum(s1, dim=-1)
+        s3 = self.s3_base.expand(B, N, -1)
+        t3 = self.t3_base.expand(B, N, -1)
+        cp3 = torch.exp(s3)*self.layer_3(u[:, :, 3].unsqueeze(-1)) + t3
+
+        cp = torch.cat((cp0.unsqueeze(-2), cp1.unsqueeze(-2), cp2.unsqueeze(-2), cp3.unsqueeze(-2)), dim=-2)
+        ss = torch.cat((s0.unsqueeze(-2), s1.unsqueeze(-2), s2.unsqueeze(-2), s3.unsqueeze(-2)), dim=-2)
+        ts = torch.cat((t0.unsqueeze(-2), t1.unsqueeze(-2), t2.unsqueeze(-2), t3.unsqueeze(-2)), dim=-2)   
+
+        log_det = torch.sum(s0, dim=-1) + torch.sum(s1, dim=-1) + torch.sum(s2, dim=-1) + torch.sum(s3, dim=-1)
         log_det = torch.mean(log_det)       
 
         return cp
