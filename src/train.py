@@ -161,10 +161,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     img = img.to(DEVICE)
     target = target.to(DEVICE)
     B = img.size(0)
-
-    for param in guide.parameters():
-      param.requires_grad = True
-
     guide.iter = num_iters
 
     batch_loss = 0.
@@ -228,21 +224,18 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     # causal consistency
     if epoch >= 100 and guide.causal_flow.z_int != None:
-      for param in guide.parameters():
-        param.requires_grad = False
-      for param in guide.noise_encoder.parameters():
-        param.requires_grad = True
-      
       z_int = guide.causal_flow.z_int.detach()
-      slots_int = guide.causal_decoder(z_int)
-      x_int, _ = guide.scene_decoder(slots_int)
+      with torch.no_grad():
+        slots_int = guide.causal_decoder(z_int)
+        x_int, _ = guide.scene_decoder(slots_int)
       mu_noise_int, logvar_noise_int, z_noise_int = guide.noise_encoder(x_int)
 
       mu_noise_int = mu_noise_int.reshape(mu_noise_int.size(0), mu_noise_int.size(1), L, ldim)
       logvar_noise_int = logvar_noise_int.reshape(logvar_noise_int.size(0), logvar_noise_int.size(1), L, ldim)
       z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
 
-      consistency_loss = recon_loss_fn(mu_noise_int[:, :, 0], mu_noise[:, :, 0]) + recon_loss_fn(logvar_noise_int[:, :, 0], logvar_noise[:, :, 0])
+      mu_scale, logvar_scale = mu_noise[:, :, 0], logvar_noise[:, :, 0]
+      consistency_loss = recon_loss_fn(mu_noise_int[:, :, 0], mu_scale.detach()) + recon_loss_fn(logvar_noise_int[:, :, 0], logvar_scale.detach())
       batch_loss += kl_beta*consistency_loss
     else:
       consistency_loss = 0.
