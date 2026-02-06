@@ -8,6 +8,7 @@ import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
+from src.utils.guide import permute_dims
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -411,38 +412,22 @@ class MultivariateCausalFlow(nn.Module):
         
         B, N, _, _ = eps.shape
 
-        #flag = torch.distributions.Bernoulli(0.25).sample() # if we have interventional regime
-        flag = 0.
-        if 290 >= epoch >= 100 and flag:
-            int_var = torch.distributions.Bernoulli(0.3).sample()
-            if int_var == 0:
-
-                s0 = torch.zeros_like(eps[:, :, 0, :]).to(device)
-                t0 = torch.zeros_like(eps[:, :, 0, :]).to(device)
-                z0 = torch.randn_like(eps[:, :, 0, :]).to(device)
-
-                s1 = self.s_cond(z0)
-                t1 = self.t_cond(z0)
-                z1 = torch.exp(s1)*eps[:, :, 1, :] + t1
-
-            else:
+        flag = torch.distributions.Bernoulli(0.1).sample() # if we have interventional regime
         
-                s0 = self.s_base.expand(B, N, -1)
-                t0 = self.t_base.expand(B, N, -1)
-                z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
-        
-                z1 = torch.randn_like(z0).to(device)
-                s1 = torch.zeros_like(s0).to(device)
-                t1 = torch.zeros_like(t0).to(device)
+        s0 = self.s_base.expand(B, N, -1)
+        t0 = self.t_base.expand(B, N, -1)
+        z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
+
+        s1 = self.s_cond(z0)
+        t1 = self.t_cond(z0)
+        z1 = torch.exp(s1)*eps[:, :, 1, :] + t1
+
+        if epoch >= 100 and flag:
+            # z1 is [B, N, d]
+            z1_int, _ = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
+            self.z_int = torch.cat((z0.unsqueeze(-2), z1_int.unsqueeze(-2)), dim=-2)
         else:
-
-            s0 = self.s_base.expand(B, N, -1)
-            t0 = self.t_base.expand(B, N, -1)
-            z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
-
-            s1 = self.s_cond(z0)
-            t1 = self.t_cond(z0)
-            z1 = torch.exp(s1)*eps[:, :, 1, :] + t1
+            self.z_int = None
 
         z = torch.cat((z0.unsqueeze(-2), z1.unsqueeze(-2)), dim=-2)
         ss = torch.cat((s0.unsqueeze(-2), s1.unsqueeze(-2)), dim=-2)

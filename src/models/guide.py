@@ -166,10 +166,6 @@ class InvSlotAttentionGuide(nn.Module):
         self.prior_z = self.prior(aligned_u_m, z_scm)        
         
         slots = self.causal_decoder(z_scm)
-
-        # for param in self.model.decoder.parameters():
-        #     param.requires_grad = False
-
         img_hat, recon_figures = self.scene_decoder(slots)
 
         if params["running_type"] == "eval": 

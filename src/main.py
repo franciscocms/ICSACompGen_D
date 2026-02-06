@@ -31,11 +31,11 @@ params = {
     "num_slots": 2,
     "batch_size": 64, # 256 for 32GB
     "lr": 4e-4, # 256 with 1e-4 -- 512 for 1e-3
-    "training_from_scratch" : True,
-    "training_epochs": 300, # 400 
+    "training_from_scratch" : False,
+    "training_epochs": 200, # 400 
     "epoch_step": 10,
-    "running_type": "eval", # train, debug, eval, inspect
-    "epoch_to_load" : 290, 
+    "running_type": "train", # train, debug, eval, inspect
+    "epoch_to_load" : 100, 
     "ood_eval": True,
     "TC_minimization": True, # usually True
     "alpha": 1., # usually 1.
@@ -46,7 +46,7 @@ params = {
     "causal_dropout_prob": 0., # 0.6 for models with causal flow, 1.0 for models without
     "latent_dim" : 4,
     "check_attn": True,
-    "jobID": 160,  
+    "jobID": 161,  
     "mesh_iters": 4,
     "mesh_lr": 5, 
     "mesh_noise": 1e-3,

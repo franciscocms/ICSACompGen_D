@@ -93,8 +93,8 @@ if CHECK_ATTN and TRAINING_FROM_SCRATCH:
 else:
   resume_epoch = params['epoch_to_load']
   logger.info(f"resume training from epoch {resume_epoch}...")
-  checkpoint = torch.load(f"{main_dir}/checkpoint-{params['jobID']}/guide_{resume_epoch}.pth", weights_only=False)
-  #checkpoint = torch.load(f"{main_dir}/checkpoint-142/guide_{resume_epoch}.pth", weights_only=False)
+  #checkpoint = torch.load(f"{main_dir}/checkpoint-{params['jobID']}/guide_{resume_epoch}.pth", weights_only=False)
+  checkpoint = torch.load(f"{main_dir}/checkpoint-160/guide_{resume_epoch}.pth", weights_only=False)
   guide.load_state_dict(checkpoint["model"])
   
 optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
@@ -221,10 +221,25 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     log_z = torch.mean(log_z)
 
     log_det = guide.log_det
-    #batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + torch.square(torch.mean(logvar_noise)))
     batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + 0.01*torch.square(torch.mean(logvar_noise)) - 0.1*log_z)
-    #batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det - 0.1*log_z)
-    
+
+    # causal consistency
+    if epoch >= 100 and guide.causal_flow.z_int != None:
+      for param in guide.parameters():
+        param.requires_grad = False
+      for param in guide.noise_encoder.parameters():
+        param.requires_grad = True
+      
+      z_int = guide.causal_flow.z_int.detach()
+      slots_int = guide.causal_decoder(z_int)
+      x_int, _ = guide.scene_decoder(slots_int)
+      mu_noise_int, logvar_noise_int, z_noise_int = guide.noise_encoder(x_int)
+
+      consistency_loss = recon_loss_fn(mu_noise_int[:, :, 0], mu_noise[:, :, 0]) + recon_loss_fn(logvar_noise_int[:, :, 0], logvar_noise[:, :, 0])
+      batch_loss += kl_beta*consistency_loss
+    else:
+      consistency_loss = 0.
+
     batch_loss.backward()
     optimizer.step()
     epoch_train_loss += batch_loss 
