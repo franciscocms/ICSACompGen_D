@@ -425,7 +425,7 @@ class MultivariateCausalFlow(nn.Module):
         if epoch >= 100 and flag:
             # z1 is [B, N, d]
             z1_int, _ = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
-            z1_int.view(B, N, -1)
+            z1_int = z1_int.view(B, N, -1)
             self.z_int = torch.cat((z0.unsqueeze(-2), z1_int.unsqueeze(-2)), dim=-2)
         else:
             self.z_int = None
