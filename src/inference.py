@@ -168,6 +168,8 @@ def main():
             plt.close()
 
             logger.info(f"test r2 score: {r2_score}")
+
+            if i == 1: break
         
 
 if __name__ == '__main__':
