@@ -253,8 +253,10 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       logvar_noise_int = logvar_noise_int.reshape(logvar_noise_int.size(0), logvar_noise_int.size(1), L, ldim)
       z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
 
-      mu_scale, logvar_scale = mu_noise[:, :, 0], logvar_noise[:, :, 0]
-      consistency_loss = recon_loss_fn(mu_noise_int[:, :, 0], mu_scale.detach()) + recon_loss_fn(logvar_noise_int[:, :, 0], logvar_scale.detach())
+      consistency_loss = 0.
+      for i in [0, 2, 3]:
+        mu_scale, logvar_scale = mu_noise[:, :, i], logvar_noise[:, :, i]
+        consistency_loss += recon_loss_fn(mu_noise_int[:, :, i], mu_scale.detach()) + recon_loss_fn(logvar_noise_int[:, :, i], logvar_scale.detach())
       batch_loss += kl_beta*consistency_loss
     else:
       consistency_loss = 0.
