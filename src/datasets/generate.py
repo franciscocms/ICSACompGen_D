@@ -72,7 +72,7 @@ def generate_scene(params, scene_id=0, A=None, train_set=True, ood=False):
   all_locs = []
   for n in range(int(n_objects)):
     object_attributes = []
-    for i, factor in enumerate(params["latent_vars"] + ["x_pos", "y_pos"]):
+    for i, factor in enumerate(params["latent_vars"]):
       # get ranges for the distribution for each factor, in an abstract way
       factor_min, factor_max = params["factor_ranges"][factor]
       if factor in ["x_pos", "y_pos"]:
