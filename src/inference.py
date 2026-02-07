@@ -129,7 +129,7 @@ def main():
 
             optimizer = torch.optim.AdamW(probe.parameters(), lr=1e-3, weight_decay=0.001)
             
-            for epoch in range(500):
+            for epoch in range(1000):
                 train_loss = 0.
                 train_iters = 0
                 for e, target in train_loader:
@@ -160,6 +160,7 @@ def main():
                 if epoch % 50 == 0:
                     logger.info(f"epoch {epoch}:")
                     logger.info(f"train loss {train_loss} - test r2_score: {r2_score}")
+                
 
 
             plt.scatter(a_target, a_preds, s=2)
