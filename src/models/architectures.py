@@ -419,8 +419,8 @@ class MultivariateCausalFlow(nn.Module):
         
         B, N, _, _ = eps.shape
 
-        #flag = torch.distributions.Bernoulli(0.9).sample() # if we have interventional regime
-        flag = 1
+        flag = torch.distributions.Categorical(torch.tensor([0., 1/3, 1/3, 1/3])).sample() # if we have interventional regime
+        #flag = 1
         
         s0 = self.s_base.expand(B, N, -1)
         t0 = self.t_base.expand(B, N, -1)
@@ -438,15 +438,33 @@ class MultivariateCausalFlow(nn.Module):
         t3 = self.t3_base.expand(B, N, -1)
         z3 = torch.exp(s3)*eps[:, :, 3, :] + t3
 
-        if epoch >= 100 and flag:
+        if epoch >= 100:
             # z1 is [B, N, d]
             with torch.no_grad():
-                z1_int, _ = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
-                z1_int = z1_int.view(B, N, -1)
-                self.z_int = torch.cat((z0.unsqueeze(-2),
-                                        z1_int.unsqueeze(-2),
-                                        z2.unsqueeze(-2),
-                                        z3.unsqueeze(-2)), dim=-2)
+                if flag == 1:
+                    z1_int, _ = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
+                    z1_int = z1_int.view(B, N, -1)
+                    self.z_int = torch.cat((z0.unsqueeze(-2),
+                                            z1_int.unsqueeze(-2),
+                                            z2.unsqueeze(-2),
+                                            z3.unsqueeze(-2)), dim=-2)
+                elif flag == 2:
+                    z2_int, _ = permute_dims(torch.flatten(z2, 0, 1), z2.size(-1))
+                    z2_int = z2_int.view(B, N, -1)
+                    self.z_int = torch.cat((z0.unsqueeze(-2),
+                                            z1.unsqueeze(-2),
+                                            z2_int.unsqueeze(-2),
+                                            z3.unsqueeze(-2)), dim=-2)
+                
+                elif flag == 3:
+                    z3_int, _ = permute_dims(torch.flatten(z3, 0, 1), z3.size(-1))
+                    z3_int = z3_int.view(B, N, -1)
+                    self.z_int = torch.cat((z0.unsqueeze(-2),
+                                            z1.unsqueeze(-2),
+                                            z2.unsqueeze(-2),
+                                            z3_int.unsqueeze(-2)), dim=-2)
+        
+        
         else:
             self.z_int = None
 
