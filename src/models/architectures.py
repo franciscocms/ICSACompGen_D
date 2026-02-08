@@ -248,7 +248,9 @@ class Decoder(nn.Module):
 
     def forward(self, z):
         # z: [B, N, L, d]
-        slot_hat = self.nets["0"](z[:, :, 0]) + self.nets["1"](z[:, :, 1])
+        slot_hat = 0.
+        for i in range(len(params["latent_vars"])):
+            slot_hat += self.nets[str(i)](z[:, :, i])
         return slot_hat
 
 class NoiseEncoder(nn.Module):
