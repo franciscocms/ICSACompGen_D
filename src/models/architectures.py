@@ -421,7 +421,7 @@ class MultivariateCausalFlow(nn.Module):
         
         B, N, _, _ = eps.shape
 
-        flag = torch.distributions.Categorical(torch.tensor([1/len(params["latents_vars"]) for _ in range(len(params["latent_vars"]))])
+        flag = torch.distributions.Categorical(torch.tensor([1/len(params["latent_vars"]) for _ in range(len(params["latent_vars"]))])
                                                ).sample()
         
         s0 = self.s_base.expand(B, N, -1)
