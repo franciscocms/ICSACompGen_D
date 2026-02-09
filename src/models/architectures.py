@@ -427,7 +427,24 @@ class MultivariateCausalFlow(nn.Module):
         s0 = self.s_base.expand(B, N, -1)
         t0 = self.t_base.expand(B, N, -1)
         z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
+        
+        if epoch >= 100:
+            with torch.no_grad():
+                if flag == 0:
+                    z0_int, _ = permute_dims(torch.flatten(z0, 0, 1), z0.size(-1))
+                    z0_int = z0_int.view(B, N, -1)
 
+                    s1 = self.s_cond(z0_int)
+                    t1 = self.t_cond(z0_int)
+                    z1_int = torch.exp(s1)*eps[:, :, 1, :] + t1
+                    
+                    self.z_int = torch.cat((z0_int.unsqueeze(-2),
+                                            z1_int.unsqueeze(-2),
+                                            z2.unsqueeze(-2),
+                                            z3.unsqueeze(-2)), dim=-2)
+        else:
+            self.z_int = None
+        
         s1 = self.s_cond(z0)
         t1 = self.t_cond(z0)
         z1 = torch.exp(s1)*eps[:, :, 1, :] + t1
@@ -443,13 +460,6 @@ class MultivariateCausalFlow(nn.Module):
         if epoch >= 100:
             # z1 is [B, N, d]
             with torch.no_grad():
-                if flag == 0:
-                    z0_int, _ = permute_dims(torch.flatten(z0, 0, 1), z0.size(-1))
-                    z0_int = z0_int.view(B, N, -1)
-                    self.z_int = torch.cat((z0_int.unsqueeze(-2),
-                                            z1.unsqueeze(-2),
-                                            z2.unsqueeze(-2),
-                                            z3.unsqueeze(-2)), dim=-2)
                 if flag == 1:
                     z1_int, _ = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
                     z1_int = z1_int.view(B, N, -1)
