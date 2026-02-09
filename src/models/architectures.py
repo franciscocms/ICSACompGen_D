@@ -421,8 +421,8 @@ class MultivariateCausalFlow(nn.Module):
         
         B, N, _, _ = eps.shape
 
-        flag = torch.distributions.Categorical(torch.tensor([0., 1/3, 1/3, 1/3])).sample() # if we have interventional regime
-        #flag = 1
+        flag = torch.distributions.Categorical(torch.tensor([1/len(params["latents_vars"]) for _ in range(len(params["latent_vars"]))])
+                                               ).sample()
         
         s0 = self.s_base.expand(B, N, -1)
         t0 = self.t_base.expand(B, N, -1)
@@ -443,6 +443,13 @@ class MultivariateCausalFlow(nn.Module):
         if epoch >= 100:
             # z1 is [B, N, d]
             with torch.no_grad():
+                if flag == 0:
+                    z0_int, _ = permute_dims(torch.flatten(z0, 0, 1), z0.size(-1))
+                    z0_int = z0_int.view(B, N, -1)
+                    self.z_int = torch.cat((z0_int.unsqueeze(-2),
+                                            z1.unsqueeze(-2),
+                                            z2.unsqueeze(-2),
+                                            z3.unsqueeze(-2)), dim=-2)
                 if flag == 1:
                     z1_int, _ = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
                     z1_int = z1_int.view(B, N, -1)
@@ -465,8 +472,6 @@ class MultivariateCausalFlow(nn.Module):
                                             z1.unsqueeze(-2),
                                             z2.unsqueeze(-2),
                                             z3_int.unsqueeze(-2)), dim=-2)
-        
-        
         else:
             self.z_int = None
 
