@@ -55,31 +55,34 @@ def log_normal(x, mu=None, v=None, broadcast_size=False):
     return -0.5 * (np.log(2 * np.pi) + v.log() + (x - mu).pow(2).div(v))
 
 def compute_matching_cost(preds, labels):
-  B = preds.size(0)
-  assert preds.shape == labels.shape, f"{preds.shape} is different from {labels.shape}"
+    B = preds.size(0)
+    assert preds.shape == labels.shape, f"{preds.shape} is different from {labels.shape}"
   
-  if len(preds.shape) == 3: # [B, N, L]
-    #cost_matrix = torch.sum((preds - labels_u)**2, dim=-1)
-    cost_matrix = F.smooth_l1_loss(preds.unsqueeze(1).expand(-1, labels.size(1), -1, -1),
-                               labels.unsqueeze(2).expand(-1, -1, preds.size(1), -1), reduction="none").mean(-1)
+    if len(preds.shape) == 3: # [B, N, L]
+        #cost_matrix = torch.sum((preds - labels_u)**2, dim=-1)
+        cost_matrix = F.smooth_l1_loss(preds.unsqueeze(1).expand(-1, labels.size(1), -1, -1),
+                                labels.unsqueeze(2).expand(-1, -1, preds.size(1), -1), reduction="none").mean(-1)
 
-  elif len(preds.shape) == 2: # [B, N]
-    cost_matrix = F.smooth_l1_loss(preds.unsqueeze(1).expand(-1, labels.size(1), -1),
-                               labels.unsqueeze(2).expand(-1, -1, preds.size(1)), reduction="none")
-  cost_matrix_ = cost_matrix.detach().cpu().numpy()
-  
-  indices = np.array([linear_sum_assignment(p) for p in cost_matrix_])
-  _, col_ind = indices[:, 0], indices[:, 1]  
-  indices_ = indices.shape[2] * indices[:, 0] + indices[:, 1]
+    elif len(preds.shape) == 2: # [B, N]
+        cost_matrix = F.smooth_l1_loss(preds.unsqueeze(1).expand(-1, labels.size(1), -1),
+                                labels.unsqueeze(2).expand(-1, -1, preds.size(1)), reduction="none")
+    cost_matrix_ = cost_matrix.detach().cpu().numpy()
+    try:
+        indices = np.array([linear_sum_assignment(p) for p in cost_matrix_])
+    except:
+        logger.info(cost_matrix_)
 
-  losses = torch.gather(cost_matrix.flatten(1,2), 1, torch.from_numpy(indices_).to(device=cost_matrix.device))
-  total_loss = losses.mean()
+    _, col_ind = indices[:, 0], indices[:, 1]  
+    indices_ = indices.shape[2] * indices[:, 0] + indices[:, 1]
 
-  # Reorder labels to match slot order
-  matched_labels = labels[torch.arange(B, device=labels.device).view(B, 1),
-                      col_ind]
+    losses = torch.gather(cost_matrix.flatten(1,2), 1, torch.from_numpy(indices_).to(device=cost_matrix.device))
+    total_loss = losses.mean()
 
-  return total_loss, matched_labels
+    # Reorder labels to match slot order
+    matched_labels = labels[torch.arange(B, device=labels.device).view(B, 1),
+                        col_ind]
+
+    return total_loss, matched_labels
 
 
 def compute_kl_gaussians(mu_q, logvar_q, mu_p, logvar_p):
