@@ -230,13 +230,13 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     else:
       tc_loss = torch.tensor(0.)
 
-    cp_v = torch.ones_like(guide.prior_z).to(DEVICE)
     log_z = 0.
-    for i in range(L):
-      log_z += log_normal(z_scm[:, :, i],
-                          guide.prior_z[:, :, i],
-                          cp_v[:, :, i]).sum(-1)
-    log_z = torch.mean(log_z)
+    # cp_v = torch.ones_like(guide.prior_z).to(DEVICE)
+    # for i in range(L):
+    #   log_z += log_normal(z_scm[:, :, i],
+    #                       guide.prior_z[:, :, i],
+    #                       cp_v[:, :, i]).sum(-1)
+    # log_z = torch.mean(log_z)
 
     log_det = guide.log_det
     batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + 0.01*torch.square(torch.mean(logvar_noise)) - 0.1*log_z)
