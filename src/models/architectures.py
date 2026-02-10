@@ -611,7 +611,7 @@ class ConditionalGaussianPrior(nn.Module):
 
             mean, logvar = out[0], out[1]
             if self.clamp_var:
-                logvar = torch.clamp(logvar, -3., 2.)
+                logvar = torch.clamp(logvar, -2., 2.)
 
             means.append(mean)   
             logvars.append(logvar)       
