@@ -66,28 +66,33 @@ def sample_ood(parent, child_boundaries, threshold=4.):
 def normalize(x, min, max):
    return (x-min)/(max-min)
 
-def sample_id_linear(parent, window=0.2):
+def sample_id_linear(parent, factor_ranges, window=0.2):
   factor_min, factor_max = parent - window, parent + window
-  if factor_min < 0: factor_min = 0
-  if factor_max > 1: factor_max = 1
+  if factor_min < factor_ranges[0]: factor_min = factor_ranges[0]
+  if factor_max > factor_ranges[1]: factor_max = factor_ranges[1]
   sample = dist.Uniform(factor_min, factor_max).sample()
   return sample
    
-def sample_ood_linear(parent, window=0.2):
-  if parent - window < 0:
-      factor_min, factor_max = parent + window, 1.
-  elif parent + window > 1.:
-      factor_min, factor_max = 0., parent - window
-  else:
-      sample_below_flag = torch.distributions.Bernoulli(0.5).sample()
-      if sample_below_flag:
-          factor_min, factor_max = 0., parent - window
-      else:
-          factor_min, factor_max = parent + window, 1.
+def sample_ood_linear(parent, factor_ranges, window=0.2):
+  factor_min = parent - window
+  factor_max = parent + window
+  
+  # Identify valid ranges outside the window
+  # Range 1: [0, factor_min]
+  # Range 2: [factor_max, 1]
+  valid_ranges = []
+  if factor_min > factor_ranges[0]:
+      valid_ranges.append((factor_ranges[0], factor_min))
+  if factor_max < factor_ranges[1]:
+      valid_ranges.append((factor_max, factor_ranges[1]))
 
-  if factor_min < 0: factor_min = 0
-  if factor_max > 1: factor_max = 1
-  sample = dist.Uniform(factor_min, factor_max).sample()
+  # 1. Pick which range to sample from (weighted by the width of the range)
+  widths = torch.tensor([r[1] - r[0] for r in valid_ranges])
+  range_idx = dist.Categorical(probs=widths).sample()
+  chosen_range = valid_ranges[range_idx]
+  
+  # 2. Sample color uniformly within the chosen OOD range
+  sample = dist.Uniform(chosen_range[0], chosen_range[1]).sample()
   return sample 
    
 
