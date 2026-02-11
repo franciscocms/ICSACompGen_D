@@ -163,7 +163,7 @@ class InvSlotAttentionGuide(nn.Module):
         self.mu_noise_prior, self.logvar_noise_prior = self.noise_prior(aligned_u_m)
 
         # get the causally disentangled prior p(z|u) to push z representations
-        #self.prior_z = self.prior(aligned_u_m, z_scm)        
+        self.prior_z = self.prior(aligned_u_m, z_scm)        
         
         slots = self.causal_decoder(z_scm)
         img_hat, recon_figures = self.scene_decoder(slots)
@@ -191,10 +191,6 @@ class InvSlotAttentionGuide(nn.Module):
         all_flat_noise_preds = torch.stack(all_flat_noise_preds, dim=-1)
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
         self.flatt_noise_pred_loss = torch.stack(self.flatt_noise_pred_loss)
-        
-        # if params["running_type"] == "train":
-        #     for param in self.model.decoder.parameters():
-        #         param.requires_grad = True
-        
+                
         return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, recon_figures
         

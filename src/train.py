@@ -187,34 +187,14 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   
     slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, recon_figures = guide(img, target, step=epoch)
     recon_loss = recon_loss_fn(img_hat, img)
-    # causal_recon_loss = recon_loss_fn(causal_img_hat, img)
-    # slot_recon_loss = slot_rec_loss_crit(slot_hat, slots)
-
-    # if 290 >= epoch >= 100:
-    #   if guide.int_flag:
-    #     recon_loss = torch.zeros_like(recon_loss)
-    #     causal_recon_loss = torch.zeros_like(causal_recon_loss)
-    #     slot_recon_loss = torch.zeros_like(slot_recon_loss)
-
-    #target_logvar = torch.tensor(-4.0).to(DEVICE)
-    #prior_logvar_loss = F.mse_loss(logvar_noise, target_logvar.expand_as(logvar_noise))
     batch_loss += 100*recon_loss + kl_beta * (guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
         os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
     
-    # noise prior: isotropic Gaussian
-    #kl_noise = 0.
-    # mu_noise = mu_noise.reshape(B*params["num_slots"], L*ldim)
-    # mu_prior_noise = torch.zeros_like(mu_noise).to(DEVICE)
-    # logvar_noise = logvar_noise.reshape(B*params["num_slots"], L*ldim)
-    # logvar_prior_noise = torch.ones_like(logvar_noise).to(DEVICE)
-    
     log_e = 0.
     for i in range(L):
-      # kl_noise += compute_kl_gaussians(mu_noise[:, :, i], logvar_noise[:, :, i], 
-      #                                  guide.mu_noise_prior[:, :, i], guide.logvar_noise_prior[:, :, i])
       log_e += torch.mean(log_normal(z_noise[:, :, i], guide.mu_noise_prior[:, :, i], torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
     
     
@@ -231,12 +211,12 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       tc_loss = torch.tensor(0.)
 
     log_z = 0.
-    # cp_v = torch.ones_like(guide.prior_z).to(DEVICE)
-    # for i in range(L):
-    #   log_z += log_normal(z_scm[:, :, i],
-    #                       guide.prior_z[:, :, i],
-    #                       cp_v[:, :, i]).sum(-1)
-    # log_z = torch.mean(log_z)
+    cp_v = torch.ones_like(guide.prior_z).to(DEVICE)
+    for i in range(L):
+      log_z += log_normal(z_scm[:, :, i],
+                          guide.prior_z[:, :, i],
+                          cp_v[:, :, i]).sum(-1)
+    log_z = torch.mean(log_z)
 
     log_det = guide.log_det
     batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + 0.01*torch.square(torch.mean(logvar_noise)) - 0.1*log_z)
