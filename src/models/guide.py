@@ -100,10 +100,10 @@ class InvSlotAttentionGuide(nn.Module):
         self.causal_decoder = CausalDecoder(nin = self.ldim,
                                             nout = self.slot_dim
                                             )
-        
         self.causal_flow = MultivariateCausalFlow(self.L,
                                                   self.ldim,
-                                                  self.A)
+                                                  self.A,
+                                                  stage="train")
         self.noise_prior = ConditionalGaussianPrior(self.L,
                                                     self.ldim,
                                                     learn_var=True,
@@ -191,6 +191,6 @@ class InvSlotAttentionGuide(nn.Module):
         all_flat_noise_preds = torch.stack(all_flat_noise_preds, dim=-1)
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
         self.flatt_noise_pred_loss = torch.stack(self.flatt_noise_pred_loss)
-                
+
         return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, recon_figures
         

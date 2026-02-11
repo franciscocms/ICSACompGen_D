@@ -129,7 +129,7 @@ def main():
 
             optimizer = torch.optim.AdamW(probe.parameters(), lr=1e-3, weight_decay=0.001)
             
-            for epoch in range(1000):
+            for epoch in range(100):
                 train_loss = 0.
                 train_iters = 0
                 for e, target in train_loader:

@@ -401,7 +401,7 @@ class Flow(nn.Module):
         return z_i, s, t
         
 class MultivariateCausalFlow(nn.Module):
-    def __init__(self, L, ldim, A):
+    def __init__(self, L, ldim, A, stage="train"):
         super().__init__()
         
         self.s_base = nn.Parameter(torch.randn(1, 1, ldim), requires_grad=True)
@@ -415,6 +415,8 @@ class MultivariateCausalFlow(nn.Module):
 
         self.s_cond = MLP(ldim, ldim, ldim*4)
         self.t_cond = MLP(ldim, ldim, ldim*4)
+
+        self.stage = stage
         
 
     def forward(self, eps, epoch):        
@@ -428,8 +430,12 @@ class MultivariateCausalFlow(nn.Module):
         t0 = self.t_base.expand(B, N, -1)
         z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
 
-        s1 = self.s_cond(z0)
-        t1 = self.t_cond(z0)
+        if self.stage == "inference":
+            s1 = self.s_cond(torch.zeros_like(z0).to(device))
+            t1 = self.t_cond(torch.zeros_like(s0).to(device))
+        else:
+            s1 = self.s_cond(z0)
+            t1 = self.t_cond(z0)
         z1 = torch.exp(s1)*eps[:, :, 1, :] + t1
 
         s2 = self.s2_base.expand(B, N, -1)
