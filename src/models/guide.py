@@ -103,7 +103,7 @@ class InvSlotAttentionGuide(nn.Module):
         self.causal_flow = MultivariateCausalFlow(self.L,
                                                   self.ldim,
                                                   self.A,
-                                                  stage="train")
+                                                  stage=params["running_type"])
         self.noise_prior = ConditionalGaussianPrior(self.L,
                                                     self.ldim,
                                                     learn_var=True,
