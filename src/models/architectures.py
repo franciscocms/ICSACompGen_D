@@ -430,7 +430,7 @@ class MultivariateCausalFlow(nn.Module):
         t0 = self.t_base.expand(B, N, -1)
         z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
 
-        if self.stage == "inference":
+        if self.stage == "eval":
             s1 = self.s_cond(torch.zeros_like(z0).to(device))
             t1 = self.t_cond(torch.zeros_like(s0).to(device))
         else:
