@@ -248,9 +248,13 @@ class Decoder(nn.Module):
 
     def forward(self, z):
         # z: [B, N, L, d]
-        slot_hat = 0.
-        for i in range(len(params["latent_vars"])):
-            slot_hat += self.nets[str(i)](z[:, :, i])
+        # slot_hat = 0.
+        # for i in range(len(params["latent_vars"])):
+        #     slot_hat += self.nets[str(i)](z[:, :, i])
+        slot_hat = torch.cat((self.nets[str(0)](z[:, :, 0]),
+                              self.nets[str(1)](z[:, :, 1]),
+                              self.nets[str(2)](z[:, :, 2]),
+                              self.nets[str(3)](z[:, :, 3])), dim=-1)
         return slot_hat
 
 class NoiseEncoder(nn.Module):
@@ -430,12 +434,14 @@ class MultivariateCausalFlow(nn.Module):
         t0 = self.t_base.expand(B, N, -1)
         z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
 
-        if (self.stage == "train" and flag == 1) or self.stage == "eval":
-            s1 = self.s_cond(torch.zeros_like(z0).to(device))
-            t1 = self.t_cond(torch.zeros_like(s0).to(device))
-        else:
-            s1 = self.s_cond(z0)
-            t1 = self.t_cond(z0)
+        # if (self.stage == "train" and flag == 1) or self.stage == "eval":
+        #     s1 = self.s_cond(torch.zeros_like(z0).to(device))
+        #     t1 = self.t_cond(torch.zeros_like(s0).to(device))
+        # else:
+        #     s1 = self.s_cond(z0)
+        #     t1 = self.t_cond(z0)
+        s1 = self.s_cond(z0)
+        t1 = self.t_cond(z0)
         z1 = torch.exp(s1)*eps[:, :, 1, :] + t1
 
         s2 = self.s2_base.expand(B, N, -1)

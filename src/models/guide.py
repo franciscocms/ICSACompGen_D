@@ -98,7 +98,8 @@ class InvSlotAttentionGuide(nn.Module):
                                                     )
         
         self.causal_decoder = CausalDecoder(nin = self.ldim,
-                                            nout = self.slot_dim
+                                            #nout = self.slot_dim
+                                            nout = self.ldim
                                             )
         self.causal_flow = MultivariateCausalFlow(self.L,
                                                   self.ldim,

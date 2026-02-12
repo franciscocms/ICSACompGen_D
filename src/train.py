@@ -248,7 +248,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     batch_loss.backward()
     optimizer.step()
-    num_iters += 1
 
     epoch_train_loss += batch_loss 
     epoch_recon_loss += recon_loss
@@ -261,9 +260,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     epoch_log_det += log_det
     epoch_logvar_noise += torch.square(torch.mean(logvar_noise))
     epoch_consistency_loss += consistency_loss
-    
-
-    #logger.info(num_iters)
     
     if params["TC_minimization"]:
       for name, param in guide.tc_discriminator.named_parameters():
@@ -289,30 +285,31 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       disc_tc_loss = torch.tensor(0.)
     
     if guide.model_name == "additiveAE":
-      
-      recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
-      
-      if (epoch % epoch_step == 0 or epoch == 0) and not printed:
-        fig, ax = plt.subplots(5, 3 + params["num_slots"])
-        for i in range(5):
-            ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))
-            if i == 0: ax[i, 0].set_title("img")
-            ax[i, 1].imshow(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
-            if i == 0: ax[i, 1].set_title("img_hat")
-            ax[i, 2].imshow(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)))
-            if i == 0: ax[i, 2].set_title(f"int {guide.int_flag}")
+      if num_iters == 0:
+        recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
+        
+        if (epoch % epoch_step == 0 or epoch == 0) and not printed:
+          fig, ax = plt.subplots(5, 3 + params["num_slots"])
+          for i in range(5):
+              ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))
+              if i == 0: ax[i, 0].set_title("img")
+              ax[i, 1].imshow(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
+              if i == 0: ax[i, 1].set_title("img_hat")
+              ax[i, 2].imshow(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)))
+              if i == 0: ax[i, 2].set_title(f"int {guide.int_flag}")
 
-            for j in range(params["num_slots"]):
-                ax[i, j+3].imshow(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)))
-                if i == 0: ax[i, j+3].set_title(f"figs {j}")
+              for j in range(params["num_slots"]):
+                  ax[i, j+3].imshow(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)))
+                  if i == 0: ax[i, j+3].set_title(f"figs {j}")
 
-            for j in range(3 + params["num_slots"]):
-                ax[i, j].grid(False)
-                ax[i, j].axis('off')
+              for j in range(3 + params["num_slots"]):
+                  ax[i, j].grid(False)
+                  ax[i, j].axis('off')
 
-        plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
-        plt.close()   
+          plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
+          plt.close()   
 
+    num_iters += 1
     printed = True
     
   epoch_train_loss /= num_iters
