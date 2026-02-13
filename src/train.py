@@ -241,7 +241,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       for i in invariant_vars:
         mu_scale, logvar_scale = mu_noise[:, :, i], logvar_noise[:, :, i]
         consistency_loss += recon_loss_fn(mu_noise_int[:, :, i], mu_scale.detach()) + recon_loss_fn(logvar_noise_int[:, :, i], logvar_scale.detach())      
-      batch_loss += kl_beta * 0.01 * consistency_loss
+      #batch_loss += kl_beta * 0.01 * consistency_loss  # job 169
+      batch_loss += kl_beta * consistency_loss          # job 170
     else:
       consistency_loss = 0.
       x_int = torch.zeros_like(img_hat)
