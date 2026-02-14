@@ -423,7 +423,7 @@ class MultivariateCausalFlow(nn.Module):
         self.stage = stage
         
 
-    def forward(self, eps, epoch):        
+    def forward(self, eps, epoch=0):        
         
         B, N, _, _ = eps.shape
 
