@@ -32,7 +32,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(device)
 main_dir = os.path.abspath(__file__+'/../')
 
-def main(params):    
+def main():    
 
     assert params["running_type"] == "eval"
 
@@ -71,8 +71,8 @@ def main(params):
         shutil.rmtree(plots_dir)
         os.mkdir(plots_dir)
     
-    for params in guide.parameters():
-        params.requires_grad = False
+    for p in guide.parameters():
+        p.requires_grad = False
 
     for OOD_EVAL in [True]:
 
@@ -210,4 +210,4 @@ def main(params):
         
 
 if __name__ == '__main__':
-    main(params)
+    main()
