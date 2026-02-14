@@ -71,7 +71,7 @@ def main():
         shutil.rmtree(plots_dir)
         os.mkdir(plots_dir)
 
-    for OOD_EVAL in [False, True]:
+    for OOD_EVAL in [True]:
 
         logger.info(f"\nOOD: {OOD_EVAL}\n")
 
@@ -98,7 +98,7 @@ def main():
 
         if OOD_EVAL:
 
-            z, _, _, _ = guide.causal_flow(z_noise)
+            z, _, _, _, _ = guide.causal_flow(z_noise)
 
             # split in z_scale, z_color, ....
             z_scale, z_color, z_x, z_y = torch.flatten(z, -2, -1).split(params["latent_dim"], -1)
