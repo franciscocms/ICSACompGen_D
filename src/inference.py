@@ -93,9 +93,37 @@ def main():
                 z_noise = torch.cat((z_noise, batch_z_noise), dim=0)
                 targets = torch.cat((targets, target), dim=0)  
 
-        logger.info(z_noise.shape) # [B, N, L, d] -> B = 50k
+        logger.info(z_noise.shape) # [B, N, L, d] -> B = 5k
         logger.info(targets.shape)
 
+        if OOD_EVAL:
+
+            z, _, _, _ = guide.causal_flow(z_noise)
+
+            # split in z_scale, z_color, ....
+            z_scale, z_color, z_x, z_y = torch.flatten(z, -2, -1).split(params["latent_dim"], -1)
+            z_color = z_color.detach().clone()
+            z_color.requires_grad = True
+            optimizer = torch.optim.Adam([z_color], lr=1e-2)
+
+            for i in range(100):
+                
+                optimizer.zero_grad()
+
+                e_color = (z_color - guide.causal_flow.t_cond(z_scale)) * torch.exp(-guide.causal_flow.s_cond(z_scale))
+                loss = F.mse_loss(e_color, z_noise[:, :, 1])
+
+                logger.info(f"loss: {loss}")
+
+                loss.backward()
+                optimizer.step()
+
+            with torch.no_grad():
+                slots = guide.causal_decoder(torch.cat((z_scale.unsqueeze(-2), z_color.unsqueeze(-2), z_x.unsqueeze(-2), z_y.unsqueeze(-2)), dim=-2))
+                img_hat, recon_figures = guide.scene_decoder(slots)
+        
+        
+        
         fig, ax = plt.subplots(5, 2 + params["num_slots"])
         for i in range(5):
             ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))

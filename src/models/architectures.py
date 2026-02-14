@@ -248,13 +248,13 @@ class Decoder(nn.Module):
 
     def forward(self, z):
         # z: [B, N, L, d]
-        # slot_hat = 0.
-        # for i in range(len(params["latent_vars"])):
-        #     slot_hat += self.nets[str(i)](z[:, :, i])
-        slot_hat = torch.cat((self.nets[str(0)](z[:, :, 0]),
-                              self.nets[str(1)](z[:, :, 1]),
-                              self.nets[str(2)](z[:, :, 2]),
-                              self.nets[str(3)](z[:, :, 3])), dim=-1)
+        slot_hat = 0.
+        for i in range(len(params["latent_vars"])):
+            slot_hat += self.nets[str(i)](z[:, :, i])
+        # slot_hat = torch.cat((self.nets[str(0)](z[:, :, 0]),
+        #                       self.nets[str(1)](z[:, :, 1]),
+        #                       self.nets[str(2)](z[:, :, 2]),
+        #                       self.nets[str(3)](z[:, :, 3])), dim=-1)
         return slot_hat
 
 class NoiseEncoder(nn.Module):
