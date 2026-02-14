@@ -107,6 +107,8 @@ def main():
             z_scale, z_color, z_x, z_y = torch.flatten(z, -2, -1).split(params["latent_dim"], -1)
             z_scale = z_scale.detach()
             z_color = z_color.detach()
+            logger.info(z_color[0, 0])
+            z_color = torch.randn_like(z_scale).to(device)
             z_color.requires_grad = True
             optimizer = torch.optim.Adam([z_color], lr=1e-2)
 
