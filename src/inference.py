@@ -115,7 +115,7 @@ def main():
                 loss = F.mse_loss(e_color, z_noise[:, :, 1])
 
                 logger.info(f"loss: {loss}")
-                logger.info(z_color[0, 0])
+                #logger.info(z_color[0, 0])
 
                 loss.backward()
                 optimizer.step()
