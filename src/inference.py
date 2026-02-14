@@ -102,7 +102,8 @@ def main():
 
             # split in z_scale, z_color, ....
             z_scale, z_color, z_x, z_y = torch.flatten(z, -2, -1).split(params["latent_dim"], -1)
-            z_color = z_color.detach().clone()
+            z_scale = z_scale.detach()
+            z_color = z_color.detach()
             z_color.requires_grad = True
             optimizer = torch.optim.Adam([z_color], lr=1e-2)
 
@@ -114,7 +115,7 @@ def main():
                 loss = F.mse_loss(e_color, z_noise[:, :, 1])
 
                 logger.info(f"loss: {loss}")
-                logger.info(z_noise[0, 0, 1])
+                logger.info(z_color[0, 0])
 
                 loss.backward()
                 optimizer.step()
