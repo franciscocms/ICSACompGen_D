@@ -87,7 +87,7 @@ def main():
                 img = img.to(device)
                 target = target.to(device)
                 
-                batch_z_noise, img_hat, recon_figures = guide(img, target) # [B, N, L]
+                batch_z_noise, old_img_hat, recon_figures = guide(img, target) # [B, N, L]
                 recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
                 
                 z_noise = torch.cat((z_noise, batch_z_noise), dim=0)
@@ -123,21 +123,24 @@ def main():
             with torch.no_grad():
                 slots = guide.causal_decoder(torch.cat((z_scale.unsqueeze(-2), z_color.unsqueeze(-2), z_x.unsqueeze(-2), z_y.unsqueeze(-2)), dim=-2))
                 img_hat, recon_figures = guide.scene_decoder(slots)
+                recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
         
         
         
-        fig, ax = plt.subplots(5, 2 + params["num_slots"])
+        fig, ax = plt.subplots(5, 3 + params["num_slots"])
         for i in range(5):
             ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))
             if i == 0: ax[i, 0].set_title("img")
-            ax[i, 1].imshow(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
+            ax[i, 1].imshow(np.transpose(old_img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
             if i == 0: ax[i, 1].set_title("img_hat")
+            ax[i, 2].imshow(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
+            if i == 0: ax[i, 2].set_title("img_hat")
 
             for j in range(params["num_slots"]):
-                ax[i, j+2].imshow(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)))
-                if i == 0: ax[i, j+2].set_title(f"figs {j}")
+                ax[i, j+3].imshow(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)))
+                if i == 0: ax[i, j+3].set_title(f"figs {j}")
             
-            for j in range(2 + params["num_slots"]):
+            for j in range(3 + params["num_slots"]):
                 ax[i, j].grid(False)
                 ax[i, j].axis('off')  
 
