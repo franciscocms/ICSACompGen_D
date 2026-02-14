@@ -32,7 +32,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 torch.set_default_device(device)
 main_dir = os.path.abspath(__file__+'/../')
 
-def main():    
+def main(params):    
 
     assert params["running_type"] == "eval"
 
@@ -210,4 +210,4 @@ def main():
         
 
 if __name__ == '__main__':
-    main()
+    main(params)
