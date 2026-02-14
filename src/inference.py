@@ -110,7 +110,7 @@ def main():
             logger.info(z_color[0, 0])
             z_color = torch.randn_like(z_scale).to(device)
             z_color.requires_grad = True
-            optimizer = torch.optim.Adam([z_color], lr=1e-2)
+            optimizer = torch.optim.Adam([z_color], lr=1.)
 
             for i in range(100):
                 
