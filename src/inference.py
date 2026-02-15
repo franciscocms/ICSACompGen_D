@@ -112,7 +112,7 @@ def main():
             z_color.requires_grad = True
             optimizer = torch.optim.Adam([z_color], lr=1.)
 
-            for i in range(200):
+            for i in range(301):
                 
                 optimizer.zero_grad()
 
