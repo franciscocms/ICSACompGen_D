@@ -112,15 +112,15 @@ def main():
             z_color.requires_grad = True
             optimizer = torch.optim.Adam([z_color], lr=1.)
 
-            for i in range(100):
+            for i in range(200):
                 
                 optimizer.zero_grad()
 
                 e_color = (z_color - guide.causal_flow.t_cond(z_scale)) * torch.exp(-guide.causal_flow.s_cond(z_scale))
                 loss = F.mse_loss(e_color, z_noise[:, :, 1])
 
-                logger.info(f"loss: {loss}")
-                logger.info(z_color[0, 0])
+                if i % 50 == 0: logger.info(f"iter {i} - loss: {loss}")
+                #logger.info(z_color[0, 0])
 
                 loss.backward()
                 optimizer.step()
