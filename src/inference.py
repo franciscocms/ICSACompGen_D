@@ -76,7 +76,7 @@ def main():
 
     fig, ax = plt.subplots()
     
-    mse = []
+    mse = torch.tensor([])
     for OOD_EVAL in [False, True]:
 
         logger.info(f"\nOOD: {OOD_EVAL}\n")
@@ -97,10 +97,8 @@ def main():
                 batch_z_noise, img_hat, recon_figures = guide(img, target) # [B, N, L]
                 recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
                 recon_loss += F.mse_loss(img_hat, img)
-                
-                for b in range(img.shape[0]):
-                    for n in range(img.shape[1]):
-                        mse.append(F.mse_loss(img_hat[b, n], img[b, n]))
+
+                mse = torch.cat(mse, F.mse_loss(img_hat, img, reduction='none').mean(-1, -2, -3), dim=0)
 
                 z_noise = torch.cat((z_noise, batch_z_noise), dim=0)
                 targets = torch.cat((targets, target), dim=0)  
@@ -111,7 +109,7 @@ def main():
 
         u_scale = torch.flatten(targets[:, :, 0], 0, 1).cpu().numpy()
         u_color = torch.flatten(targets[:, :, 1], 0, 1).cpu().numpy()
-        scatter = plt.scatter(u_scale, u_color, s=2, c=mse, vmin=0., vmax=1.)
+        scatter = plt.scatter(u_scale, u_color, s=2, c=mse.cpu().numpy(), vmin=0., vmax=1.)
 
 
         # if OOD_EVAL:
