@@ -97,9 +97,7 @@ def main():
                 batch_z_noise, img_hat, recon_figures = guide(img, target) # [B, N, L]
                 recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
                 recon_loss += F.mse_loss(img_hat, img)
-
                 mse = torch.cat((mse, F.mse_loss(img_hat, img, reduction='none').mean((-1, -2, -3))), dim=0)
-
                 z_noise = torch.cat((z_noise, batch_z_noise), dim=0)
                 targets = torch.cat((targets, target), dim=0)  
 
@@ -112,38 +110,35 @@ def main():
         mse = mse.repeat_interleave(params["num_slots"])
         scatter = ax_m.scatter(u_scale, u_color, s=2, c=mse.cpu().numpy(), vmin=0., vmax=1.)
 
+        if False:
+            z, _, _, _, _ = guide.causal_flow(z_noise)
 
-        # if OOD_EVAL:
+            # split in z_scale, z_color, ....
+            z_scale, z_color, z_x, z_y = torch.flatten(z, -2, -1).split(params["latent_dim"], -1)
+            z_scale = z_scale.detach()
+            z_color = z_color.detach()
+            logger.info(z_color[0, 0])
+            z_color = torch.randn_like(z_scale).to(device)
+            z_color.requires_grad = True
+            optimizer = torch.optim.Adam([z_color], lr=1.)
 
-        #     z, _, _, _, _ = guide.causal_flow(z_noise)
-
-        #     # split in z_scale, z_color, ....
-        #     z_scale, z_color, z_x, z_y = torch.flatten(z, -2, -1).split(params["latent_dim"], -1)
-        #     z_scale = z_scale.detach()
-        #     z_color = z_color.detach()
-        #     logger.info(z_color[0, 0])
-        #     z_color = torch.randn_like(z_scale).to(device)
-        #     z_color.requires_grad = True
-        #     optimizer = torch.optim.Adam([z_color], lr=1.)
-
-        #     for i in range(301):
+            for i in range(301):
                 
-        #         optimizer.zero_grad()
+                optimizer.zero_grad()
 
-        #         e_color = (z_color - guide.causal_flow.t_cond(z_scale)) * torch.exp(-guide.causal_flow.s_cond(z_scale))
-        #         loss = F.mse_loss(e_color, z_noise[:, :, 1])
+                e_color = (z_color - guide.causal_flow.t_cond(z_scale)) * torch.exp(-guide.causal_flow.s_cond(z_scale))
+                loss = F.mse_loss(e_color, z_noise[:, :, 1])
 
-        #         if i % 50 == 0: logger.info(f"iter {i} - loss: {loss}")
-        #         #logger.info(z_color[0, 0])
+                if i % 50 == 0: logger.info(f"iter {i} - loss: {loss}")
+                #logger.info(z_color[0, 0])
 
-        #         loss.backward()
-        #         optimizer.step()
+                loss.backward()
+                optimizer.step()
 
-        #     with torch.no_grad():
-        #         slots = guide.causal_decoder(torch.cat((z_scale.unsqueeze(-2), z_color.unsqueeze(-2), z_x.unsqueeze(-2), z_y.unsqueeze(-2)), dim=-2))
-        #         img_hat, recon_figures = guide.scene_decoder(slots)
-        #         recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
-        
+            with torch.no_grad():
+                slots = guide.causal_decoder(torch.cat((z_scale.unsqueeze(-2), z_color.unsqueeze(-2), z_x.unsqueeze(-2), z_y.unsqueeze(-2)), dim=-2))
+                img_hat, recon_figures = guide.scene_decoder(slots)
+                recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
         
         save_recons = False
         if save_recons:
@@ -166,62 +161,64 @@ def main():
             else: plt.savefig(f"{params['check_attn_folder']}/img_recon_id.png")
             plt.close()  
         
-        for i, var in enumerate(params["latent_vars"]):            
-            logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
-            
-            probe = Predictor(params["latent_dim"],
-                              params["latent_dim"],
-                              1)
-            
-            train_set = ProbeDataset(z_noise[:4000], targets[:4000], var_idx=i, split="train")
-            test_set = ProbeDataset(z_noise[4000:], targets[4000:], var_idx=i, split="test")
-            train_loader = DataLoader(train_set, 64, shuffle=True, generator=torch.Generator(device='cuda'))
-            test_loader = DataLoader(test_set, len(test_set), shuffle=False, generator=torch.Generator(device='cuda'))
-
-            optimizer = torch.optim.AdamW(probe.parameters(), lr=1e-3, weight_decay=0.001)
-            
-            for epoch in range(10):
-                train_loss = 0.
-                train_iters = 0
-                for e, target in train_loader:
-                    e = e.to(device)
-                    target = target.to(device)
-
-                    pred = probe(e[:, :, i])
-                    if pred.size(-1) == 1: pred = pred.squeeze(-1)
-                    batch_loss, _ = compute_matching_cost(pred, target) 
-
-                    optimizer.zero_grad()
-                    batch_loss.backward()
-                    optimizer.step()
-
-                    train_loss += batch_loss.item()
-                    train_iters += 1
+        make_regression = False
+        if make_regression:
+            for i, var in enumerate(params["latent_vars"]):            
+                logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
                 
-                with torch.no_grad():
-                    for e, target in test_loader:
+                probe = Predictor(params["latent_dim"],
+                                params["latent_dim"],
+                                1)
+                
+                train_set = ProbeDataset(z_noise[:4000], targets[:4000], var_idx=i, split="train")
+                test_set = ProbeDataset(z_noise[4000:], targets[4000:], var_idx=i, split="test")
+                train_loader = DataLoader(train_set, 64, shuffle=True, generator=torch.Generator(device='cuda'))
+                test_loader = DataLoader(test_set, len(test_set), shuffle=False, generator=torch.Generator(device='cuda'))
+
+                optimizer = torch.optim.AdamW(probe.parameters(), lr=1e-3, weight_decay=0.001)
+                
+                for epoch in range(10):
+                    train_loss = 0.
+                    train_iters = 0
+                    for e, target in train_loader:
                         e = e.to(device)
                         target = target.to(device)
 
                         pred = probe(e[:, :, i])
                         if pred.size(-1) == 1: pred = pred.squeeze(-1)
-                        r2_score, a_target, a_preds = hungarian_r2_score(pred, target)
+                        batch_loss, _ = compute_matching_cost(pred, target) 
 
-                train_loss /= train_iters
-                if epoch % 50 == 0:
-                    logger.info(f"epoch {epoch}:")
-                    logger.info(f"train loss {train_loss} - test r2_score: {r2_score}")
-                
-            save_preds = False
-            if save_preds:
-                plt.scatter(a_target, a_preds, s=2)
-                if OOD_EVAL: plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}_ood.png")
-                else: plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}_id.png")
-                plt.close()
+                        optimizer.zero_grad()
+                        batch_loss.backward()
+                        optimizer.step()
 
-            logger.info(f"test r2 score: {r2_score}")
+                        train_loss += batch_loss.item()
+                        train_iters += 1
+                    
+                    with torch.no_grad():
+                        for e, target in test_loader:
+                            e = e.to(device)
+                            target = target.to(device)
 
-            if i == 1: break
+                            pred = probe(e[:, :, i])
+                            if pred.size(-1) == 1: pred = pred.squeeze(-1)
+                            r2_score, a_target, a_preds = hungarian_r2_score(pred, target)
+
+                    train_loss /= train_iters
+                    if epoch % 50 == 0:
+                        logger.info(f"epoch {epoch}:")
+                        logger.info(f"train loss {train_loss} - test r2_score: {r2_score}")
+                    
+                save_preds = False
+                if save_preds:
+                    plt.scatter(a_target, a_preds, s=2)
+                    if OOD_EVAL: plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}_ood.png")
+                    else: plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}_id.png")
+                    plt.close()
+
+                logger.info(f"test r2 score: {r2_score}")
+
+                if i == 1: break
     
     cb = figure.colorbar(scatter, ax=ax)
     plt.savefig(f"{params['check_attn_folder']}/mse.png")
