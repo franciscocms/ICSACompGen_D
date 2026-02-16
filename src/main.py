@@ -31,11 +31,11 @@ params = {
     "num_slots": 2,
     "batch_size": 64, # 256 for 32GB
     "lr": 4e-4, # 256 with 1e-4 -- 512 for 1e-3
-    "training_from_scratch" : True,
+    "training_from_scratch" : False,
     "training_epochs": 400, # 400 
     "epoch_step": 10,
     "running_type": "train", # train, debug, eval, inspect
-    "epoch_to_load" : 390, 
+    "epoch_to_load" : 90, 
     "ood_eval": True,
     "TC_minimization": True, # usually True
     "alpha": 1., # usually 1.
