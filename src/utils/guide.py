@@ -179,6 +179,10 @@ def permute_dims(z, d):
 
     return perm_z, perms
 
+def inverse_permutation(perm):
+    inv = torch.empty_like(perm)
+    inv[perm] = torch.arange(perm.size(0), device=perm.device)
+    return inv
 
 @torch.jit.script
 def sinkhorn(C: Tensor, a: Tensor, b: Tensor, n_sh_iters: int = 5, temperature: float = 1, u: Union[Tensor, None] = None, v: Union[Tensor, None] = None) -> Tuple[Tensor, Tensor, Tensor]:
