@@ -74,7 +74,7 @@ def main():
     for p in guide.parameters():
         p.requires_grad = False
 
-    for OOD_EVAL in [True]:
+    for OOD_EVAL in [False, True]:
 
         logger.info(f"\nOOD: {OOD_EVAL}\n")
 
@@ -84,20 +84,23 @@ def main():
         dataloader = DataLoader(dataset, 64, shuffle=False, generator=torch.Generator(device='cuda'))
 
         z_noise = torch.tensor([])  
-        targets = torch.tensor([])    
+        targets = torch.tensor([])  
+        recon_loss = 0.  
         with torch.no_grad():
-            for img, target in dataloader:
+            for i, (img, target) in enumerate(dataloader):
                 img = img.to(device)
                 target = target.to(device)
                 
                 batch_z_noise, img_hat, recon_figures = guide(img, target) # [B, N, L]
                 recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
+                recon_loss += F.mse_loss(img_hat, img)
                 
                 z_noise = torch.cat((z_noise, batch_z_noise), dim=0)
                 targets = torch.cat((targets, target), dim=0)  
 
         logger.info(z_noise.shape) # [B, N, L, d] -> B = 5k
         logger.info(targets.shape)
+        logger.info(f"MSE: {recon_loss / (i+1)}")
 
         # if OOD_EVAL:
 
