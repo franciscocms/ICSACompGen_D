@@ -76,7 +76,6 @@ def main():
 
     fig, ax = plt.subplots()
     
-    mse = torch.tensor([])
     for OOD_EVAL in [False, True]:
 
         logger.info(f"\nOOD: {OOD_EVAL}\n")
@@ -88,6 +87,7 @@ def main():
 
         z_noise = torch.tensor([])  
         targets = torch.tensor([])  
+        mse = torch.tensor([])
         recon_loss = 0.  
         with torch.no_grad():
             for i, (img, target) in enumerate(dataloader):
