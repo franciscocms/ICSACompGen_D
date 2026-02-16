@@ -470,9 +470,11 @@ class MultivariateCausalFlow(nn.Module):
                     #                         z3.unsqueeze(-2)), dim=-2)
                     
                     z1_perm, perm = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
+                    z1_perm = z1_perm.view(B, N, -1)
                     z0_perm = torch.flatten(z0, 0, 1)[perm]
-                    s1 = self.s_cond(z0_perm.view(B, N, -1))
-                    t1 = self.t_cond(z0_perm.view(B, N, -1))
+                    z0_perm = z0_perm.view(B, N, -1)
+                    s1 = self.s_cond(z0_perm)
+                    t1 = self.t_cond(z0_perm)
                     e1_int = (z1_perm - t1) * torch.exp(-s1)
 
                     z1_int = torch.exp(self.s_cond(z0)) * e1_int + self.t_cond(z0)
