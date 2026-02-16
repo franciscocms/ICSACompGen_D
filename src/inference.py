@@ -74,6 +74,9 @@ def main():
     for p in guide.parameters():
         p.requires_grad = False
 
+    fig, ax = plt.subplots()
+    
+    mse = []
     for OOD_EVAL in [False, True]:
 
         logger.info(f"\nOOD: {OOD_EVAL}\n")
@@ -95,12 +98,21 @@ def main():
                 recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
                 recon_loss += F.mse_loss(img_hat, img)
                 
+                for b in range(img.shape[0]):
+                    for n in range(img.shape[1]):
+                        mse.append(F.mse_loss(img_hat[b, n], img[b, n]))
+
                 z_noise = torch.cat((z_noise, batch_z_noise), dim=0)
                 targets = torch.cat((targets, target), dim=0)  
 
         logger.info(z_noise.shape) # [B, N, L, d] -> B = 5k
         logger.info(targets.shape)
         logger.info(f"MSE: {recon_loss / (i+1)}")
+
+        u_scale = torch.flatten(targets[:, :, 0], 0, 1).cpu().numpy()
+        u_color = torch.flatten(targets[:, :, 1], 0, 1).cpu().numpy()
+        scatter = plt.scatter(u_scale, u_color, s=2, c=mse, vmin=0., vmax=1.)
+
 
         # if OOD_EVAL:
 
@@ -210,6 +222,10 @@ def main():
             logger.info(f"test r2 score: {r2_score}")
 
             if i == 1: break
+    
+    cb = fig.colorbar(scatter, ax=ax)
+    plt.savefig(f"{params['check_attn_folder']}/mse.png")
+    plt.close()
         
 
 if __name__ == '__main__':
