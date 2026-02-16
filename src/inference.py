@@ -90,7 +90,7 @@ def main():
                 img = img.to(device)
                 target = target.to(device)
                 
-                batch_z_noise, old_img_hat, recon_figures = guide(img, target) # [B, N, L]
+                batch_z_noise, img_hat, recon_figures = guide(img, target) # [B, N, L]
                 recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
                 
                 z_noise = torch.cat((z_noise, batch_z_noise), dim=0)
@@ -99,53 +99,51 @@ def main():
         logger.info(z_noise.shape) # [B, N, L, d] -> B = 5k
         logger.info(targets.shape)
 
-        if OOD_EVAL:
+        # if OOD_EVAL:
 
-            z, _, _, _, _ = guide.causal_flow(z_noise)
+        #     z, _, _, _, _ = guide.causal_flow(z_noise)
 
-            # split in z_scale, z_color, ....
-            z_scale, z_color, z_x, z_y = torch.flatten(z, -2, -1).split(params["latent_dim"], -1)
-            z_scale = z_scale.detach()
-            z_color = z_color.detach()
-            logger.info(z_color[0, 0])
-            z_color = torch.randn_like(z_scale).to(device)
-            z_color.requires_grad = True
-            optimizer = torch.optim.Adam([z_color], lr=1.)
+        #     # split in z_scale, z_color, ....
+        #     z_scale, z_color, z_x, z_y = torch.flatten(z, -2, -1).split(params["latent_dim"], -1)
+        #     z_scale = z_scale.detach()
+        #     z_color = z_color.detach()
+        #     logger.info(z_color[0, 0])
+        #     z_color = torch.randn_like(z_scale).to(device)
+        #     z_color.requires_grad = True
+        #     optimizer = torch.optim.Adam([z_color], lr=1.)
 
-            for i in range(301):
+        #     for i in range(301):
                 
-                optimizer.zero_grad()
+        #         optimizer.zero_grad()
 
-                e_color = (z_color - guide.causal_flow.t_cond(z_scale)) * torch.exp(-guide.causal_flow.s_cond(z_scale))
-                loss = F.mse_loss(e_color, z_noise[:, :, 1])
+        #         e_color = (z_color - guide.causal_flow.t_cond(z_scale)) * torch.exp(-guide.causal_flow.s_cond(z_scale))
+        #         loss = F.mse_loss(e_color, z_noise[:, :, 1])
 
-                if i % 50 == 0: logger.info(f"iter {i} - loss: {loss}")
-                #logger.info(z_color[0, 0])
+        #         if i % 50 == 0: logger.info(f"iter {i} - loss: {loss}")
+        #         #logger.info(z_color[0, 0])
 
-                loss.backward()
-                optimizer.step()
+        #         loss.backward()
+        #         optimizer.step()
 
-            with torch.no_grad():
-                slots = guide.causal_decoder(torch.cat((z_scale.unsqueeze(-2), z_color.unsqueeze(-2), z_x.unsqueeze(-2), z_y.unsqueeze(-2)), dim=-2))
-                img_hat, recon_figures = guide.scene_decoder(slots)
-                recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
+        #     with torch.no_grad():
+        #         slots = guide.causal_decoder(torch.cat((z_scale.unsqueeze(-2), z_color.unsqueeze(-2), z_x.unsqueeze(-2), z_y.unsqueeze(-2)), dim=-2))
+        #         img_hat, recon_figures = guide.scene_decoder(slots)
+        #         recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
         
         
         
-        fig, ax = plt.subplots(5, 3 + params["num_slots"])
+        fig, ax = plt.subplots(5, 2 + params["num_slots"])
         for i in range(5):
             ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))
             if i == 0: ax[i, 0].set_title("img")
-            ax[i, 1].imshow(np.transpose(old_img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
+            ax[i, 1].imshow(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
             if i == 0: ax[i, 1].set_title("img_hat")
-            ax[i, 2].imshow(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
-            if i == 0: ax[i, 2].set_title("img_hat")
 
             for j in range(params["num_slots"]):
-                ax[i, j+3].imshow(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)))
-                if i == 0: ax[i, j+3].set_title(f"figs {j}")
+                ax[i, j+2].imshow(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)))
+                if i == 0: ax[i, j+2].set_title(f"figs {j}")
             
-            for j in range(3 + params["num_slots"]):
+            for j in range(2 + params["num_slots"]):
                 ax[i, j].grid(False)
                 ax[i, j].axis('off')  
 
