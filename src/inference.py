@@ -74,7 +74,7 @@ def main():
     for p in guide.parameters():
         p.requires_grad = False
 
-    figure, ax_m = plt.subplots()
+    
     
     for OOD_EVAL in [False, True]:
 
@@ -104,10 +104,12 @@ def main():
         logger.info(z_noise.shape) # [B, N, L, d] -> B = 5k
         logger.info(targets.shape)
         logger.info(f"MSE: {recon_loss / (i+1)}")
-
+        
         u_scale = torch.flatten(targets[:, :, 0], 0, 1).cpu().numpy()
         u_color = torch.flatten(targets[:, :, 1], 0, 1).cpu().numpy()
         mse = mse.repeat_interleave(params["num_slots"])
+        
+        figure, ax_m = plt.subplots()
         scatter = ax_m.scatter(u_scale, u_color, s=2, c=mse.cpu().numpy(), vmin=0., vmax=1.)
         cb = figure.colorbar(scatter, ax=ax_m)
         if OOD_EVAL: plt.savefig(f"{params['check_attn_folder']}/mse_ood.png")
