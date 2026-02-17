@@ -241,7 +241,10 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       for i in invariant_vars:
         mu, logvar= mu_noise[:, :, i], logvar_noise[:, :, i]
         consistency_loss += recon_loss_fn(mu_noise_int[:, :, i], mu.detach()) + recon_loss_fn(logvar_noise_int[:, :, i], logvar.detach())
-      if guide.int_flag == 1:
+      
+      if guide.int_flag == 0:
+        consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int), z_noise_int[:, :, 0])
+      elif guide.int_flag == 1:
         consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int), z_noise_int[:, :, 1])
       
       batch_loss += kl_beta * 0. * consistency_loss

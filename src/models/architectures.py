@@ -524,13 +524,14 @@ class MultivariateCausalFlow(nn.Module):
 
         B, N, _, d = z.shape
 
-        # if self.flag == 0:
+        if self.flag == 0:
             
-        #     # z = [z0_int, z1_int, z2, z3]
+            # z = [z0_int, z1_int, z2, z3]
 
-        #     s0 = self.s_base.expand(B, N, -1)
-        #     t0 = self.t_base.expand(B, N, -1)
-        #     e0_int = (z[:, :, 0] - t0) * torch.exp(-s0)
+            s0 = self.s_base.expand(B, N, -1)
+            t0 = self.t_base.expand(B, N, -1)
+            e0_int = (z[:, :, 0] - t0) * torch.exp(-s0)
+            return e0_int
 
         if self.flag == 1:
             # here we have to get the z_scale that took the influence on z_color 
