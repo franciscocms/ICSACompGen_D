@@ -110,7 +110,7 @@ def main():
         mse = mse.repeat_interleave(params["num_slots"])
         
         
-        scatter = ax_m.scatter(u_scale, u_color, s=2, c=mse.cpu().numpy(), cmap="BuGn", vmin=0., vmax=1.)
+        scatter = ax_m.scatter(u_scale, u_color, s=2, c=mse.cpu().numpy(), cmap="Wistia", vmin=0., vmax=1.)
         if OOD_EVAL: cb = figure.colorbar(scatter, ax=ax_m)
         
 
