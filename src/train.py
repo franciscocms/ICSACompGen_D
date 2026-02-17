@@ -247,8 +247,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       elif guide.int_flag == 1:
         consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int), z_noise_int[:, :, 1])
       
-      #batch_loss += kl_beta * 0. * consistency_loss
-      batch_loss += kl_beta * consistency_loss
+      batch_loss += kl_beta * 0.01 * consistency_loss
+      #batch_loss += kl_beta * consistency_loss
     else:
       consistency_loss = 0.
       x_int = torch.zeros_like(img_hat)
