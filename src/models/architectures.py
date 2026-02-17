@@ -544,15 +544,7 @@ class MultivariateCausalFlow(nn.Module):
             s1 = self.s_cond(z0_perm.view(B, N, -1))
             t1 = self.t_cond(z0_perm.view(B, N, -1))
             e1_int = (z[:, :, 1] - t1) * torch.exp(-s1)
-            return e1_int
-
-        # elif self.flag == 2:
-
-        # elif self.flag == 3:
-
-
-
-    
+            return e1_int    
     
     # def forward(self, eps):
     #     z = torch.zeros_like(eps).to(device)

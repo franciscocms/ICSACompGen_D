@@ -165,7 +165,7 @@ def main():
             else: plt.savefig(f"{params['check_attn_folder']}/img_recon_id.png")
             plt.close()  
         
-        make_regression = False
+        make_regression = True
         if make_regression:
             for i, var in enumerate(params["latent_vars"]):            
                 logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
