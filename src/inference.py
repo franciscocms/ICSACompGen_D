@@ -214,12 +214,12 @@ def main():
 
                             pred = probe(e[:, :, i])
                             if pred.size(-1) == 1: pred = pred.squeeze(-1)
-                            r2_score, a_target, a_preds = hungarian_r2_score(pred, target)
+                            r2_pred, a_target, a_preds = hungarian_r2_score(pred, target)
 
                     train_loss /= train_iters
                     if epoch % 50 == 0:
                         logger.info(f"epoch {epoch}:")
-                        logger.info(f"train loss {train_loss} - test r2_score: {r2_score}")
+                        logger.info(f"train loss {train_loss} - test r2_score: {r2_pred}")
                     
                 save_preds = False
                 if save_preds:
@@ -228,7 +228,7 @@ def main():
                     else: plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}_id.png")
                     plt.close()
 
-                logger.info(f"test r2 score: {r2_score}")
+                logger.info(f"test r2 score: {r2_pred}")
 
                 if i == 1: break
     
