@@ -6,6 +6,7 @@ from torch.utils.data import DataLoader
 import os
 import shutil
 from sklearn.decomposition import PCA
+from sklearn.metrics import r2_score
 import matplotlib.pyplot as plt
 
 # add project path to sys to import relative modules
@@ -35,6 +36,8 @@ main_dir = os.path.abspath(__file__+'/../')
 def main():    
 
     assert params["running_type"] == "eval"
+
+
 
     logger.info(device)
     
@@ -88,6 +91,8 @@ def main():
         z_noise = torch.tensor([])  
         targets = torch.tensor([])  
         mse = torch.tensor([])
+        all_img = torch.tensor([])
+        all_img_hat = torch.tensor([])
         recon_loss = 0.  
         with torch.no_grad():
             for i, (img, target) in enumerate(dataloader):
@@ -100,10 +105,13 @@ def main():
                 mse = torch.cat((mse, F.mse_loss(img_hat, img, reduction='none').mean((-1, -2, -3))), dim=0)
                 z_noise = torch.cat((z_noise, batch_z_noise), dim=0)
                 targets = torch.cat((targets, target), dim=0)  
+                all_img = torch.cat((all_img, img), dim=0)
+                all_img_hat = torch.cat((all_img_hat, img_hat), dim=0)
 
         logger.info(z_noise.shape) # [B, N, L, d] -> B = 5k
         logger.info(targets.shape)
         logger.info(f"MSE: {recon_loss / (i+1)}")
+        logger.info(f"recon r2: {r2_score(all_img.cpu().numpy().flatten(), all_img_hat.cpu().numpy().flatten())}")
         
         u_scale = torch.flatten(targets[:, :, 0], 0, 1).cpu().numpy()
         u_color = torch.flatten(targets[:, :, 1], 0, 1).cpu().numpy()
