@@ -234,7 +234,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
 
       consistency_loss = 0.
-      if guide.int_flag == 0: invariant_vars = [1, 2, 3]
+      if guide.int_flag == 0: invariant_vars = [2, 3]
       elif guide.int_flag == 1: invariant_vars = [0, 2, 3]
       elif guide.int_flag == 2: invariant_vars = [0, 1, 3]
       elif guide.int_flag == 3: invariant_vars = [0, 1, 2]
