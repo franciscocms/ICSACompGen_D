@@ -149,6 +149,8 @@ class InvSlotAttentionGuide(nn.Module):
         # get initial predictions and aligned labels
         mu_noise_d = mu_noise.detach()
         preds = self.predictor(mu_noise_d)
+        if torch.isnan(preds).any():
+            logger.info(f"mu_noise: {mu_noise_d}")
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
         
         # get latent-wise noise distributions

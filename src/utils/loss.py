@@ -70,9 +70,9 @@ def compute_matching_cost(preds, labels):
     try:
         indices = np.array([linear_sum_assignment(p) for p in cost_matrix_])
     except:
-        logger.info(preds)
-        logger.info(labels)
-        logger.info(cost_matrix_)
+        logger.info(f"preds: {preds}")
+        logger.info(f"labels: {labels}")
+        logger.info(f"cost_matrix_: {cost_matrix_}")
 
     _, col_ind = indices[:, 0], indices[:, 1]  
     indices_ = indices.shape[2] * indices[:, 0] + indices[:, 1]
