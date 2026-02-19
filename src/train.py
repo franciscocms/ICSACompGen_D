@@ -234,7 +234,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
 
       consistency_loss = 0.
-      if guide.int_flag == 0: invariant_vars = [2, 3]
+      if guide.int_flag == 0: invariant_vars = [1, 2, 3]
       elif guide.int_flag == 1: invariant_vars = [0, 2, 3]
       elif guide.int_flag == 2: invariant_vars = [0, 1, 3]
       elif guide.int_flag == 3: invariant_vars = [0, 1, 2]
@@ -243,9 +243,9 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         consistency_loss += recon_loss_fn(mu_noise_int[:, :, i], mu.detach()) + recon_loss_fn(logvar_noise_int[:, :, i], logvar.detach())
       
       if guide.int_flag == 0:
-        consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int), z_noise_int[:, :, 0])
+        consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int).detach(), z_noise_int[:, :, 0])
       elif guide.int_flag == 1:
-        consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int), z_noise_int[:, :, 1])
+        consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int).detach(), z_noise_int[:, :, 1])
       
       #batch_loss += kl_beta * 0.01 * consistency_loss
       batch_loss += kl_beta * consistency_loss
@@ -293,6 +293,9 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     
     if guide.model_name == "additiveAE":
       if num_iters == 0:
+        
+        if guide.int_flag == 1: logger.info(f"check color counterfactual at epoch {epoch}...")
+
         recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
         
         if (epoch % epoch_step == 0 or epoch == 0) and not printed:
