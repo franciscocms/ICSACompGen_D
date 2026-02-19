@@ -34,7 +34,7 @@ params = {
     "training_from_scratch" : True,
     "training_epochs": 400, # 400 
     "epoch_step": 10,
-    "running_type": "eval", # train, debug, eval, inspect
+    "running_type": "train", # train, debug, eval, inspect
     "epoch_to_load" : 270, 
     "ood_eval": True,
     "TC_minimization": True, # usually True
@@ -46,7 +46,7 @@ params = {
     "causal_dropout_prob": 0., # 0.6 for models with causal flow, 1.0 for models without
     "latent_dim" : 4,
     "check_attn": True,
-    "jobID": 177,  
+    "jobID": 178,  
     "mesh_iters": 4,
     "mesh_lr": 5, 
     "mesh_noise": 1e-3,
