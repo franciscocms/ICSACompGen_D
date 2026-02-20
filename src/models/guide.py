@@ -48,6 +48,7 @@ class InvSlotAttentionGuide(nn.Module):
         #self.slot_dim = self.L*self.ldim*4
         self.slot_dim = self.L*self.ldim
         self.model_name = model_name
+        self.cc = params["use_counterfactual_consistency"]
 
         # if model_name == "slot_attention":
         #     slot_encoder = SlotAttentionEncoder(resolution=params["resolution"],
@@ -159,7 +160,7 @@ class InvSlotAttentionGuide(nn.Module):
         z_noise = z_noise.reshape(z_noise.size(0), z_noise.size(1), self.L, self.ldim)       
         
         # causal flow forward
-        z_scm, ss, ts, log_det, int_flag = self.causal_flow(z_noise, step)
+        z_scm, ss, ts, log_det, int_flag = self.causal_flow(z_noise, step, self.cc)
         self.ss, self.ts, self.log_det, self.int_flag = ss, ts, log_det, int_flag       
         
         # get noise prior conditioned on u
