@@ -443,6 +443,9 @@ class MultivariateCausalFlow(nn.Module):
             else:
                 s1 = self.s_cond(z0)
                 t1 = self.t_cond(z0)
+        elif params["running_type"] == "eval":
+            s1 = self.s_cond(torch.zeros_like(z0).to(device))
+            t1 = self.t_cond(torch.zeros_like(z0).to(device))
         else:    
             s1 = self.s_cond(z0)
             t1 = self.t_cond(z0)
