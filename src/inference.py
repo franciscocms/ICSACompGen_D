@@ -152,10 +152,10 @@ def main():
                 img_hat, recon_figures = guide.scene_decoder(slots)
                 recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
         
-        save_recons = False
+        save_recons = True
         if save_recons:
             fig, ax = plt.subplots(5, 2 + params["num_slots"])
-            for i in range(5):
+            for i in range(10):
                 ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))
                 if i == 0: ax[i, 0].set_title("img")
                 ax[i, 1].imshow(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
