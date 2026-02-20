@@ -232,9 +232,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       mu_noise_int = mu_noise_int.reshape(mu_noise_int.size(0), mu_noise_int.size(1), L, ldim)
       logvar_noise_int = logvar_noise_int.reshape(logvar_noise_int.size(0), logvar_noise_int.size(1), L, ldim)
       z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
-      z_causal_int, _, _, _, _ = guide.causal_flow(z_noise,
-                                                    step=epoch, 
-                                                    use_cc=False)
+      z_causal_int, _, _, _, _ = guide.causal_flow(z_noise, epoch, False)
 
       consistency_loss = F.mse_loss(z_causal_int, z_int)
 
