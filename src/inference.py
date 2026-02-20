@@ -154,7 +154,7 @@ def main():
         
         save_recons = True
         if save_recons:
-            fig, ax = plt.subplots(5, 2 + params["num_slots"])
+            fig, ax = plt.subplots(10, 2 + params["num_slots"])
             for i in range(10):
                 ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))
                 if i == 0: ax[i, 0].set_title("img")
