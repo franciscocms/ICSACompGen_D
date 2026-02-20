@@ -166,8 +166,7 @@ class InvSlotAttentionGuide(nn.Module):
         self.mu_noise_prior, self.logvar_noise_prior = self.noise_prior(aligned_u_m)
 
         # get the causally disentangled prior p(z|u) to push z representations
-        self.prior_z = self.prior(aligned_u_m, z_scm)        
-        
+        self.prior_z = self.prior(aligned_u_m, z_scm)
         slots = self.causal_decoder(z_scm)
         img_hat, recon_figures = self.scene_decoder(slots)
 

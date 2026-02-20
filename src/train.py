@@ -296,7 +296,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
         
         if (epoch % epoch_step == 0 or epoch == 0) and not printed:
-          if guide.int_flag == 1: logger.info(f"check color counterfactual at epoch {epoch}...")
+          #if guide.int_flag == 1: logger.info(f"check color counterfactual at epoch {epoch}...")
           
           fig, ax = plt.subplots(5, 3 + params["num_slots"])
           for i in range(5):
