@@ -280,10 +280,11 @@ class CausalDecoder(nn.Module):
 
 
 class FullNoiseEncoder(nn.Module):
-    def __init__(self, in_channels, n_slots, n_latents, latent_dim, stage="train"):
+    def __init__(self, in_channels, n_slots, n_latents, latent_dim, stage="train", clamp_var=False):
         super().__init__()
 
         self.stage = stage
+        self.clamp_var = clamp_var
         out_dim = n_slots * n_latents * latent_dim
         modules_list = [
             nn.Conv2d(in_channels, 32, 4, 2, 1),
@@ -314,6 +315,7 @@ class FullNoiseEncoder(nn.Module):
         x = self.encoder(x)
         mean = self.fc_mean(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
         logvar = self.fc_logvar(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
+        if self.clamp_var: logvar = torch.clamp(logvar, -3., 3.)
         return mean, logvar
 
     def forward(self, x):

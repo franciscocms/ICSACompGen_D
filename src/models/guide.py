@@ -91,7 +91,8 @@ class InvSlotAttentionGuide(nn.Module):
                                               n_slots=params["num_slots"],
                                               n_latents=self.L,
                                               latent_dim=self.ldim,
-                                              stage=params["running_type"])
+                                              stage=params["running_type"],
+                                              clamp_var=True)
         
         self.scene_decoder = SlotMLPAdditiveDecoder(in_channels=3,
                                                     n_slots=params["num_slots"],
