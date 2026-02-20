@@ -449,7 +449,7 @@ class MultivariateCausalFlow(nn.Module):
         t3 = self.t3_base.expand(B, N, -1)
         z3 = torch.exp(s3)*eps[:, :, 3, :] + t3
 
-        if epoch >= 100 and use_cc:
+        if epoch >= params["cc_epoch"] and use_cc:
             # z1 is [B, N, d]
             with torch.no_grad():
                 if self.flag == 0:
