@@ -154,8 +154,10 @@ def main():
         
         save_recons = True
         if save_recons:
-            fig, ax = plt.subplots(10, 2 + params["num_slots"])
-            for i in range(10):
+            n_figures = 5
+            assert img.size(0) >= n_figures
+            fig, ax = plt.subplots(n_figures, 2 + params["num_slots"])
+            for i in range(n_figures):
                 ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))
                 if i == 0: ax[i, 0].set_title("img")
                 ax[i, 1].imshow(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
