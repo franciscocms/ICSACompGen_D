@@ -185,7 +185,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     batch_loss = 0.
     optimizer.zero_grad()
   
-    slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, recon_figures = guide(img, target, step=epoch)
+    img_hat, z_noise, mu_noise, logvar_noise, z_scm, recon_figures = guide(img, target, step=epoch)
     recon_loss = recon_loss_fn(img_hat, img)
     batch_loss += 100*recon_loss + kl_beta * (guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
     
@@ -225,8 +225,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     if epoch >= params["cc_epoch"] and guide.causal_flow.z_int != None:
       z_int = guide.causal_flow.z_int.detach()
 
-      slots_int = guide.causal_decoder(z_int)
-      x_int, _ = guide.scene_decoder(slots_int)
+      #slots_int = guide.causal_decoder(z_int)
+      x_int, _ = guide.scene_decoder(z_int)
       mu_noise_int, logvar_noise_int, z_noise_int = guide.noise_encoder(x_int)
 
       mu_noise_int = mu_noise_int.reshape(mu_noise_int.size(0), mu_noise_int.size(1), L, ldim)

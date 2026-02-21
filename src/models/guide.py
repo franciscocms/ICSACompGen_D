@@ -99,10 +99,10 @@ class InvSlotAttentionGuide(nn.Module):
                                                     n_slot_latents=self.slot_dim
                                                     )
         
-        self.causal_decoder = CausalDecoder(nin = self.ldim,
-                                            nout = self.slot_dim
-                                            #nout = self.ldim
-                                            )
+        # self.causal_decoder = CausalDecoder(nin = self.ldim,
+        #                                     nout = self.slot_dim
+        #                                     #nout = self.ldim
+        #                                     )
         self.causal_flow = MultivariateCausalFlow(self.L,
                                                   self.ldim,
                                                   self.A,
@@ -169,8 +169,9 @@ class InvSlotAttentionGuide(nn.Module):
 
         # get the causally disentangled prior p(z|u) to push z representations
         self.prior_z = self.prior(aligned_u_m, z_scm)
-        slots = self.causal_decoder(z_scm)
-        img_hat, recon_figures = self.scene_decoder(slots)
+        # slots = self.causal_decoder(z_scm)
+        # img_hat, recon_figures = self.scene_decoder(slots)
+        img_hat, recon_figures = self.scene_decoder(torch.flatten(z_scm, -2))
 
         if params["running_type"] == "eval": 
             return z_noise, img_hat, recon_figures
@@ -196,5 +197,5 @@ class InvSlotAttentionGuide(nn.Module):
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
         self.flatt_noise_pred_loss = torch.stack(self.flatt_noise_pred_loss)
 
-        return slots, img_hat, z_noise, mu_noise, logvar_noise, z_scm, recon_figures
+        return img_hat, z_noise, mu_noise, logvar_noise, z_scm, recon_figures
         
