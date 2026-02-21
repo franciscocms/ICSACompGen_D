@@ -226,7 +226,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       z_int = guide.causal_flow.z_int.detach()
 
       #slots_int = guide.causal_decoder(z_int)
-      x_int, _ = guide.scene_decoder(z_int)
+      x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
       mu_noise_int, logvar_noise_int, z_noise_int = guide.noise_encoder(x_int)
 
       mu_noise_int = mu_noise_int.reshape(mu_noise_int.size(0), mu_noise_int.size(1), L, ldim)
