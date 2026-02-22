@@ -226,17 +226,16 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       z_int = guide.causal_flow.z_int.detach()
 
       #slots_int = guide.causal_decoder(z_int)
-      x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
+      with torch.no_grad():
+        x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
+        x_int = torch.clamp(x_int, 0., 1.)
       mu_noise_int, logvar_noise_int, z_noise_int = guide.noise_encoder(x_int)
 
       mu_noise_int = mu_noise_int.reshape(mu_noise_int.size(0), mu_noise_int.size(1), L, ldim)
       logvar_noise_int = logvar_noise_int.reshape(logvar_noise_int.size(0), logvar_noise_int.size(1), L, ldim)
       z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
       # z_causal_int, _, _, _, _ = guide.causal_flow(z_noise, epoch, False)
-
       # consistency_loss = F.mse_loss(z_causal_int, z_int)
-
-
 
       consistency_loss = 0.
       #if guide.int_flag == 0: invariant_vars = [1, 2, 3]

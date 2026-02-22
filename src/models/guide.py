@@ -152,6 +152,7 @@ class InvSlotAttentionGuide(nn.Module):
         mu_noise_d = mu_noise.detach()
         preds = self.predictor(mu_noise_d)
         if torch.isnan(preds).any():
+            logger.info(torch.isnan(img).any())
             logger.info(f"mu_noise: {mu_noise_d}")
             logger.info(f"logvar_noise: {logvar_noise}")
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
