@@ -234,10 +234,11 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       mu_noise_int = mu_noise_int.reshape(mu_noise_int.size(0), mu_noise_int.size(1), L, ldim)
       logvar_noise_int = logvar_noise_int.reshape(logvar_noise_int.size(0), logvar_noise_int.size(1), L, ldim)
       z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
-      # z_causal_int, _, _, _, _ = guide.causal_flow(z_noise, epoch, False)
-      # consistency_loss = F.mse_loss(z_causal_int, z_int)
+      with torch.no_grad():
+        z_causal_int, _, _, _, _ = guide.causal_flow(z_noise, epoch, False)
+        consistency_loss = F.mse_loss(z_causal_int, z_int)
 
-      consistency_loss = 0.
+      # consistency_loss = 0.
       #if guide.int_flag == 0: invariant_vars = [1, 2, 3]
       #elif guide.int_flag == 1: invariant_vars = [0, 2, 3]
       if guide.int_flag == 2: invariant_vars = [0, 1, 3]
