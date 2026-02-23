@@ -234,7 +234,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
       with torch.no_grad():
         z_causal_int, _, _, _, _ = guide.causal_flow(z_noise, epoch, False, repass=True)
-        x_int_cons, _ = guide.scene_decoder(torch.flattent(z_causal_int, -2))
+        x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
         consistency_loss = F.mse_loss(z_causal_int, z_int)
 
       # consistency_loss = 0.
