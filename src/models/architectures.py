@@ -534,6 +534,11 @@ class MultivariateCausalFlow(nn.Module):
             s0 = self.s_base.expand(B, N, -1)
             t0 = self.t_base.expand(B, N, -1)
             e0_int = (z[:, :, 0] - t0) * torch.exp(-s0)
+            
+            logger.info(z[:, :, 0])
+            logger.info(s0)
+            logger.info(t0)
+            
             return e0_int
 
         if self.flag == 1:
