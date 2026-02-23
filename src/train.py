@@ -222,8 +222,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + 0.01*torch.square(torch.mean(logvar_noise)) - 0.1*log_z)
 
     # causal consistency
-    if epoch >= params["cc_epoch"] and guide.causal_flow.z_int != None:
-      z_int = guide.causal_flow.z_int.detach().clone()
+    if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
+      z_int = guide.causal_flow.z_int.detach()
 
       #slots_int = guide.causal_decoder(z_int)
       with torch.no_grad():

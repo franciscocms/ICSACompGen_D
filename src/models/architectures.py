@@ -504,8 +504,6 @@ class MultivariateCausalFlow(nn.Module):
                                             z1.unsqueeze(-2),
                                             z2.unsqueeze(-2),
                                             z3_int.unsqueeze(-2)), dim=-2)
-        else:
-            if not repass: self.z_int = None
 
         z = torch.cat((z0.unsqueeze(-2),
                        z1.unsqueeze(-2),
