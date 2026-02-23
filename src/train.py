@@ -130,8 +130,6 @@ slot_rec_loss_crit = nn.MSELoss()
 guide.train()
 for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 1):
 
-  logger.info(epoch)
-
   guide.epoch = epoch
 
   if scheduler.get_last_lr()[0] >= 1e-7:
@@ -309,15 +307,15 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
           
           fig, ax = plt.subplots(5, 3 + params["num_slots"])
           for i in range(5):
-              ax[i, 0].imshow(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)))
+              ax[i, 0].imshow(torch.clamp(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
               if i == 0: ax[i, 0].set_title("img")
-              ax[i, 1].imshow(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)))
+              ax[i, 1].imshow(torch.clamp(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
               if i == 0: ax[i, 1].set_title("img_hat")
-              ax[i, 2].imshow(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)))
+              ax[i, 2].imshow(torch.clamp(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
               if i == 0: ax[i, 2].set_title(f"int {guide.int_flag}")
 
               for j in range(params["num_slots"]):
-                  ax[i, j+3].imshow(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)))
+                  ax[i, j+3].imshow(torch.clamp(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
                   if i == 0: ax[i, j+3].set_title(f"figs {j}")
 
               for j in range(3 + params["num_slots"]):
