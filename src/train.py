@@ -250,7 +250,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         
       if guide.int_flag == 0:
         logger.info(guide.int_flag)
-        logger.info(torch.isnan(z_int).any())
+        logger.info(f"\nz_int: {z_int}\n")
         logger.info(guide.causal_flow.backward(z_int))
         consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int).detach(), z_noise_int[:, :, 0])
       elif guide.int_flag == 1:
