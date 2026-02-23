@@ -523,11 +523,11 @@ class MultivariateCausalFlow(nn.Module):
 
         return z, ss, ts, log_det, self.flag
 
-    def backward(self, z):
+    def backward(self, z, flag):
 
         B, N, _, d = z.shape
 
-        if self.flag == 0:
+        if flag == 0:
             
             # z = [z0_int, z1_int, z2, z3]
 
@@ -535,13 +535,13 @@ class MultivariateCausalFlow(nn.Module):
             t0 = self.t_base.expand(B, N, -1)
             e0_int = (z[:, :, 0] - t0) * torch.exp(-s0)
             
-            logger.info(z[:, :, 0])
-            logger.info(s0)
-            logger.info(t0)
-            
+            # logger.info(z[:, :, 0])
+            # logger.info(s0)
+            # logger.info(t0)
+
             return e0_int
 
-        if self.flag == 1:
+        if flag == 1:
             # here we have to get the z_scale that took the influence on z_color 
             # because in this case, z_scale and z_color will have a different order
 
