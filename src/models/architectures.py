@@ -425,7 +425,7 @@ class MultivariateCausalFlow(nn.Module):
         self.stage = stage
         
 
-    def forward(self, eps, epoch=0, use_cc=False):        
+    def forward(self, eps, epoch=0, use_cc=False, repass=False):        
         
         B, N, _, _ = eps.shape
 
@@ -505,7 +505,7 @@ class MultivariateCausalFlow(nn.Module):
                                             z2.unsqueeze(-2),
                                             z3_int.unsqueeze(-2)), dim=-2)
         else:
-            self.z_int = None
+            if not repass: self.z_int = None
 
         z = torch.cat((z0.unsqueeze(-2),
                        z1.unsqueeze(-2),
