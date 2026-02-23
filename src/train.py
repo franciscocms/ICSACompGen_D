@@ -234,6 +234,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
       with torch.no_grad():
         z_causal_int, _, _, _, _ = guide.causal_flow(z_noise, epoch, False, repass=True)
+        x_int_cons, _ = guide.scene_decoder(torch.flattent(z_causal_int, -2))
         consistency_loss = F.mse_loss(z_causal_int, z_int)
 
       # consistency_loss = 0.
@@ -305,7 +306,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         if (epoch % epoch_step == 0 or epoch == 0) and not printed:
           logger.info(f"{params['latent_vars'][guide.int_flag]} counterfactual at epoch {epoch}...")
           
-          fig, ax = plt.subplots(5, 3 + params["num_slots"])
+          fig, ax = plt.subplots(5, 4 + params["num_slots"])
           for i in range(5):
               ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
               if i == 0: ax[i, 0].set_title("img")
@@ -313,12 +314,14 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
               if i == 0: ax[i, 1].set_title("img_hat")
               ax[i, 2].imshow(np.clip(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
               if i == 0: ax[i, 2].set_title(f"int {guide.int_flag}")
+              ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+              if i == 0: ax[i, 3].set_title(f"img_hat_cons")
 
               for j in range(params["num_slots"]):
-                  ax[i, j+3].imshow(np.clip(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                  if i == 0: ax[i, j+3].set_title(f"figs {j}")
+                  ax[i, j+4].imshow(np.clip(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                  if i == 0: ax[i, j+4].set_title(f"figs {j}")
 
-              for j in range(3 + params["num_slots"]):
+              for j in range(4 + params["num_slots"]):
                   ax[i, j].grid(False)
                   ax[i, j].axis('off')
 
