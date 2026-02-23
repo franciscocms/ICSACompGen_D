@@ -223,7 +223,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     # causal consistency
     if epoch >= params["cc_epoch"] and guide.causal_flow.z_int != None:
-      z_int = guide.causal_flow.z_int.detach()
+      z_int = guide.causal_flow.z_int.detach().clone()
 
       #slots_int = guide.causal_decoder(z_int)
       with torch.no_grad():
