@@ -260,6 +260,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     else:
       consistency_loss = 0.
       x_int = torch.zeros_like(img_hat)
+      x_int_cons = torch.zeros_like(img_hat)
 
     batch_loss.backward()
     optimizer.step()
