@@ -238,19 +238,16 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         #consistency_loss = F.mse_loss(z_causal_int, z_int)
 
       consistency_loss = 0.
-      # if guide.int_flag == 0: invariant_vars = [1, 2, 3]
-      # elif guide.int_flag == 1: invariant_vars = [0, 2, 3]
+      if guide.int_flag == 0: invariant_vars = [1, 2, 3]
+      elif guide.int_flag == 1: invariant_vars = [0, 2, 3]
       if guide.int_flag == 2: invariant_vars = [0, 1, 3]
       elif guide.int_flag == 3: invariant_vars = [0, 1, 2]
-      if guide.int_flag in [2, 3]:
+      if guide.int_flag in [0, 1, 2, 3]:
         for i in invariant_vars:
           mu, logvar = mu_noise[:, :, i], logvar_noise[:, :, i]
           consistency_loss += recon_loss_fn(mu_noise_int[:, :, i], mu.detach()) #+ recon_loss_fn(logvar_noise_int[:, :, i], logvar.detach())
         
       if guide.int_flag == 0:
-        # logger.info(guide.int_flag)
-        # logger.info(f"\nz_int: {z_int}\n")
-        # logger.info(guide.causal_flow.backward(z_int, guide.int_flag))
         consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int, guide.int_flag).detach(), z_noise_int[:, :, 0])
       elif guide.int_flag == 1:
         consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int, guide.int_flag).detach(), z_noise_int[:, :, 1])
