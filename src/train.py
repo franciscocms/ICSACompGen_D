@@ -245,8 +245,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       if guide.int_flag in [0, 1, 2, 3]:
         for i in invariant_vars:
           mu, logvar, z = mu_noise[:, :, i], logvar_noise[:, :, i], z_noise[:, :, i]
-          #consistency_loss += recon_loss_fn(mu_noise_int[:, :, i], mu.detach()) #+ recon_loss_fn(logvar_noise_int[:, :, i], logvar.detach())
-          consistency_loss += recon_loss_fn(z_noise_int[:, :, i], z.detach())
+          consistency_loss += recon_loss_fn(mu_noise_int[:, :, i], mu.detach()) + recon_loss_fn(logvar_noise_int[:, :, i], logvar.detach())
+          #consistency_loss += recon_loss_fn(z_noise_int[:, :, i], z.detach())
         
       if guide.int_flag == 0:
         consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int, guide.int_flag).detach(), z_noise_int[:, :, 0])
