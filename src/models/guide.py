@@ -110,7 +110,7 @@ class InvSlotAttentionGuide(nn.Module):
         self.noise_prior = ConditionalGaussianPrior(self.L,
                                                     self.ldim,
                                                     learn_var=True,
-                                                    clamp_var=True)
+                                                    clamp_var=False)
         
         self.prior = PriorMultivariateCausalFlow(self.ldim)
 
