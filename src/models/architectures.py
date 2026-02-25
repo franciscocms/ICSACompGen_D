@@ -75,7 +75,8 @@ def get_decoder(in_dim, out_channels):
         nn.ELU(),
         nn.ConvTranspose2d(32, 32, 4, 2, 1),
         nn.ELU(),
-        nn.ConvTranspose2d(32, out_channels, 4, 2, 1),
+        #nn.ConvTranspose2d(32, out_channels, 4, 2, 1),
+        nn.ConvTranspose2d(32, out_channels+1, 4, 2, 1),
     ]
 
     decoder = nn.Sequential(*module_list)
@@ -175,7 +176,19 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
             batch_size, n_slots, *reshaped_figures.shape[1:]
         )
         # Sum over the n_slots dimension for image  
-        image = figures.sum(dim=1)
+        # image = figures.sum(dim=1)
+
+        # 3. Split into RGB and Mask Logits
+        figures_rgb = figures[:, :, :3, :, :]
+        figures_mask = figures[:, :, 3:, :, :]            
+        
+        # 4. ENFORCE COMPOSITIONALITY: Softmax over the Slot Dimension (N)
+        # This ensures that for every pixel, the masks sum to 1.0 across all slots.
+        figures_mask = torch.nn.functional.softmax(figures_mask, dim=1)             # [B, N, 1, H, W]
+        
+        # 5. Composite the final image
+        # This is the "Additive" step constrained by the disjoint masks
+        image = torch.sum(figures_rgb * figures_mask, dim=1) # [B, 3, H, W]
 
         return image, figures
     
@@ -256,6 +269,15 @@ class Decoder(nn.Module):
         #                       self.nets[str(2)](z[:, :, 2]),
         #                       self.nets[str(3)](z[:, :, 3])), dim=-1)
         return slot_hat
+    
+class CausalDecoder(nn.Module):
+    def __init__(self, nin, nout):  
+        super().__init__()
+        self.decoder = Decoder(nin=nin, nout=nout)    # takes the reparameterized z to generate hat(u_m)
+
+    def forward(self, z):
+        rec = self.decoder(z)
+        return rec
 
 class NoiseEncoder(nn.Module):
     def __init__(self, nin, nh, nout):
@@ -269,14 +291,7 @@ class NoiseEncoder(nn.Module):
         z = mu + torch.randn_like(mu)*stds # reparameterization trick
         return mu, logvars, z
     
-class CausalDecoder(nn.Module):
-    def __init__(self, nin, nout):  
-        super().__init__()
-        self.decoder = Decoder(nin=nin, nout=nout)    # takes the reparameterized z to generate hat(u_m)
 
-    def forward(self, z):
-        rec = self.decoder(z)
-        return rec
 
 
 class FullNoiseEncoder(nn.Module):
