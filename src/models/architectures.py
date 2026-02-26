@@ -639,8 +639,10 @@ class PriorMultivariateCausalFlow(nn.Module):
         ss = torch.cat((s0.unsqueeze(-2), s1.unsqueeze(-2), s2.unsqueeze(-2), s3.unsqueeze(-2)), dim=-2)
         ts = torch.cat((t0.unsqueeze(-2), t1.unsqueeze(-2), t2.unsqueeze(-2), t3.unsqueeze(-2)), dim=-2)   
 
-        log_det = torch.sum(s0, dim=-1) + torch.sum(s1, dim=-1) + torch.sum(s2, dim=-1) + torch.sum(s3, dim=-1)
-        log_det = torch.mean(log_det)       
+        self.s0, self.s1, self.s2, self.s3 = s0, s1, s2, s3
+        
+        self.log_det = torch.sum(s0, dim=-1) + torch.sum(s1, dim=-1) + torch.sum(s2, dim=-1) + torch.sum(s3, dim=-1)
+        self.log_det = torch.mean(self.log_det)       
 
         return cp
 

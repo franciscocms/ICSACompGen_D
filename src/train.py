@@ -170,6 +170,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   epoch_tc_loss = 0.
   epoch_log_z = 0.
   epoch_log_det = 0.
+  epoch_prior_log_det = 0.
   epoch_logvar_noise = 0.
   epoch_consistency_loss = 0. 
   
@@ -274,6 +275,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     epoch_tc_loss += tc_loss
     epoch_log_z += log_z
     epoch_log_det += log_det
+    epoch_prior_log_det += guide.prior.log_det
     epoch_logvar_noise += torch.square(torch.mean(logvar_noise))
     epoch_consistency_loss += consistency_loss
     
@@ -341,6 +343,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   epoch_tc_loss /= num_iters
   epoch_log_z /= num_iters
   epoch_log_det /= num_iters
+  epoch_prior_log_det /= num_iters
   epoch_logvar_noise /= num_iters
   epoch_consistency_loss /= num_iters
 
@@ -354,6 +357,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   dict_to_log["pred_loss"] = epoch_pred_loss
   #dict_to_log["slot_rec_loss"] = slot_recon_loss
   dict_to_log["log_det"] = epoch_log_det
+  dict_to_log["log_det_prior"] = epoch_prior_log_det
   dict_to_log["log_det_coeff"] = log_det_coeff
   #dict_to_log["kl_noise"] = kl_noise
   dict_to_log["log_e"] = epoch_log_e
