@@ -150,9 +150,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
   # update coefficients
   TC_coeff = params["TC_coeff"]
-  alpha = 1.
   log_det_coeff = 0.01 # 0.1
-  kl_coeff = 0.1
   cc_coeff = get_cc_coefficient(epoch)
 
   kl_beta = beta_scheduler.get_beta()
@@ -361,9 +359,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   dict_to_log["log_e"] = epoch_log_e
   dict_to_log["log_z"] = epoch_log_z
   dict_to_log["consistency_loss"] = epoch_consistency_loss
-  dict_to_log["alpha"] = alpha
   dict_to_log["beta"] = kl_beta
-  dict_to_log["kl_coeff"] = kl_coeff
 
   #dict_to_log["logvar_loss"] = prior_logvar_loss
   
