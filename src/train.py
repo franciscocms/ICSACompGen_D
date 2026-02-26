@@ -105,7 +105,7 @@ else:
   
 optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=2)
-beta_scheduler = BetaScheduler(0., 0.1, 100) # (0., 1., 100)
+beta_scheduler = BetaScheduler(0., 1., 100) # (0., 1., 100)
 if resume_epoch != 0: 
   optimizer.load_state_dict(checkpoint["optimizer"])
   scheduler = checkpoint["scheduler"]
@@ -236,23 +236,23 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       with torch.no_grad():
         z_causal_int, _, _, _, _ = guide.causal_flow(z_noise_int, epoch, False, repass=True)
         x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
-        #consistency_loss = F.mse_loss(z_causal_int, z_int)
+        consistency_loss = F.mse_loss(z_causal_int, z_int)
 
-      consistency_loss = 0.
-      if guide.int_flag == 0: invariant_vars = [1, 2, 3]
-      elif guide.int_flag == 1: invariant_vars = [0, 2, 3]
-      if guide.int_flag == 2: invariant_vars = [0, 1, 3]
-      elif guide.int_flag == 3: invariant_vars = [0, 1, 2]
-      if guide.int_flag in [0, 1, 2, 3]:
-        for i in invariant_vars:
-          mu, logvar, z = mu_noise[:, :, i], logvar_noise[:, :, i], z_noise[:, :, i]
-          consistency_loss += recon_loss_fn(mu_noise_int[:, :, i], mu.detach()) + recon_loss_fn(logvar_noise_int[:, :, i], logvar.detach())
-          #consistency_loss += recon_loss_fn(z_noise_int[:, :, i], z.detach())
+      # consistency_loss = 0.
+      # if guide.int_flag == 0: invariant_vars = [1, 2, 3]
+      # elif guide.int_flag == 1: invariant_vars = [0, 2, 3]
+      # if guide.int_flag == 2: invariant_vars = [0, 1, 3]
+      # elif guide.int_flag == 3: invariant_vars = [0, 1, 2]
+      # if guide.int_flag in [0, 1, 2, 3]:
+      #   for i in invariant_vars:
+      #     mu, logvar, z = mu_noise[:, :, i], logvar_noise[:, :, i], z_noise[:, :, i]
+      #     consistency_loss += recon_loss_fn(mu_noise_int[:, :, i], mu.detach()) + recon_loss_fn(logvar_noise_int[:, :, i], logvar.detach())
+      #     #consistency_loss += recon_loss_fn(z_noise_int[:, :, i], z.detach())
         
-      if guide.int_flag == 0:
-        consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int, guide.int_flag).detach(), z_noise_int[:, :, 0])
-      elif guide.int_flag == 1:
-        consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int, guide.int_flag).detach(), z_noise_int[:, :, 1])
+      # if guide.int_flag == 0:
+      #   consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int, guide.int_flag).detach(), z_noise_int[:, :, 0])
+      # elif guide.int_flag == 1:
+      #   consistency_loss += recon_loss_fn(guide.causal_flow.backward(z_int, guide.int_flag).detach(), z_noise_int[:, :, 1])
       
       #batch_loss += kl_beta * cc_coeff * consistency_loss # 178 has 0.01
       batch_loss += kl_beta * 0.01 * consistency_loss
