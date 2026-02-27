@@ -220,7 +220,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     log_det = guide.log_det
     batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + 0.01*torch.square(torch.mean(logvar_noise)) - 0.01*log_z)
-    #batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + 0.01*torch.square(torch.mean(logvar_noise)))
+    # batch_loss += guide.prior.log_det
 
     # causal consistency
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
@@ -369,6 +369,11 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   
   # dict_to_log["prior_means_distance_e"] = torch.mean(prior_means_distance_e)
   dict_to_log["LR"] = epoch_lr
+
+  dict_to_log[f"prior_s_scale"] = torch.mean(torch.sum(guide.prior.s0, dim=-1))
+  dict_to_log[f"prior_s_color"] = torch.mean(torch.sum(guide.prior.s1, dim=-1))
+  dict_to_log[f"prior_s_x"] = torch.mean(torch.sum(guide.prior.s2, dim=-1))
+  dict_to_log[f"prior_s_y"] = torch.mean(torch.sum(guide.prior.s3, dim=-1))
 
   logvar_noise = logvar_noise.reshape(B, params["num_slots"], L, ldim)
   for i in range(L):
