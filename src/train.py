@@ -220,7 +220,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     log_det = guide.log_det
     batch_loss += kl_beta * (-0.1*log_e - log_det_coeff*log_det + 0.01*torch.square(torch.mean(logvar_noise)) - 0.01*log_z)
-    batch_loss += guide.prior.log_det
+    batch_loss += torch.square(guide.prior.log_det)
 
     # causal consistency
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
