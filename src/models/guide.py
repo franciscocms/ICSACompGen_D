@@ -80,29 +80,27 @@ class InvSlotAttentionGuide(nn.Module):
         
         self.noise_predictors = nn.ModuleDict()
         self.flatt_noise_predictor = nn.ModuleDict()
+        self.noise_encoders = nn.ModuleDict()
         for var_name in params["latent_vars"]:
+            self.noise_encoders[var_name] = FullNoiseEncoder(in_channels=3,
+                                                             n_slots=params["num_slots"],
+                                                             n_latents=self.L,
+                                                             latent_dim=self.ldim, # not relevant now
+                                                             stage=params["running_type"],
+                                                             clamp_var=False)
+            
             self.noise_predictors[var_name] = Predictor(self.ldim,
                                                         self.ldim,
                                                         1)
         
             self.flatt_noise_predictor[var_name] = Predictor(self.L*self.ldim, self.L*self.ldim, 1)
-            
-        self.noise_encoder = FullNoiseEncoder(in_channels=3,
-                                              n_slots=params["num_slots"],
-                                              n_latents=self.L,
-                                              latent_dim=self.ldim,
-                                              stage=params["running_type"],
-                                              clamp_var=False)
+
         
         self.scene_decoder = SlotMLPAdditiveDecoder(in_channels=3,
                                                     n_slots=params["num_slots"],
                                                     n_slot_latents=self.slot_dim
                                                     )
-        
-        # self.causal_decoder = CausalDecoder(nin = self.ldim,
-        #                                     nout = self.slot_dim
-        #                                     #nout = self.ldim
-        #                                     )
+
         self.causal_flow = MultivariateCausalFlow(self.L,
                                                   self.ldim,
                                                   self.A,
@@ -141,12 +139,19 @@ class InvSlotAttentionGuide(nn.Module):
         # else:
         #     decoder_masks = None
 
-
-        # regress attributes from slots to get an aligned version of labels
-        # preds = self.predictor(slots_d)
-        # self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
-
-        mu_noise, logvar_noise, z_noise = self.noise_encoder(img) # [B, N, L*ldim]
+        # get noise representations
+        mu_noise = torch.tensor([]).to(device)
+        logvar_noise = torch.tensor([]).to(device)
+        z_noise = torch.tensor([]).to(device)
+        for i, var in enumerate(params["latent_vars"]):
+            mu, logvar, z = self.noise_encoders[var](img) # [B, N, L*ldim]
+            mu_noise = torch.cat((mu_noise, mu.unsqueeze(-2)), dim=-2)
+            logvar_noise = torch.cat((logvar_noise, logvar.unsqueeze(-2)), dim=-2)
+            z_noise = torch.cat((z_noise, z.unsqueeze(-2)), dim=-2)
+        
+        mu_noise = torch.flatten(mu_noise, -2)
+        logvar_noise = torch.flatten(logvar_noise, -2)
+        z_noise = torch.flatten(z_noise, -2)
         
         # get initial predictions and aligned labels
         mu_noise_d = mu_noise.detach()

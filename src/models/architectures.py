@@ -300,7 +300,8 @@ class FullNoiseEncoder(nn.Module):
 
         self.stage = stage
         self.clamp_var = clamp_var
-        out_dim = n_slots * n_latents * latent_dim
+        #out_dim = n_slots * n_latents * latent_dim
+        out_dim = n_slots * latent_dim
         modules_list = [
             nn.Conv2d(in_channels, 32, 4, 2, 1),
             nn.ELU(),
@@ -320,7 +321,7 @@ class FullNoiseEncoder(nn.Module):
             ]
 
         self.encoder = nn.Sequential(*modules_list)
-        self.n_latents = n_latents
+        #self.n_latents = n_latents
         self.latent_dim = latent_dim
         self.n_slots = n_slots
         self.fc_mean = nn.Linear(128, out_dim)
@@ -328,8 +329,10 @@ class FullNoiseEncoder(nn.Module):
     
     def encode(self, x):
         x = self.encoder(x)
-        mean = self.fc_mean(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
-        logvar = self.fc_logvar(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
+        # mean = self.fc_mean(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
+        # logvar = self.fc_logvar(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
+        mean = self.fc_mean(x).view(-1, self.n_slots, self.latent_dim)
+        logvar = self.fc_logvar(x).view(-1, self.n_slots, self.latent_dim)
         if self.clamp_var: logvar = torch.clamp(logvar, -3., 3.)
         return mean, logvar
 
