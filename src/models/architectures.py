@@ -653,16 +653,29 @@ class GaussianMLP(nn.Module):
     def __init__(self, nlayers, hid_act, nin, nout, nh, learn_var, alpha, beta):
         super().__init__()
         self.learn_var = learn_var
-
-        self.mean = nn.Linear(nin, nout)
-        if learn_var: self.logvar = nn.Linear(nin, nout)
-
+        self.mean = nn.Sequential(
+            nn.Linear(nin, nout*4),
+            nn.LeakyReLU(),
+            nn.Linear(nout*4, nout*4),
+            nn.LeakyReLU(),
+            nn.Linear(nout*4, nout)
+        )
+        if learn_var: self.logvar = nn.Sequential(
+            nn.Linear(nin, nout*4),
+            nn.LeakyReLU(),
+            nn.Linear(nout*4, nout*4),
+            nn.LeakyReLU(),
+            nn.Linear(nout*4, nout)
+        )
+            
         self.alpha = alpha
         self.beta = beta
 
     def forward(self, x):
-        mean = self.alpha * self.mean(x)
-        if self.learn_var: logvar = self.beta * self.logvar(x)
+        # mean = self.alpha * self.mean(x)
+        # if self.learn_var: logvar = self.beta * self.logvar(x)
+        mean = self.mean(x)
+        if self.learn_var: logvar = self.logvar(x)
         else: logvar = torch.zeros_like(mean)
         return mean, logvar
         
@@ -673,7 +686,6 @@ class ConditionalGaussianPrior(nn.Module):
         self.clamp_var = clamp_var
         self.L = L
         self.net = nn.ModuleDict()
-        
         alpha = [0.2, 1., 1.5, 0.7] 
         beta = [1., 0.2, 0.7, 1.5]
         for i in range(self.L):
@@ -684,11 +696,9 @@ class ConditionalGaussianPrior(nn.Module):
         for i in range(self.L):
             out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
             assert isinstance(out, tuple)
-
             mean, logvar = out[0], out[1]
             if self.clamp_var:
                 logvar = torch.clamp(logvar, -2., 2.)
-
             means.append(mean)   
             logvars.append(logvar)       
         means = torch.stack(means, -2)
