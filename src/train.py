@@ -234,7 +234,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       
       mu_noise_int, logvar_noise_int, z_noise_int = torch.tensor([]).to(DEVICE), torch.tensor([]).to(DEVICE), torch.tensor([]).to(DEVICE)
       for i, var in enumerate(params["latent_vars"]):
-        mu, logvar, z = guide.noise_encoders[var](img)
+        mu, logvar, z = guide.noise_encoders[var](x_int)
         mu_noise_int = torch.cat((mu_noise_int, mu.unsqueeze(-2)), dim=-2)
         logvar_noise_int = torch.cat((logvar_noise_int, logvar.unsqueeze(-2)), dim=-2)
         z_noise_int = torch.cat((z_noise_int, z.unsqueeze(-2)), dim=-2)
