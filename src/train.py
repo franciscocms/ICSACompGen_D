@@ -105,7 +105,7 @@ else:
   
 optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=2)
-beta_scheduler = BetaScheduler(0., 0.5, 100) # (0., 1., 100)
+beta_scheduler = BetaScheduler(0., 1., 100) # (0., 1., 100)
 if resume_epoch != 0: 
   optimizer.load_state_dict(checkpoint["optimizer"])
   scheduler = checkpoint["scheduler"]
@@ -129,6 +129,9 @@ slot_rec_loss_crit = nn.MSELoss()
 
 guide.train()
 for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 1):
+
+  for name, param in guide.noise_prior.named_parameters():
+    param.requires_grad = False
 
   guide.epoch = epoch
 
