@@ -73,19 +73,20 @@ def main():
     else: 
         shutil.rmtree(plots_dir)
         os.mkdir(plots_dir)
-
-    u = torch.arange(0., 1., 0.001).unsqueeze(-1).unsqueeze(-1).repeat(1, params["num_slots"], len(params["latent_vars"])).to(device)
-    mu_noise_prior, logvar_noise_prior = guide.noise_prior(u)
-
-    u = u.view(-1, u.size(-1))
-    mu_noise_prior = mu_noise_prior.view(-1, mu_noise_prior.size(-2), mu_noise_prior.size(-1))
-    logvar_noise_prior = logvar_noise_prior.view(-1, logvar_noise_prior.size(-2), logvar_noise_prior.size(-1))
     
-    for i, var in enumerate(params["latent_vars"]):
-        plt.scatter(u[:, i].cpu(), mu_noise_prior[:, i].sum(-1).cpu(), s=2, c="blue")
-        plt.scatter(u[:, i].cpu(), logvar_noise_prior[:, i].sum(-1).cpu(), s=2, c="red")
-        plt.savefig(f"{params['check_attn_folder']}/prior_{var}.png")
-        plt.close()
+    with torch.no_grad():
+        u = torch.arange(0., 1., 0.001).unsqueeze(-1).unsqueeze(-1).repeat(1, params["num_slots"], len(params["latent_vars"])).to(device)
+        mu_noise_prior, logvar_noise_prior = guide.noise_prior(u)
+
+        u = u.view(-1, u.size(-1))
+        mu_noise_prior = mu_noise_prior.view(-1, mu_noise_prior.size(-2), mu_noise_prior.size(-1))
+        logvar_noise_prior = logvar_noise_prior.view(-1, logvar_noise_prior.size(-2), logvar_noise_prior.size(-1))
+        
+        for i, var in enumerate(params["latent_vars"]):
+            plt.scatter(u[:, i].cpu(), mu_noise_prior[:, i].sum(-1).cpu(), s=2, c="blue")
+            plt.scatter(u[:, i].cpu(), logvar_noise_prior[:, i].sum(-1).cpu(), s=2, c="red")
+            plt.savefig(f"{params['check_attn_folder']}/prior_{var}.png")
+            plt.close()
 
 
     
