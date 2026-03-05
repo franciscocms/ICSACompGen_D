@@ -699,12 +699,12 @@ class ConditionalGaussianPrior(nn.Module):
             assert isinstance(out, tuple)
             mean, logvar = out[0], out[1]
             if self.clamp_var:
-                #logvar = torch.clamp(logvar, -2., 2.)
-                min_logvar = -5.
-                max_logvar = 2.
-                amp = (max_logvar - min_logvar)/2
-                offset = (max_logvar + min_logvar)/2
-                logvar = amp * F.tanh(logvar) + offset
+                logvar = torch.clamp(logvar, -2., 2.)
+                # min_logvar = -5.
+                # max_logvar = 2.
+                # amp = (max_logvar - min_logvar)/2
+                # offset = (max_logvar + min_logvar)/2
+                # logvar = amp * F.tanh(logvar) + offset
             means.append(mean)   
             logvars.append(logvar)       
         means = torch.stack(means, -2)
