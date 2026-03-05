@@ -83,8 +83,8 @@ def main():
         logvar_noise_prior = logvar_noise_prior.view(-1, logvar_noise_prior.size(-2), logvar_noise_prior.size(-1))
         
         for i, var in enumerate(params["latent_vars"]):
-            plt.scatter(u[:, i].cpu(), mu_noise_prior[:, i].sum(-1).cpu(), s=2, c="blue")
-            plt.scatter(u[:, i].cpu(), logvar_noise_prior[:, i].sum(-1).cpu(), s=2, c="red")
+            plt.scatter(u[:, i].cpu(), mu_noise_prior[:, i].mean(-1).cpu(), s=2, c="blue")
+            plt.scatter(u[:, i].cpu(), logvar_noise_prior[:, i].mean(-1).cpu(), s=2, c="red")
             plt.savefig(f"{params['check_attn_folder']}/prior_{var}.png")
             plt.close()
 
