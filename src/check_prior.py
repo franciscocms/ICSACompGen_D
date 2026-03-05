@@ -85,15 +85,15 @@ def main():
         for i, var in enumerate(params["latent_vars"]):
             plt.scatter(u[:, i].cpu(), mu_noise_prior[:, i].sum(-1).cpu(), s=2, label=var)
             #plt.scatter(u[:, i].cpu(), logvar_noise_prior[:, i].mean(-1).cpu(), s=2, c="red")
-        plt.savefig(f"{params['check_attn_folder']}/mu_prior.png")
         plt.legend()
+        plt.savefig(f"{params['check_attn_folder']}/mu_prior.png")
         plt.close()
 
         for i, var in enumerate(params["latent_vars"]):
             #plt.scatter(u[:, i].cpu(), mu_noise_prior[:, i].mean(-1).cpu(), s=2, label=var)
             plt.scatter(u[:, i].cpu(), logvar_noise_prior[:, i].sum(-1).cpu(), s=2, label=var)
-        plt.savefig(f"{params['check_attn_folder']}/logvar_prior.png")
         plt.legend()
+        plt.savefig(f"{params['check_attn_folder']}/logvar_prior.png")
         plt.close()
 
 
