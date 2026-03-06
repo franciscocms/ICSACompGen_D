@@ -214,12 +214,12 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       tc_loss = torch.tensor(0.)
 
     log_z = 0.
-    cp_v = torch.ones_like(guide.prior_z).to(DEVICE)
-    for i in range(L):
-      log_z += log_normal(z_scm[:, :, i],
-                          guide.prior_z[:, :, i],
-                          cp_v[:, :, i]).sum(-1)
-    log_z = torch.mean(log_z)
+    # cp_v = torch.ones_like(guide.prior_z).to(DEVICE)
+    # for i in range(L):
+    #   log_z += log_normal(z_scm[:, :, i],
+    #                       guide.prior_z[:, :, i],
+    #                       cp_v[:, :, i]).sum(-1)
+    # log_z = torch.mean(log_z)
 
     log_det = torch.square(guide.log_det)
     batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det + 0.01*torch.square(torch.mean(logvar_noise)) - 0.01*log_z)
@@ -285,7 +285,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     epoch_tc_loss += tc_loss
     epoch_log_z += log_z
     epoch_log_det += log_det
-    epoch_prior_log_det += guide.prior.log_det
+    #epoch_prior_log_det += guide.prior.log_det
     epoch_logvar_noise += torch.square(torch.mean(logvar_noise))
     epoch_consistency_loss += consistency_loss
     
@@ -353,7 +353,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   epoch_tc_loss /= num_iters
   epoch_log_z /= num_iters
   epoch_log_det /= num_iters
-  epoch_prior_log_det /= num_iters
+  #epoch_prior_log_det /= num_iters
   epoch_logvar_noise /= num_iters
   epoch_consistency_loss /= num_iters
 
@@ -367,7 +367,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   dict_to_log["pred_loss"] = epoch_pred_loss
   #dict_to_log["slot_rec_loss"] = slot_recon_loss
   dict_to_log["log_det"] = epoch_log_det
-  dict_to_log["log_det_prior"] = epoch_prior_log_det
+  #dict_to_log["log_det_prior"] = epoch_prior_log_det
   dict_to_log["log_det_coeff"] = log_det_coeff
   #dict_to_log["kl_noise"] = kl_noise
   dict_to_log["log_e"] = epoch_log_e
@@ -380,10 +380,10 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   # dict_to_log["prior_means_distance_e"] = torch.mean(prior_means_distance_e)
   dict_to_log["LR"] = epoch_lr
 
-  dict_to_log[f"prior_s_scale"] = torch.mean(torch.sum(guide.prior.s0, dim=-1))
-  dict_to_log[f"prior_s_color"] = torch.mean(torch.sum(guide.prior.s1, dim=-1))
-  dict_to_log[f"prior_s_x"] = torch.mean(torch.sum(guide.prior.s2, dim=-1))
-  dict_to_log[f"prior_s_y"] = torch.mean(torch.sum(guide.prior.s3, dim=-1))
+  # dict_to_log[f"prior_s_scale"] = torch.mean(torch.sum(guide.prior.s0, dim=-1))
+  # dict_to_log[f"prior_s_color"] = torch.mean(torch.sum(guide.prior.s1, dim=-1))
+  # dict_to_log[f"prior_s_x"] = torch.mean(torch.sum(guide.prior.s2, dim=-1))
+  # dict_to_log[f"prior_s_y"] = torch.mean(torch.sum(guide.prior.s3, dim=-1))
 
   logvar_noise = logvar_noise.reshape(B, params["num_slots"], L, ldim)
   for i in range(L):
