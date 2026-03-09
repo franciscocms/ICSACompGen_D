@@ -235,16 +235,18 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
         x_int = torch.clamp(x_int, 0., 1.)
       
-      mu_noise_int, logvar_noise_int, z_noise_int = torch.tensor([]).to(DEVICE), torch.tensor([]).to(DEVICE), torch.tensor([]).to(DEVICE)
-      for i, var in enumerate(params["latent_vars"]):
-        mu, logvar, z = guide.noise_encoders[var](x_int)
-        mu_noise_int = torch.cat((mu_noise_int, mu.unsqueeze(-2)), dim=-2)
-        logvar_noise_int = torch.cat((logvar_noise_int, logvar.unsqueeze(-2)), dim=-2)
-        z_noise_int = torch.cat((z_noise_int, z.unsqueeze(-2)), dim=-2)
+      # mu_noise_int, logvar_noise_int, z_noise_int = torch.tensor([]).to(DEVICE), torch.tensor([]).to(DEVICE), torch.tensor([]).to(DEVICE)
+      # for i, var in enumerate(params["latent_vars"]):
+      #   mu, logvar, z = guide.noise_encoders[var](x_int)
+      #   mu_noise_int = torch.cat((mu_noise_int, mu.unsqueeze(-2)), dim=-2)
+      #   logvar_noise_int = torch.cat((logvar_noise_int, logvar.unsqueeze(-2)), dim=-2)
+      #   z_noise_int = torch.cat((z_noise_int, z.unsqueeze(-2)), dim=-2)
 
-      # mu_noise_int = mu_noise_int.reshape(mu_noise_int.size(0), mu_noise_int.size(1), L, ldim)
-      # logvar_noise_int = logvar_noise_int.reshape(logvar_noise_int.size(0), logvar_noise_int.size(1), L, ldim)
-      # z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
+      mu_noise_int, logvar_noise_int, z_noise_int = guide.noise_encoder(x_int)
+
+      mu_noise_int = mu_noise_int.reshape(mu_noise_int.size(0), mu_noise_int.size(1), L, ldim)
+      logvar_noise_int = logvar_noise_int.reshape(logvar_noise_int.size(0), logvar_noise_int.size(1), L, ldim)
+      z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
       with torch.no_grad():
         z_causal_int, _, _, _, _ = guide.causal_flow(z_noise_int, epoch, False, repass=True)
         x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
