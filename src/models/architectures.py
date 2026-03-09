@@ -688,7 +688,7 @@ class ConditionalGaussianPrior(nn.Module):
         alpha = [3., 5., 2., 1.]
         beta = [1., 2., 5., 3.]
         for i in range(self.L):
-            self.net[str(i)] = GaussianMLP(1, nn.ELU(), 1, ldim, ldim, learn_var, alpha, beta)
+            self.net[str(i)] = GaussianMLP(1, nn.ELU(), 1, ldim, ldim, learn_var, alpha[i], beta[i])
 
     def forward(self, labels):
         means, logvars = [], []
