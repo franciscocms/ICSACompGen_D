@@ -685,8 +685,8 @@ class ConditionalGaussianPrior(nn.Module):
         self.net = nn.ModuleDict()
         # alpha = [0.2, 1., 1.5, 0.7] 
         # beta = [1., 0.2, 0.7, 1.5]
-        alpha = 3.
-        beta = 3.
+        alpha = [3., 5., 2., 1.]
+        beta = [1., 2., 5., 3.]
         for i in range(self.L):
             self.net[str(i)] = GaussianMLP(1, nn.ELU(), 1, ldim, ldim, learn_var, alpha, beta)
 
