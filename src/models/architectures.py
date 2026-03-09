@@ -76,8 +76,8 @@ def get_decoder(in_dim, out_channels):
         nn.ELU(),
         nn.ConvTranspose2d(32, 32, 4, 2, 1),
         nn.ELU(),
-        #nn.ConvTranspose2d(32, out_channels, 4, 2, 1),
-        nn.ConvTranspose2d(32, out_channels+1, 4, 2, 1),
+        nn.ConvTranspose2d(32, out_channels, 4, 2, 1),
+        #nn.ConvTranspose2d(32, out_channels+1, 4, 2, 1),
     ]
 
     decoder = nn.Sequential(*module_list)
@@ -177,19 +177,19 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
             batch_size, n_slots, *reshaped_figures.shape[1:]
         )
         # Sum over the n_slots dimension for image  
-        # image = figures.sum(dim=1)
+        image = figures.sum(dim=1)
 
         # 3. Split into RGB and Mask Logits
-        figures_rgb = figures[:, :, :3, :, :]
-        figures_mask = figures[:, :, 3:, :, :]            
+        # figures_rgb = figures[:, :, :3, :, :]
+        # figures_mask = figures[:, :, 3:, :, :]            
         
-        # 4. ENFORCE COMPOSITIONALITY: Softmax over the Slot Dimension (N)
-        # This ensures that for every pixel, the masks sum to 1.0 across all slots.
-        figures_mask = torch.nn.functional.softmax(figures_mask, dim=1)             # [B, N, 1, H, W]
+        # # 4. ENFORCE COMPOSITIONALITY: Softmax over the Slot Dimension (N)
+        # # This ensures that for every pixel, the masks sum to 1.0 across all slots.
+        # figures_mask = torch.nn.functional.softmax(figures_mask, dim=1)             # [B, N, 1, H, W]
         
-        # 5. Composite the final image
-        # This is the "Additive" step constrained by the disjoint masks
-        image = torch.sum(figures_rgb * figures_mask, dim=1) # [B, 3, H, W]
+        # # 5. Composite the final image
+        # # This is the "Additive" step constrained by the disjoint masks
+        # image = torch.sum(figures_rgb * figures_mask, dim=1) # [B, 3, H, W]
 
         return image, figures
     
@@ -486,10 +486,6 @@ class MultivariateCausalFlow(nn.Module):
                 elif self.flag == 1:
                     # z1_int, self.perm = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
                     # z1_int = z1_int.view(B, N, -1)
-                    # self.z_int = torch.cat((z0.unsqueeze(-2),
-                    #                         z1_int.unsqueeze(-2),
-                    #                         z2.unsqueeze(-2),
-                    #                         z3.unsqueeze(-2)), dim=-2)
                     
                     z1_perm, self.perm = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
                     z1_perm = z1_perm.view(B, N, -1)
@@ -673,10 +669,10 @@ class GaussianMLP(nn.Module):
         self.beta = beta
 
     def forward(self, x):
-        # mean = self.alpha * self.mean(x)
-        # if self.learn_var: logvar = self.beta * self.logvar(x)
-        mean = self.mean(x)
-        if self.learn_var: logvar = self.logvar(x)
+        mean = self.alpha * self.mean(x)
+        if self.learn_var: logvar = self.beta * self.logvar(x)
+        # mean = self.mean(x)
+        # if self.learn_var: logvar = self.logvar(x)
         else: logvar = torch.zeros_like(mean)
         return mean, logvar
         
