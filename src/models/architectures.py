@@ -653,9 +653,9 @@ class GaussianMLP(nn.Module):
         self.learn_var = learn_var
         self.shared = nn.Sequential(
             nn.Linear(nin, nh),
-            nn.LeakyReLU(slope),
+            nn.ELU(),
             nn.Linear(nh, nh),
-            nn.LeakyReLU(slope)
+            nn.ELU()
         )
         
         self.mean_head = nn.Linear(nh, nout)
@@ -689,20 +689,18 @@ class ConditionalGaussianPrior(nn.Module):
         self.freq_coeff = []
         for i in range(self.L):
             slope = 0.01 #+ (i * 0.05)
-            freq = torch.tensor([(i + 1) * 2*np.pi]).to(device)
+            freq = (i + 1) * np.pi
             self.freq_coeff.append(freq)
-            self.net[str(i)] = GaussianMLP(1, nn.ELU(), 1, ldim, ldim*4, learn_var, alpha[i], beta[i], slope)
+            self.net[str(i)] = GaussianMLP(1, nn.ELU(), 2, ldim, ldim*4, learn_var, alpha[i], beta[i], slope)
 
     def forward(self, labels):
 
         B, N, _ = labels.shape
         means, logvars = [], []
         for i in range(self.L):
-            
-            #u_freq = torch.cat((labels[:, :, i].unsqueeze(-1), self.freq_coeff[i].unsqueeze(0).unsqueeze(0).repeat(B, N, 1)), dim=-1)
-
-            out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
-            #out = self.net[str(i)](u_freq)
+            u_freq = torch.cat((labels[:, :, i].unsqueeze(-1), torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
+            #out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
+            out = self.net[str(i)](u_freq)
             
             assert isinstance(out, tuple)
             mean, logvar = out[0], out[1]
