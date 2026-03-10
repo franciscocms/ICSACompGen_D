@@ -661,8 +661,8 @@ class GaussianMLP(nn.Module):
         self.mean_head = nn.Linear(nh, nout)
         if learn_var: self.logvar_head = nn.Linear(nh, nout)
 
-        nn.init.xavier_uniform_(self.mean_head.weight)
-        nn.init.kaiming_normal_(self.logvar_head.weight)
+        # nn.init.xavier_uniform_(self.mean_head.weight)
+        # nn.init.kaiming_normal_(self.logvar_head.weight)
             
         self.alpha = alpha
         self.beta = beta
@@ -689,7 +689,7 @@ class ConditionalGaussianPrior(nn.Module):
         self.freq_coeff = []
         for i in range(self.L):
             slope = 0.01 + (i * 0.05)
-            freq = torch.tensor([(i + 1) * np.pi]).to(device)
+            freq = torch.tensor([(i + 1) * 2*np.pi]).to(device)
             self.freq_coeff.append(freq)
             self.net[str(i)] = GaussianMLP(1, nn.ELU(), 2, ldim, ldim*4, learn_var, alpha[i], beta[i], slope)
 
