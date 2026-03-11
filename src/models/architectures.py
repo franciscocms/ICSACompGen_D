@@ -689,7 +689,7 @@ class ConditionalGaussianPrior(nn.Module):
         self.freq_coeff = []
         for i in range(self.L):
             slope = 0.01 #+ (i * 0.05)
-            freq = (i + 3) * np.pi
+            freq = (i - 4) * np.pi
             self.freq_coeff.append(freq)
             self.net[str(i)] = GaussianMLP(2, ldim, ldim*4, learn_var, alpha[i], beta[i])
 
@@ -727,7 +727,7 @@ class CausalGaussianPrior(nn.Module):
         beta = [1., 1., 1., 1.]
         self.freq_coeff = []
         for i in range(self.L):
-            freq = (i + 3) * np.pi
+            freq = (i + 2) * np.pi
             self.freq_coeff.append(freq)
             self.net[str(i)] = GaussianMLP(nin=ldim + 1, nout=ldim, nh=128, learn_var=True,
                                            alpha=alpha[i], beta=beta[i])
