@@ -648,7 +648,7 @@ class PriorMultivariateCausalFlow(nn.Module):
         return cp
 
 class GaussianMLP(nn.Module):
-    def __init__(self, nlayers, hid_act, nin, nout, nh, learn_var, alpha, beta, slope):
+    def __init__(self, nin, nout, nh, learn_var, alpha, beta):
         super().__init__()
         self.learn_var = learn_var
         self.shared = nn.Sequential(
@@ -691,7 +691,7 @@ class ConditionalGaussianPrior(nn.Module):
             slope = 0.01 #+ (i * 0.05)
             freq = (i + 3) * np.pi
             self.freq_coeff.append(freq)
-            self.net[str(i)] = GaussianMLP(1, nn.ELU(), 2, ldim, ldim*4, learn_var, alpha[i], beta[i], slope)
+            self.net[str(i)] = GaussianMLP(2, ldim, ldim*4, learn_var, alpha[i], beta[i])
 
     def forward(self, labels):
 
@@ -711,6 +711,44 @@ class ConditionalGaussianPrior(nn.Module):
                 # amp = (max_logvar - min_logvar)/2
                 # offset = (max_logvar + min_logvar)/2
                 # logvar = amp * F.tanh(logvar) + offset
+            means.append(mean)   
+            logvars.append(logvar)       
+        means = torch.stack(means, -2)
+        logvars = torch.stack(logvars, -2) - 3.
+        return means, logvars
+    
+class CausalGaussianPrior(nn.Module):
+    def __init__(self, L, ldim, A):
+        super().__init__()
+        self.L = L
+        self.A = A
+        self.net = nn.ModuleDict()
+        alpha = [1., 1., 1., 1.]
+        beta = [1., 1., 1., 1.]
+        self.freq_coeff = []
+        for i in range(self.L):
+            freq = (i + 3) * np.pi
+            self.freq_coeff.append(freq)
+            self.net[str(i)] = GaussianMLP(nin=L*ldim + ldim, nout=ldim, nh=128, learn_var=True,
+                                           alpha=alpha[i], beta=beta[i])
+
+    def forward(self, labels, z):
+
+        means, logvars = [], []
+        for i in range(self.L):
+            if 1 in self.A[i, :]:
+                parent = (self.A[i, :] == 1).nonzero(as_tuple=False) # index of parent
+                pa_zi = z[:, :, parent]
+                zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
+            else:
+                pa_zi = torch.zeros_like(z[:, :, 0]).to(device)
+                zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
+
+            out = self.net[str(i)](zu_i)
+            
+            assert isinstance(out, tuple)
+            mean, logvar = out[0], out[1]
+
             means.append(mean)   
             logvars.append(logvar)       
         means = torch.stack(means, -2)

@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
 from src.main import params
-from src.models.architectures import SlotMLPAdditive, SlotMLPAdditiveDecoder, FullNoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, PriorMultivariateCausalFlow
+from src.models.architectures import SlotMLPAdditive, SlotMLPAdditiveDecoder, FullNoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, PriorMultivariateCausalFlow, CausalGaussianPrior
 from src.models.slot_attention import SlotAttentionAutoEncoder, SlotAttentionEncoder, SlotAttentionDecoder
 from src.utils.loss import compute_matching_cost
 
@@ -118,7 +118,10 @@ class InvSlotAttentionGuide(nn.Module):
                                                     learn_var=True,
                                                     clamp_var=False)
         
-        self.prior = PriorMultivariateCausalFlow(self.ldim)
+        #self.prior = PriorMultivariateCausalFlow(self.ldim)
+        self.prior = CausalGaussianPrior(self.L,
+                                         self.ldim,
+                                         self.A)
 
         self.predictor = Predictor(self.slot_dim,
                                    self.slot_dim,

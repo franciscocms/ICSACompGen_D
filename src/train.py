@@ -214,11 +214,16 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       tc_loss = torch.tensor(0.)
 
     log_z = 0.
-    cp_v = torch.ones_like(guide.prior_z).to(DEVICE)
+    # cp_v = torch.ones_like(guide.prior_z).to(DEVICE)
+    # for i in range(L):
+    #   log_z += log_normal(z_scm[:, :, i],
+    #                       guide.prior_z[:, :, i],
+    #                       cp_v[:, :, i]).sum(-1)
+    cp_m, cp_logv = guide.prior_z
     for i in range(L):
       log_z += log_normal(z_scm[:, :, i],
-                          guide.prior_z[:, :, i],
-                          cp_v[:, :, i]).sum(-1)
+                          cp_m[:, :, i],
+                          torch.exp(cp_logv[:, :, i])).sum(-1)
     log_z = torch.mean(log_z)
 
     log_det = guide.log_det
