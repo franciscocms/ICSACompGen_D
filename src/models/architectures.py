@@ -739,6 +739,7 @@ class CausalGaussianPrior(nn.Module):
             if 1 in self.A[i, :]:
                 parent = (self.A[i, :] == 1).nonzero(as_tuple=False) # index of parent
                 pa_zi = z[:, :, parent]
+                logger.info(parent)
                 logger.info(pa_zi.shape)
                 logger.info(labels[:, :, i].unsqueeze(-1).shape)
                 zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
