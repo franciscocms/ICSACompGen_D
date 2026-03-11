@@ -737,11 +737,11 @@ class CausalGaussianPrior(nn.Module):
         means, logvars = [], []
         for i in range(self.L):
             if 1 in self.A[i, :]:
-                parent = (self.A[i, :] == 1).nonzero(as_tuple=False) # index of parent
+                parent = (self.A[i, :] == 1).nonzero(as_tuple=False).item() # index of parent
                 pa_zi = z[:, :, parent]
-                logger.info(parent)
-                logger.info(pa_zi.shape)
-                logger.info(labels[:, :, i].unsqueeze(-1).shape)
+                # logger.info(parent)
+                # logger.info(pa_zi.shape)
+                # logger.info(labels[:, :, i].unsqueeze(-1).shape)
                 zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
             else:
                 pa_zi = torch.zeros_like(z[:, :, 0]).to(device)
