@@ -729,7 +729,7 @@ class CausalGaussianPrior(nn.Module):
         for i in range(self.L):
             freq = (i + 3) * np.pi
             self.freq_coeff.append(freq)
-            self.net[str(i)] = GaussianMLP(nin=L*ldim + ldim, nout=ldim, nh=128, learn_var=True,
+            self.net[str(i)] = GaussianMLP(nin=ldim + 1, nout=ldim, nh=128, learn_var=True,
                                            alpha=alpha[i], beta=beta[i])
 
     def forward(self, labels, z):
