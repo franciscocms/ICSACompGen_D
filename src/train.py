@@ -260,7 +260,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         #consistency_loss = F.mse_loss(z_causal_int, z_int)
 
       consistency_loss = 0.
-      if guide.causal_flow.flag == 0: invariant_vars = [1, 2, 3] # [1, 2, 3]
+      if guide.causal_flow.flag == 0: invariant_vars = [2, 3] # [1, 2, 3]
       elif guide.causal_flow.flag == 1: invariant_vars = [0, 2, 3]
       if guide.causal_flow.flag == 2: invariant_vars = [0, 1, 3]
       elif guide.causal_flow.flag == 3: invariant_vars = [0, 1, 2]
