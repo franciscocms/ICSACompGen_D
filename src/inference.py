@@ -41,17 +41,17 @@ def main():
 
     logger.info(device)
     
-    # A = torch.tensor([
-    #                 [0., 0., 0., 0.],
-    #                 [1., 0., 0., 0.],
-    #                 [0., 0., 0., 0.],
-    #                 [0., 0., 0., 0.],
-    #             ])
-
     A = torch.tensor([
-        [0., 0.],
-        [1., 0.],
-    ])
+                    [0., 0., 0., 0.],
+                    [1., 0., 0., 0.],
+                    [0., 0., 0., 0.],
+                    [0., 0., 0., 0.],
+                ])
+
+    # A = torch.tensor([
+    #     [0., 0.],
+    #     [1., 0.],
+    # ])
 
     guide = InvSlotAttentionGuide(model_name=params["model_name"],
                                   resolution = params['resolution'],
