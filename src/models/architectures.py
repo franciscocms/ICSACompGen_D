@@ -449,10 +449,6 @@ class MultivariateCausalFlow(nn.Module):
         
         B, N, _, _ = eps.shape
 
-        self.flag = torch.distributions.Categorical(
-            torch.tensor([1/len(params["latent_vars"]) for _ in range(len(params["latent_vars"]))])
-            ).sample()
-        
         s0 = self.s_base.expand(B, N, -1)
         t0 = self.t_base.expand(B, N, -1)
         z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
@@ -470,6 +466,11 @@ class MultivariateCausalFlow(nn.Module):
         z3 = torch.exp(s3)*eps[:, :, 3, :] + t3
 
         if epoch >= params["cc_epoch"] and use_cc:
+            
+            self.flag = torch.distributions.Categorical(
+                torch.tensor([1/len(params["latent_vars"]) for _ in range(len(params["latent_vars"]))])
+                ).sample()
+            
             # z1 is [B, N, d]
             with torch.no_grad():
                 if self.flag == 0:
@@ -537,7 +538,7 @@ class MultivariateCausalFlow(nn.Module):
         log_det = torch.sum(s0, dim=-1) + torch.sum(s1, dim=-1) + torch.sum(s2, dim=-1) + torch.sum(s3, dim=-1)
         log_det = torch.mean(log_det)       
 
-        return z, ss, ts, log_det, self.flag
+        return z, ss, ts, log_det
 
     def backward(self, z, flag):
 

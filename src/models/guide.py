@@ -183,8 +183,8 @@ class InvSlotAttentionGuide(nn.Module):
         z_noise = z_noise.reshape(z_noise.size(0), z_noise.size(1), self.L, self.ldim)       
         
         # causal flow forward
-        z_scm, ss, ts, log_det, int_flag = self.causal_flow(z_noise, step, self.cc)
-        self.ss, self.ts, self.log_det, self.int_flag = ss, ts, log_det, int_flag       
+        z_scm, ss, ts, log_det = self.causal_flow(z_noise, step, self.cc)
+        self.ss, self.ts, self.log_det = ss, ts, log_det       
         
         # get noise prior conditioned on u
         self.mu_noise_prior, self.logvar_noise_prior = self.noise_prior(aligned_u_m)
