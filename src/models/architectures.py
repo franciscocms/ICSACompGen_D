@@ -728,7 +728,7 @@ class CausalGaussianPrior(nn.Module):
         beta = [1., 1., 1., 1.]
         self.freq_coeff = []
         for i in range(self.L):
-            freq = (i + 2) * np.pi
+            freq = (i - 4) * np.pi
             self.freq_coeff.append(freq)
             self.net[str(i)] = GaussianMLP(nin=ldim + 1, nout=ldim, nh=128, learn_var=True,
                                            alpha=alpha[i], beta=beta[i])
@@ -740,9 +740,6 @@ class CausalGaussianPrior(nn.Module):
             if 1 in self.A[i, :]:
                 parent = (self.A[i, :] == 1).nonzero(as_tuple=False).item() # index of parent
                 pa_zi = z[:, :, parent]
-                # logger.info(parent)
-                # logger.info(pa_zi.shape)
-                # logger.info(labels[:, :, i].unsqueeze(-1).shape)
                 zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
             else:
                 pa_zi = torch.zeros_like(z[:, :, 0]).to(device)
