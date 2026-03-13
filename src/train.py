@@ -401,6 +401,10 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   for i in range(L):
     # dict_to_log[f"mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(mu_noise[:, :, i, :], dim=-1))
     # dict_to_log[f"prior_mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(prior_means[:, :, i, :], dim=-1))
+
+    dict_to_log[f"log_e_{params['latent_vars'][i]}"] = torch.mean(log_normal(z_noise[:, :, i],
+                                                                             guide.mu_noise_prior[:, :, i],
+                                                                             torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
     
     dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(logvar_noise[:, :, i, :], dim=-1))
     dict_to_log[f"prior_logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(guide.logvar_noise_prior[:, :, i, :], dim=-1))
