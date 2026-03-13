@@ -99,8 +99,8 @@ if CHECK_ATTN and TRAINING_FROM_SCRATCH:
 else:
   resume_epoch = params['epoch_to_load']
   logger.info(f"resume training from epoch {resume_epoch}...")
-  checkpoint = torch.load(f"{main_dir}/checkpoint-{params['jobID']}/guide_{resume_epoch}.pth", weights_only=False)
-  #checkpoint = torch.load(f"{main_dir}/checkpoint-157/guide_{resume_epoch}.pth", weights_only=False)
+  #checkpoint = torch.load(f"{main_dir}/checkpoint-{params['jobID']}/guide_{resume_epoch}.pth", weights_only=False)
+  checkpoint = torch.load(f"{main_dir}/checkpoint-239/guide_{resume_epoch}.pth", weights_only=False)
   guide.load_state_dict(checkpoint["model"])
   
 optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
@@ -272,7 +272,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
           mu_cons = recon_loss_fn(mu_noise_int[:, :, i], mu.detach())
           logvar_cons = recon_loss_fn(logvar_noise_int[:, :, i], logvar.detach())
 
-          if num_iters == 0:
+          if num_iters == 0 and epoch % epoch_step == 0:
             logger.info(f"\n{params['latent_vars'][i]} mu consistency: {mu_cons}")
             logger.info(f"{params['latent_vars'][i]} logvar consistency: {logvar_cons}")
 
@@ -282,14 +282,14 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       if guide.causal_flow.flag == 0:          
         noise_count = recon_loss_fn(guide.causal_flow.backward(z_int, guide.causal_flow.flag).detach(), z_noise_int[:, :, 0])
         consistency_loss += noise_count
-        if num_iters == 0:
+        if num_iters == 0 and epoch % epoch_step == 0:
           logger.info(f"\nscale noise counterfactual: {noise_count}")
       
       elif guide.causal_flow.flag == 1:
         noise_count = recon_loss_fn(guide.causal_flow.backward(z_int, guide.causal_flow.flag).detach(), z_noise_int[:, :, 1])
         consistency_loss += noise_count
-        if num_iters == 0:
-          logger.info(f"\color noise counterfactual: {noise_count}")
+        if num_iters == 0 and epoch % epoch_step == 0:
+          logger.info(f"\ncolor noise counterfactual: {noise_count}")
       
       #batch_loss += kl_beta * cc_coeff * consistency_loss # 178 has 0.01
       batch_loss += kl_beta * 0.01 * consistency_loss
