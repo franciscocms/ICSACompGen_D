@@ -343,7 +343,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         
         if (epoch % epoch_step == 0 or epoch == 0) and not printed:
           
-          if epoch >= params["cc_epoch"]: logger.info(f"{params['latent_vars'][guide.causal_flow.flag]} counterfactual at epoch {epoch}...")
+          if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]: logger.info(f"{params['latent_vars'][guide.causal_flow.flag]} counterfactual at epoch {epoch}...")
           
           fig, ax = plt.subplots(5, 4 + params["num_slots"])
           for i in range(5):
@@ -352,7 +352,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
               ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
               if i == 0: ax[i, 1].set_title("img_hat")
               ax[i, 2].imshow(np.clip(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-              if i == 0: ax[i, 2].set_title(f"int {guide.causal_flow.flag}" if epoch >= params["cc_epoch"] else "no count.")
+              if i == 0: ax[i, 2].set_title(f"int {guide.causal_flow.flag}" if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"] else "no count.")
               ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
               if i == 0: ax[i, 3].set_title(f"img_hat_cons")
 
