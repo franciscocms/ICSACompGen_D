@@ -15,7 +15,7 @@ sys.path.insert(0, '..') # add parent dir
 from models.guide import InvSlotAttentionGuide
 from main import params
 from utils.guide import permute_dims, linear_scheduler, exp_scheduler
-from utils.loss import compute_log_det, compute_kl_gaussians, log_normal
+from utils.loss import compute_log_det, compute_kl_gaussians, log_normal, hungarian_latents_consistency
 from utils.train import BetaScheduler, get_cc_coefficient
 from datasets.data_utils import MyDataset
 
@@ -264,7 +264,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8) 
         
         #consistency_loss = F.mse_loss(z_causal_int, z_int)
-        consistency_loss = F.mse_loss(norm_z_causal_int, norm_z_int)
+        #consistency_loss = F.mse_loss(norm_z_causal_int, norm_z_int)
+        consistency_loss = hungarian_latents_consistency(norm_z_causal_int, norm_z_int)
 
       # consistency_loss = 0.
       # if guide.causal_flow.flag == 0: invariant_vars = [1, 2, 3] # [1, 2, 3]
