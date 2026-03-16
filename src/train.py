@@ -259,7 +259,12 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       with torch.no_grad():
         z_causal_int, _, _, _ = guide.causal_flow(z_noise_int, epoch, False, repass=True)
         x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
-        consistency_loss = F.mse_loss(z_causal_int, z_int)
+        
+        norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
+        norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8) 
+        
+        #consistency_loss = F.mse_loss(z_causal_int, z_int)
+        consistency_loss = F.mse_loss(norm_z_causal_int, norm_z_int)
 
       # consistency_loss = 0.
       # if guide.causal_flow.flag == 0: invariant_vars = [1, 2, 3] # [1, 2, 3]
