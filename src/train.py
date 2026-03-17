@@ -105,7 +105,7 @@ else:
   
 optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=2)
-beta_scheduler = BetaScheduler(0., 1., 100) # (0., 1., 100)
+beta_scheduler = BetaScheduler(0., 1., params["cc_epoch"]) # (0., 1., 100)
 if resume_epoch != 0: 
   optimizer.load_state_dict(checkpoint["optimizer"])
   scheduler = checkpoint["scheduler"]

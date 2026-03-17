@@ -97,7 +97,12 @@ def hungarian_latents_consistency(z1, z2):
     cost_matrix = F.smooth_l1_loss(z2.unsqueeze(1).expand(-1, z1.size(1), -1, -1),
                                 z1.unsqueeze(2).expand(-1, -1, z2.size(1), -1), reduction="none").mean(-1)
     cost_matrix_ = cost_matrix.detach().cpu().numpy()
-    indices = np.array([linear_sum_assignment(p) for p in cost_matrix_])
+    try:
+        indices = np.array([linear_sum_assignment(p) for p in cost_matrix_])
+    except:
+        logger.info(f"\nz1: {z1}")
+        logger.info(f"\nz2: {z2}")
+        logger.info(f"\ncost_matrix_: {cost_matrix_}")
     _, col_ind = indices[:, 0], indices[:, 1]  
     indices_ = indices.shape[2] * indices[:, 0] + indices[:, 1]
 
