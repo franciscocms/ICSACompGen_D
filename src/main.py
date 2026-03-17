@@ -32,7 +32,7 @@ params = {
     "batch_size": 64, # 256 for 32GB
     "lr": 4e-4, # 256 with 1e-4 -- 512 for 1e-3
     "use_counterfactual_consistency": True,
-    "cc_epoch": 50,
+    "cc_epoch": 100,
     "training_from_scratch" : True,
     "training_epochs": 400, # 400 
     "epoch_step": 10,
@@ -48,7 +48,7 @@ params = {
     "causal_dropout_prob": 0., # 0.6 for models with causal flow, 1.0 for models without
     "latent_dim": 4, # 4
     "check_attn": True,
-    "jobID": 245,  
+    "jobID": 246,  
     "mesh_iters": 4,
     "mesh_lr": 5, 
     "mesh_noise": 1e-3,
