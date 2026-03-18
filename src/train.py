@@ -231,8 +231,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     log_z = torch.mean(log_z)
 
     log_det = guide.log_det
-    #batch_loss += kl_beta * (-0.01*log_e - log_det_coeff*log_det + 0.01*torch.square(torch.mean(logvar_noise)) - 0.01*log_z)
-    batch_loss += kl_beta * (-0.01*log_e - log_det_coeff*log_det - 0.01*log_z)
+    batch_loss += kl_beta * (-0.01*log_e - log_det_coeff*log_det + 0.01*torch.square(torch.mean(logvar_noise)) - 0.01*log_z)
+    #batch_loss += kl_beta * (-0.01*log_e - log_det_coeff*log_det - 0.01*log_z)
 
     # causal consistency
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
@@ -256,7 +256,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       logvar_noise_int = logvar_noise_int.reshape(logvar_noise_int.size(0), logvar_noise_int.size(1), L, ldim)
       z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
       with torch.no_grad():
-        z_causal_int, ss_int, ts_int, _ = guide.causal_flow(z_noise_int, epoch, False, repass=True)
+        z_causal_int, ss_int, ts_int, _ = guide.causal_flow(z_noise_int, epoch, False)
         x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
         
         norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
@@ -267,11 +267,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         try:
           consistency_loss = hungarian_latents_consistency(norm_z_causal_int, norm_z_int)
         except:
-          for name, p in guide.causal_flow.named_parameters():
-            logger.info(f"\n{name} - {p}")
-          
-          logger.info(f"\ns: {ss_int}")
-          logger.info(f"\nts: {ts_int}")
+          _, _, _, _ = guide.causal_flow(z_noise_int, epoch, False, debug=True)
 
           # logger.info(f"\nnorm z_causal_int: {norm_z_causal_int}")
           # logger.info(f"\nmean z_causal_int: {z_causal_int.mean()}")

@@ -445,7 +445,7 @@ class MultivariateCausalFlow(nn.Module):
         self.stage = stage
         
 
-    def forward(self, eps, epoch=0, use_cc=False, repass=False):        
+    def forward(self, eps, epoch=0, use_cc=False, debug=False):        
         
         B, N, _, _ = eps.shape
 
@@ -464,6 +464,24 @@ class MultivariateCausalFlow(nn.Module):
         s3 = self.s3_base.expand(B, N, -1)
         t3 = self.t3_base.expand(B, N, -1)
         z3 = torch.exp(s3)*eps[:, :, 3, :] + t3
+
+        if debug:
+            logger.info(f"\ns0: {s0[0, 0]}")
+            logger.info(f"t0: {t0[0, 0]}")
+            logger.info(f"z0: {z0}")
+
+            logger.info(f"\ns1: {s1}")
+            logger.info(f"t1: {t1}")
+            logger.info(f"z1: {z1}")
+
+            logger.info(f"\ns2: {s2[0, 0]}")
+            logger.info(f"t2: {t2[0, 0]}")
+            logger.info(f"z2: {z2}")
+
+            logger.info(f"\ns3: {s3[0, 0]}")
+            logger.info(f"t3: {t3[0, 0]}")
+            logger.info(f"z3: {z3}")
+
 
         if epoch >= params["cc_epoch"] and use_cc:
             
