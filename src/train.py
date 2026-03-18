@@ -267,14 +267,17 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         try:
           consistency_loss = hungarian_latents_consistency(norm_z_causal_int, norm_z_int)
         except:
-          logger.info(f"\nnorm z_causal_int: {norm_z_causal_int}")
-          logger.info(f"\nmean z_causal_int: {z_causal_int.mean()}")
-          logger.info(f"\nstd z_causal_int: {z_causal_int.std()}")
-          logger.info(f"\nz_noise_int: {z_noise_int}")
-          logger.info(f"\nmu_noise_int: {mu_noise_int}")
-          logger.info(f"\nlogvar_noise_int: {logvar_noise_int}")
-          logger.info(f"\nx_int: {x_int}")
-          logger.info(f"\nz_int: {z_int}")
+          for name, params in guide.causal_flow.named_parameters():
+            logger.info(f"\n{name} - {params}")
+            
+          # logger.info(f"\nnorm z_causal_int: {norm_z_causal_int}")
+          # logger.info(f"\nmean z_causal_int: {z_causal_int.mean()}")
+          # logger.info(f"\nstd z_causal_int: {z_causal_int.std()}")
+          # logger.info(f"\nz_noise_int: {z_noise_int}")
+          # logger.info(f"\nmu_noise_int: {mu_noise_int}")
+          # logger.info(f"\nlogvar_noise_int: {logvar_noise_int}")
+          # logger.info(f"\nx_int: {x_int}")
+          # logger.info(f"\nz_int: {z_int}")
 
       # consistency_loss = 0.
       # if guide.causal_flow.flag == 0: invariant_vars = [1, 2, 3] # [1, 2, 3]
