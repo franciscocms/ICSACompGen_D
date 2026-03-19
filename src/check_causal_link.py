@@ -88,6 +88,7 @@ def main():
             s1 = guide.causal_flow.s_cond(z0)
             t1 = guide.causal_flow.t_cond(z0)
             z1 = torch.exp(s1)*e1 + t1
+            return z1
 
         with torch.no_grad():
             for i, (img, target) in enumerate(dataloader):
@@ -96,10 +97,8 @@ def main():
 
                 B = img.size(0)
                 
-                mu_noise, logvar_noise, z_noise = guide.noise_encoder(img)
+                _, _, z_noise = guide.noise_encoder(img)
                 z_noise = z_noise.reshape(z_noise.size(0), z_noise.size(1), len(params["latent_vars"]), params["latent_dim"])       
-        
-                z_scm, ss, ts, log_det = guide.causal_flow(z_noise)
 
                 s0 = guide.causal_flow.s_base
                 t0 = guide.causal_flow.t_base
