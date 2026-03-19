@@ -110,10 +110,9 @@ def main():
 
                 logger.info(J)
 
+                logger.info(J.shape)
 
-                
-
-                break
+                if i == 0: break
      
 
 if __name__ == '__main__':
