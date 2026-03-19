@@ -106,11 +106,11 @@ def main():
                 
                 inputs = (z0, z_noise[:, :, 1, :])
 
-                J = jacobian(causal_link, inputs)
+                Js = jacobian(causal_link, inputs)
+                for J in Js:
 
-                logger.info(J)
-
-                logger.info(J.shape)
+                    logger.info(J)
+                    logger.info(J.shape)
 
                 if i == 0: break
      
