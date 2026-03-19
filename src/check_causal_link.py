@@ -82,7 +82,7 @@ def main():
         dataset_dir = os.path.join(params["dataset_path"], "eval")
 
         dataset = MyDataset(dataset_dir, OOD_EVAL)
-        dataloader = DataLoader(dataset, 64, shuffle=False, generator=torch.Generator(device='cuda'))
+        dataloader = DataLoader(dataset, 1, shuffle=False, generator=torch.Generator(device='cuda'))
 
         def causal_link(z0, e1):
             s1 = guide.causal_flow.s_cond(z0)
@@ -106,11 +106,9 @@ def main():
                 
                 inputs = (z0, z_noise[:, :, 1, :])
 
-                Js = jacobian(causal_link, inputs, vectorize=True)
-                for J in Js:
-
-                    logger.info(J)
-                    logger.info(J.shape)
+                J_scale, J_color = jacobian(causal_link, inputs, vectorize=True)
+                logger.info(J_scale)
+                logger.info(J_scale.shape)
 
                 if i == 0: break
      
