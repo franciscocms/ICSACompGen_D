@@ -363,15 +363,26 @@ class MLP(nn.Module):
         # elif f_act == "identity": self.f_act = nn.Identity()
         # elif f_act == "softplus": self.f_act = nn.Softplus()
 
+        # self.net = nn.Sequential(
+        #     nn.Linear(nin, nh),
+        #     nn.LeakyReLU(0.2),
+        #     nn.Linear(nh, nh),
+        #     nn.LeakyReLU(0.2),
+        #     nn.Linear(nh, nh),
+        #     nn.LeakyReLU(0.2),
+        #     nn.Linear(nh, nout),
+        # )
+
         self.net = nn.Sequential(
             nn.Linear(nin, nh),
-            nn.LeakyReLU(0.2),
+            nn.Softplus(),
             nn.Linear(nh, nh),
-            nn.LeakyReLU(0.2),
+            nn.Softplus(),
             nn.Linear(nh, nh),
-            nn.LeakyReLU(0.2),
+            nn.Softplus(),
             nn.Linear(nh, nout),
         )
+
 
     def forward(self, x, mask=None):
         return self.net(x)
