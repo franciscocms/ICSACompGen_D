@@ -309,7 +309,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       #     logger.info(f"\ncolor noise counterfactual: {noise_count}")
       
       #batch_loss += kl_beta * cc_coeff * consistency_loss # 178 has 0.01
-      batch_loss += kl_beta * 1. * consistency_loss
+      batch_loss += kl_beta * 0.01 * consistency_loss
     else:
       consistency_loss = 0.
       x_int = torch.zeros_like(img_hat)
