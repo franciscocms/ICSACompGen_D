@@ -231,7 +231,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     log_z = torch.mean(log_z)
 
     log_det = guide.log_det
-    batch_loss += kl_beta * (-0.01*log_e - log_det_coeff*log_det + 0.1*torch.square(torch.mean(logvar_noise)) - 0.01*log_z)
+    batch_loss += kl_beta * (-0.01*log_e - log_det_coeff*log_det + 0.01*torch.square(torch.mean(logvar_noise)) - 0.01*log_z)
     #batch_loss += kl_beta * (-0.01*log_e - log_det_coeff*log_det - 0.01*log_z)
 
     # causal consistency
