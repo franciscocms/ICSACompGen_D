@@ -464,8 +464,8 @@ class MultivariateCausalFlow(nn.Module):
         t0 = self.t_base.expand(B, N, -1)
         z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
 
-        self.scale_gain = 0.5
-        self.shift_gain = 0.5
+        self.scale_gain = 0.1
+        self.shift_gain = 0.1
           
         s1 = self.s_cond(z0) * self.scale_gain
         t1 = self.t_cond(z0) * self.shift_gain
