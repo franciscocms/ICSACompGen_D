@@ -464,8 +464,8 @@ class MultivariateCausalFlow(nn.Module):
         t0 = self.t_base.expand(B, N, -1)
         z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
 
-        self.scale_gain = 0.1
-        self.shift_gain = 0.1
+        self.scale_gain = 1.
+        self.shift_gain = 1.
           
         s1 = self.s_cond(z0) * self.scale_gain
         t1 = self.t_cond(z0) * self.shift_gain
@@ -655,8 +655,6 @@ class PriorMultivariateCausalFlow(nn.Module):
         t0 = self.t_base.expand(B, N, -1)
         cp0 = torch.exp(s0)*self.layer_0(u[:, :, 0].unsqueeze(-1)) + t0
 
-        # s1 = self.s_cond(z0)
-        # t1 = self.t_cond(z0)
         s1 = self.s_cond(z[:, :, 0])
         t1 = self.t_cond(z[:, :, 0])
         cp1 = torch.exp(s1)*self.layer_1(u[:, :, 1].unsqueeze(-1)) + t1
@@ -672,12 +670,9 @@ class PriorMultivariateCausalFlow(nn.Module):
         cp = torch.cat((cp0.unsqueeze(-2), cp1.unsqueeze(-2), cp2.unsqueeze(-2), cp3.unsqueeze(-2)), dim=-2)
         self.ss = torch.cat((s0.unsqueeze(-2), s1.unsqueeze(-2), s2.unsqueeze(-2), s3.unsqueeze(-2)), dim=-2)
         self.ts = torch.cat((t0.unsqueeze(-2), t1.unsqueeze(-2), t2.unsqueeze(-2), t3.unsqueeze(-2)), dim=-2)   
-
         self.s0, self.s1, self.s2, self.s3 = s0, s1, s2, s3
-        
         self.log_det = torch.sum(s0, dim=-1) + torch.sum(s1, dim=-1) + torch.sum(s2, dim=-1) + torch.sum(s3, dim=-1)
         self.log_det = torch.mean(self.log_det)       
-
         return cp
 
 class GaussianMLP(nn.Module):
@@ -696,7 +691,6 @@ class GaussianMLP(nn.Module):
 
         nn.init.xavier_uniform_(self.mean_head.weight)
         nn.init.kaiming_normal_(self.logvar_head.weight)
-            
         self.alpha = alpha
         self.beta = beta
         self.nout = nout
@@ -739,11 +733,6 @@ class ConditionalGaussianPrior(nn.Module):
             mean, logvar = out[0], out[1]
             if self.clamp_var:
                 logvar = torch.clamp(logvar, -2., 2.)
-                # min_logvar = -5.
-                # max_logvar = 2.
-                # amp = (max_logvar - min_logvar)/2
-                # offset = (max_logvar + min_logvar)/2
-                # logvar = amp * F.tanh(logvar) + offset
             means.append(mean)   
             logvars.append(logvar)       
         means = torch.stack(means, -2)
