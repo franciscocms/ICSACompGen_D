@@ -572,6 +572,7 @@ class MultivariateCausalFlow(nn.Module):
                                         z1.unsqueeze(-2),
                                         z2.unsqueeze(-2),
                                         z3_int.unsqueeze(-2)), dim=-2)
+        return self.z_int
         
 
         
