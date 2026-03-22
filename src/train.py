@@ -258,7 +258,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       try:
         consistency_loss = hungarian_latents_consistency(norm_z_causal_int, norm_z_int)
       except:
-        _, _, _, _ = guide.causal_flow(z_noise_int, epoch, False, debug=True)
+        with torch.no_grad():
+          _, _, _, _ = guide.causal_flow(z_noise_int, epoch, False, debug=True)
 
       batch_loss += kl_beta * 0.01 * consistency_loss
     else:
