@@ -526,52 +526,52 @@ class MultivariateCausalFlow(nn.Module):
             ).sample()
         
         # z1 is [B, N, d]
-        with torch.no_grad():
-            if self.flag == 0:
-                z0_int, self.perm = permute_dims(torch.flatten(z0, 0, 1), z0.size(-1))
-                z0_int = z0_int.view(B, N, -1)#.detach()
-                
-                s1_int = self.s_cond(z0_int) * self.scale_gain
-                t1_int = self.t_cond(z0_int) * self.shift_gain
-                z1_int = torch.exp(s1_int)*eps[:, :, 1, :] + t1_int
-
-                self.z_int = torch.cat((z0_int.unsqueeze(-2),
-                                        z1_int.unsqueeze(-2),
-                                        z2.unsqueeze(-2),
-                                        z3.unsqueeze(-2)), dim=-2)
-            elif self.flag == 1:
-                z1_perm, self.perm = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
-                z1_perm = z1_perm.view(B, N, -1)
-                z0_perm = torch.flatten(z0, 0, 1)[self.perm]
-                z0_perm = z0_perm.view(B, N, -1)
-                s1_int = self.s_cond(z0_perm) * self.scale_gain
-                t1_int = self.t_cond(z0_perm) * self.shift_gain
-                e1_int = (z1_perm - t1_int) * torch.exp(-s1_int)
-                
-                #e1_int = e1_int.detach()
-                z1_int = torch.exp(self.s_cond(z0) * self.scale_gain) * e1_int + self.t_cond(z0) * self.shift_gain
-
-                self.z_int = torch.cat((z0.unsqueeze(-2),
-                                        z1_int.unsqueeze(-2),
-                                        z2.unsqueeze(-2),
-                                        z3.unsqueeze(-2)), dim=-2)
-
-
-            elif self.flag == 2:
-                z2_int, self.perm = permute_dims(torch.flatten(z2, 0, 1), z2.size(-1))
-                z2_int = z2_int.view(B, N, -1)#.detach()
-                self.z_int = torch.cat((z0.unsqueeze(-2),
-                                        z1.unsqueeze(-2),
-                                        z2_int.unsqueeze(-2),
-                                        z3.unsqueeze(-2)), dim=-2)
+        
+        if self.flag == 0:
+            z0_int, self.perm = permute_dims(torch.flatten(z0, 0, 1), z0.size(-1))
+            z0_int = z0_int.view(B, N, -1)#.detach()
             
-            elif self.flag == 3:
-                z3_int, self.perm = permute_dims(torch.flatten(z3, 0, 1), z3.size(-1))
-                z3_int = z3_int.view(B, N, -1)#.detach()
-                self.z_int = torch.cat((z0.unsqueeze(-2),
-                                        z1.unsqueeze(-2),
-                                        z2.unsqueeze(-2),
-                                        z3_int.unsqueeze(-2)), dim=-2)
+            s1_int = self.s_cond(z0_int) * self.scale_gain
+            t1_int = self.t_cond(z0_int) * self.shift_gain
+            z1_int = torch.exp(s1_int)*eps[:, :, 1, :] + t1_int
+
+            self.z_int = torch.cat((z0_int.unsqueeze(-2),
+                                    z1_int.unsqueeze(-2),
+                                    z2.unsqueeze(-2),
+                                    z3.unsqueeze(-2)), dim=-2)
+        elif self.flag == 1:
+            z1_perm, self.perm = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
+            z1_perm = z1_perm.view(B, N, -1)
+            z0_perm = torch.flatten(z0, 0, 1)[self.perm]
+            z0_perm = z0_perm.view(B, N, -1)
+            s1_int = self.s_cond(z0_perm) * self.scale_gain
+            t1_int = self.t_cond(z0_perm) * self.shift_gain
+            e1_int = (z1_perm - t1_int) * torch.exp(-s1_int)
+            
+            #e1_int = e1_int.detach()
+            z1_int = torch.exp(self.s_cond(z0) * self.scale_gain) * e1_int + self.t_cond(z0) * self.shift_gain
+
+            self.z_int = torch.cat((z0.unsqueeze(-2),
+                                    z1_int.unsqueeze(-2),
+                                    z2.unsqueeze(-2),
+                                    z3.unsqueeze(-2)), dim=-2)
+
+
+        elif self.flag == 2:
+            z2_int, self.perm = permute_dims(torch.flatten(z2, 0, 1), z2.size(-1))
+            z2_int = z2_int.view(B, N, -1)#.detach()
+            self.z_int = torch.cat((z0.unsqueeze(-2),
+                                    z1.unsqueeze(-2),
+                                    z2_int.unsqueeze(-2),
+                                    z3.unsqueeze(-2)), dim=-2)
+        
+        elif self.flag == 3:
+            z3_int, self.perm = permute_dims(torch.flatten(z3, 0, 1), z3.size(-1))
+            z3_int = z3_int.view(B, N, -1)#.detach()
+            self.z_int = torch.cat((z0.unsqueeze(-2),
+                                    z1.unsqueeze(-2),
+                                    z2.unsqueeze(-2),
+                                    z3_int.unsqueeze(-2)), dim=-2)
         return self.z_int
         
 

@@ -236,14 +236,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     # causal consistency
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
-      
-      z_int = guide.causal_flow.counterfactuals(z_noise, z_scm)
-      z_int = z_int.detach()
-      
-      #z_int = guide.causal_flow.z_int.detach()
-
-      #slots_int = guide.causal_decoder(z_int)
       with torch.no_grad():
+        z_int = guide.causal_flow.counterfactuals(z_noise.detach(), z_scm.detach())        
         x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
         x_int = torch.clamp(x_int, 0., 1.)
 
