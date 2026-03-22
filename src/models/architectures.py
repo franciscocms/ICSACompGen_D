@@ -774,7 +774,7 @@ class CausalGaussianPrior(nn.Module):
             means.append(mean)   
             logvars.append(logvar)       
         means = torch.stack(means, -2)
-        logvars = torch.stack(logvars, -2) - 1.
+        logvars = torch.stack(logvars, -2) - 3.
         return means, logvars
 
 class TCDiscriminator(nn.Module):
