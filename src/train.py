@@ -236,8 +236,10 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     # causal consistency
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
+      
+      z_int = guide.causal_flow.counterfactuals(z_noise.detach(), z_scm.detach())
       with torch.no_grad():
-        z_int = guide.causal_flow.counterfactuals(z_noise.detach(), z_scm.detach())        
+        #z_int = guide.causal_flow.counterfactuals(z_noise.detach(), z_scm.detach())        
         x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
         x_int = torch.clamp(x_int, 0., 1.)
 
@@ -263,7 +265,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
           _, _, _, _ = guide.causal_flow(z_noise_int, epoch, False, debug=True)
 
       #batch_loss += kl_beta * 0.01 * consistency_loss
-      batch_loss += kl_beta * 10. * consistency_loss
+      batch_loss += kl_beta * 1. * consistency_loss
     else:
       consistency_loss = 0.
       x_int = torch.zeros_like(img_hat)
