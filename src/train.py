@@ -16,7 +16,7 @@ from models.guide import InvSlotAttentionGuide
 from main import params
 from utils.guide import permute_dims, linear_scheduler, exp_scheduler
 from utils.loss import compute_log_det, compute_kl_gaussians, log_normal, hungarian_latents_consistency
-from utils.train import BetaScheduler, get_cc_coefficient
+from utils.train import BetaScheduler, get_scheduled_coefficient
 from datasets.data_utils import MyDataset
 
 import wandb # type: ignore
@@ -156,7 +156,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   # update coefficients
   TC_coeff = params["TC_coeff"]
   log_det_coeff = 0.01 # 0.1
-  cc_coeff = get_cc_coefficient(epoch)
 
   kl_beta = beta_scheduler.get_beta()
 
@@ -224,8 +223,14 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     
     cp_m, cp_logv = guide.prior_z
     for i in range(L):
-      if i == 1: log_z_coeff = 10
-      else: log_z_coeff = 1
+      if i == 1 and epoch >= params["cc_epoch"]: 
+        log_z_coeff = get_scheduled_coefficient(epoch,
+                                                params["cc_epoch"], 
+                                                params["cc_epoch"] + 100,
+                                                1.,
+                                                3.)
+      else: 
+        log_z_coeff = 1.
       log_z += log_z_coeff * log_normal(z_scm[:, :, i],
                                         cp_m[:, :, i],
                                         torch.exp(cp_logv[:, :, i])).sum(-1)
@@ -375,6 +380,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   dict_to_log["log_z"] = epoch_log_z
   dict_to_log["consistency_loss"] = epoch_consistency_loss
   dict_to_log["beta"] = kl_beta
+  dict_to_log["log_z_color_coeff"] = log_z_coeff
 
   #dict_to_log["logvar_loss"] = prior_logvar_loss
   
