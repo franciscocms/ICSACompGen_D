@@ -224,9 +224,11 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     
     cp_m, cp_logv = guide.prior_z
     for i in range(L):
-      log_z += log_normal(z_scm[:, :, i],
-                          cp_m[:, :, i],
-                          torch.exp(cp_logv[:, :, i])).sum(-1)
+      if i == 1: log_z_coeff = 10
+      else: log_z_coeff = 1
+      log_z += log_z_coeff * log_normal(z_scm[:, :, i],
+                                        cp_m[:, :, i],
+                                        torch.exp(cp_logv[:, :, i])).sum(-1)
     
     log_z = torch.mean(log_z)
 
