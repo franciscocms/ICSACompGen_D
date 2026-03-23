@@ -262,7 +262,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         with torch.no_grad():
           _, _, _, _ = guide.causal_flow(z_noise_int, epoch, False, debug=True)
 
-      batch_loss += kl_beta * 0.01 * consistency_loss
+      #batch_loss += kl_beta * 0.01 * consistency_loss
+      batch_loss += kl_beta * 1. * consistency_loss
     else:
       consistency_loss = 0.
       x_int = torch.zeros_like(img_hat)
