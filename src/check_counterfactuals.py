@@ -89,7 +89,7 @@ def main():
             return z1
 
         with torch.no_grad():
-            for i, (img, target) in enumerate(dataloader):
+            for b, (img, target) in enumerate(dataloader):
                 img = img.to(device)
                 target = target.to(device)
 
@@ -146,7 +146,7 @@ def main():
                 plt.savefig(f"{params['check_attn_folder']}/counterfactuals.png")
                 plt.close()
 
-                if i == 0: break
+                if b == 0: break
      
 
 if __name__ == '__main__':
