@@ -740,7 +740,7 @@ class ConditionalGaussianPrior(nn.Module):
             means.append(mean)   
             logvars.append(logvar)       
         means = torch.stack(means, -2)
-        logvars = torch.stack(logvars, -2) - 3.
+        logvars = torch.stack(logvars, -2) - 1.
         return means, logvars
     
 class CausalGaussianPrior(nn.Module):
@@ -765,10 +765,10 @@ class CausalGaussianPrior(nn.Module):
             if 1 in self.A[i, :]:
                 parent = (self.A[i, :] == 1).nonzero(as_tuple=False).item() # index of parent
                 pa_zi = z[:, :, parent]
-                zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
             else:
                 pa_zi = torch.zeros_like(z[:, :, 0]).to(device)
-                zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
+            #zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1), 3.*torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
+            zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
 
             out = self.net[str(i)](zu_i)
             
