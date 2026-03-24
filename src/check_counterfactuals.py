@@ -94,6 +94,7 @@ def main():
                 z_noise, z_scm, img_hat, recon_figures = guide(img, target)
                 z0, z1, z2, z3 = torch.split(torch.flatten(z_scm, -2), params["latent_dim"], -1)
 
+                logger.info(f"e0: {z_noise[:, :, 0]}")
                 logger.info(f"z0: {z0}")
                 z0_int = torch.flip(z0, dims=(1,))
                 logger.info(f"z0_int: {z0_int}")
