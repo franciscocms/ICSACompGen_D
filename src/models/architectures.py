@@ -759,7 +759,6 @@ class CausalGaussianPrior(nn.Module):
                                            alpha=alpha[i], beta=beta[i])
 
     def forward(self, labels, z):
-
         means, logvars = [], []
         for i in range(self.L):
             if 1 in self.A[i, :]:
