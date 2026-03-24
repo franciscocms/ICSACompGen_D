@@ -6,4 +6,4 @@
 #SBATCH -o slurm.%N.%j.out       # File containing STDOUT output
 #SBATCH -e slurm.%N.%j.err       # File containing STDERR output
 
-python inference.py
+python check_causal_link.py
