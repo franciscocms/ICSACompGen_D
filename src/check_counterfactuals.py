@@ -108,6 +108,9 @@ def main():
                 t1_int = guide.causal_flow.t_cond(z0_int)
                 z1_int = torch.exp(s1_int)*z_noise[:, :, 1, :] + t1_int
 
+                logger.info(f"\nz1: {z1}")
+                logger.info(f"\nz1_int: {z1_int}")
+
                 logger.info(f"\nexp(s1_int): {torch.exp(s1_int).mean()} -- {torch.exp(s1_int).std()}")
                 logger.info(f"\ne1: {z_noise[:, :, 1, :].mean()} -- {z_noise[:, :, 1, :].std()}")
 
