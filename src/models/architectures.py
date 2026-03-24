@@ -464,8 +464,8 @@ class MultivariateCausalFlow(nn.Module):
         t0 = self.t_base.expand(B, N, -1)
         z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
 
-        self.scale_gain = 3.
-        self.shift_gain = 3.
+        self.scale_gain = 1.
+        self.shift_gain = 1.
           
         s1 = self.s_cond(z0) * self.scale_gain
         t1 = self.t_cond(z0) * self.shift_gain
@@ -755,7 +755,7 @@ class CausalGaussianPrior(nn.Module):
         for i in range(self.L):
             freq = (i - 6) * np.pi
             self.freq_coeff.append(freq)
-            self.net[str(i)] = GaussianMLP(nin=ldim + 1, nout=ldim, nh=128, learn_var=True,
+            self.net[str(i)] = GaussianMLP(nin=ldim + 2, nout=ldim, nh=128, learn_var=True,
                                            alpha=alpha[i], beta=beta[i])
 
     def forward(self, labels, z):
@@ -765,10 +765,9 @@ class CausalGaussianPrior(nn.Module):
             if 1 in self.A[i, :]:
                 parent = (self.A[i, :] == 1).nonzero(as_tuple=False).item() # index of parent
                 pa_zi = z[:, :, parent]
-                zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
             else:
                 pa_zi = torch.zeros_like(z[:, :, 0]).to(device)
-                zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
+            zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1), torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
 
             out = self.net[str(i)](zu_i)
             
