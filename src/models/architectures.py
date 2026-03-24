@@ -515,7 +515,7 @@ class MultivariateCausalFlow(nn.Module):
         return z, ss, ts, log_det
 
     
-    def counterfactuals(self, eps, z):
+    def counterfactuals(self, eps, z, flag=None):
             
         B, N, _, _ = z.shape
 
@@ -523,7 +523,7 @@ class MultivariateCausalFlow(nn.Module):
 
         self.flag = torch.distributions.Categorical(
             torch.tensor([1/len(params["latent_vars"]) for _ in range(len(params["latent_vars"]))])
-            ).sample()
+            ).sample() if flag == None else flag
         
         # z1 is [B, N, d]
         

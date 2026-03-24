@@ -198,7 +198,7 @@ class InvSlotAttentionGuide(nn.Module):
         img_hat, recon_figures = self.scene_decoder(torch.flatten(z_scm, -2))
 
         if params["running_type"] == "eval": 
-            return z_noise, img_hat, recon_figures
+            return z_noise, z_scm, img_hat, recon_figures
 
         z_noise_d = z_noise.detach()
         self.noise_pred_loss = []
