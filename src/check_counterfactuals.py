@@ -93,6 +93,8 @@ def main():
                 img = img.to(device)
                 target = target.to(device)
 
+                logger.info(img.shape)
+
                 B = img.size(0)
                 
                 z_noise, z_scm, img_hat, recon_figures = guide(img, target)
