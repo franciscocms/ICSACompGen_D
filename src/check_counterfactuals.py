@@ -80,7 +80,7 @@ def main():
         dataset_dir = os.path.join(params["dataset_path"], "eval")
 
         dataset = MyDataset(dataset_dir, OOD_EVAL)
-        dataloader = DataLoader(dataset, 1, shuffle=False, generator=torch.Generator(device='cuda'))
+        dataloader = DataLoader(dataset, 2, shuffle=False, generator=torch.Generator(device='cuda'))
 
         def causal_link(z0, e1):
             s1 = guide.causal_flow.s_cond(z0)
