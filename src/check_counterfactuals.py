@@ -80,13 +80,7 @@ def main():
         dataset_dir = os.path.join(params["dataset_path"], "eval")
 
         dataset = MyDataset(dataset_dir, OOD_EVAL)
-        dataloader = DataLoader(dataset, 10, shuffle=True, generator=torch.Generator(device='cuda'))
-
-        def causal_link(z0, e1):
-            s1 = guide.causal_flow.s_cond(z0)
-            t1 = guide.causal_flow.t_cond(z0)
-            z1 = torch.exp(s1)*e1 + t1
-            return z1
+        dataloader = DataLoader(dataset, 3, shuffle=True, generator=torch.Generator(device='cuda'))
 
         with torch.no_grad():
             for b, (img, target) in enumerate(dataloader):
