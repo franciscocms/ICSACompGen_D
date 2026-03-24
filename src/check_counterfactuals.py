@@ -99,7 +99,7 @@ def main():
                 z0, z1, z2, z3 = torch.split(torch.flatten(z_scm, -2), params["latent_dim"], -1)
 
                 logger.info(f"z0: {z0}")
-                z0_int = torch.flip(z0, dims=1)
+                z0_int = torch.flip(z0, dims=(1,))
                 logger.info(f"z0_int: {z0_int}")
                 
                 s1_int = guide.causal_flow.s_cond(z0_int)
