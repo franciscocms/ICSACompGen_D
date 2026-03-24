@@ -223,14 +223,15 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     
     cp_m, cp_logv = guide.prior_z
     for i in range(L):
-      if i == 1 and epoch >= params["cc_epoch"]: 
-        log_z_coeff = get_scheduled_coefficient(epoch,
-                                                params["cc_epoch"], 
-                                                params["cc_epoch"] + 100,
-                                                1.,
-                                                3.)
-      else: 
-        log_z_coeff = 1.
+      # if i == 1 and epoch >= params["cc_epoch"]: 
+      #   log_z_coeff = get_scheduled_coefficient(epoch,
+      #                                           params["cc_epoch"], 
+      #                                           params["cc_epoch"] + 100,
+      #                                           1.,
+      #                                           3.)
+      # else: 
+      #   log_z_coeff = 1.
+      log_z_coeff = 1
       log_z += log_z_coeff * log_normal(z_scm[:, :, i],
                                         cp_m[:, :, i],
                                         torch.exp(cp_logv[:, :, i])).sum(-1)
