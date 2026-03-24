@@ -128,8 +128,8 @@ def main():
                 with torch.no_grad():  
                     x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
 
-                fig, ax = plt.subplots(1, 4)
-                for i in range(1):
+                fig, ax = plt.subplots(B, 4)
+                for i in range(B):
                     ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
                     if i == 0: ax[i, 0].set_title("img")
                     ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
@@ -138,7 +138,6 @@ def main():
                     if i == 0: ax[i, 2].set_title(f"int 0")
                     ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
                     if i == 0: ax[i, 3].set_title(f"img_hat_cons")
-
 
                     for j in range(4):
                         ax[i, j].grid(False)
