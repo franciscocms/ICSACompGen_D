@@ -98,8 +98,8 @@ def main():
                 z0_int = torch.flip(z0, dims=(1,))
                 logger.info(f"z0_int: {z0_int}")
                 
-                s1_int = guide.causal_flow.s_cond(z0_int)
-                t1_int = guide.causal_flow.t_cond(z0_int)
+                s1_int = guide.causal_flow.s_cond(z0_int) * guide.causal_flow.scale_gain
+                t1_int = guide.causal_flow.t_cond(z0_int) * guide.causal_flow.shift_gain
                 z1_int = torch.exp(s1_int)*z_noise[:, :, 1, :] + t1_int
 
                 logger.info(f"\nz1: {z1}")
