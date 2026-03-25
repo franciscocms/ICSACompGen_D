@@ -93,28 +93,49 @@ def main():
                 
                 z_noise, z_scm, img_hat, recon_figures = guide(img, target)
                 z0, z1, z2, z3 = torch.split(torch.flatten(z_scm, -2), params["latent_dim"], -1)
-
-                logger.info(f"e0: {z_noise[:, :, 0]}")
-                logger.info(f"z0: {z0}")
-                z0_int = torch.flip(z0, dims=(1,))
-                logger.info(f"z0_int: {z0_int}")
                 
-                s1_int = guide.causal_flow.s_cond(z0_int) * guide.causal_flow.scale_gain
-                t1_int = guide.causal_flow.t_cond(z0_int) * guide.causal_flow.shift_gain
-                z1_int = torch.exp(s1_int)*z_noise[:, :, 1, :] + t1_int
+                C = 1
 
-                logger.info(f"\nz1: {z1}")
-                logger.info(f"\ne1: {z_noise[:, :, 1, :]}")
-                logger.info(f"\nexp(s1_int): {torch.exp(s1_int)}")
-                logger.info(f"\nexp(s1_int)e1: {torch.exp(s1_int)*z_noise[:, :, 1, :]}")
-                logger.info(f"\nt1_int: {t1_int}")
-                logger.info(f"\nz1_int: {z1_int}")
+                if C == 0:
+
+                    logger.info(f"e0: {z_noise[:, :, 0]}")
+                    logger.info(f"z0: {z0}")
+                    z0_int = torch.flip(z0, dims=(1,))
+                    logger.info(f"z0_int: {z0_int}")
+                    
+                    s1_int = guide.causal_flow.s_cond(z0_int) * guide.causal_flow.scale_gain
+                    t1_int = guide.causal_flow.t_cond(z0_int) * guide.causal_flow.shift_gain
+                    z1_int = torch.exp(s1_int)*z_noise[:, :, 1, :] + t1_int
+
+                    logger.info(f"\nz1: {z1}")
+                    logger.info(f"\ne1: {z_noise[:, :, 1, :]}")
+                    logger.info(f"\nexp(s1_int): {torch.exp(s1_int)}")
+                    logger.info(f"\nexp(s1_int)e1: {torch.exp(s1_int)*z_noise[:, :, 1, :]}")
+                    logger.info(f"\nt1_int: {t1_int}")
+                    logger.info(f"\nz1_int: {z1_int}")
+                    
+
+                    z_int = torch.cat((z0_int.unsqueeze(-2),
+                                    z1_int.unsqueeze(-2),
+                                    z2.unsqueeze(-2),
+                                    z3.unsqueeze(-2)), dim=-2) 
                 
+                elif C == 1:
+                    z1_perm, = torch.flip(z1, dims=(1,))
+                    z0_perm = torch.flatten(z0, 0, 1)
+                    z0_perm = torch.flip(z0, dims=(1,))
+                    s1_int = guide.causal_flow.s_cond(z0_perm) * guide.causal_flow.scale_gain
+                    t1_int = guide.causal_flow.t_cond(z0_perm) * guide.causal_flow.shift_gain
+                    e1_int = (z1_perm - t1_int) * torch.exp(-s1_int)
+                    
+                    #e1_int = e1_int.detach()
+                    z1_int = torch.exp(guide.causal_flow.s_cond(z0) * guide.causal_flow.scale_gain) * e1_int + guide.causal_flow.t_cond(z0) * guide.causal_flow.shift_gain
 
-                z_int = torch.cat((z0_int.unsqueeze(-2),
-                                   z1_int.unsqueeze(-2),
-                                   z2.unsqueeze(-2),
-                                   z3.unsqueeze(-2)), dim=-2) 
+                    z_int = torch.cat((z0.unsqueeze(-2),
+                                            z1_int.unsqueeze(-2),
+                                            z2.unsqueeze(-2),
+                                            z3.unsqueeze(-2)), dim=-2)
+
                    
                 x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
                 x_int = torch.clamp(x_int, 0., 1.)
@@ -148,11 +169,17 @@ def main():
 
                 #####################################################################################################
 
+                if C == 0:
+                    z_int = torch.cat((z0_int.unsqueeze(-2),
+                                    z1.unsqueeze(-2),
+                                    z2.unsqueeze(-2),
+                                    z3.unsqueeze(-2)), dim=-2) 
+                elif C == 1:
+                    z_int = torch.cat((z0.unsqueeze(-2),
+                                    z1_perm.unsqueeze(-2),
+                                    z2.unsqueeze(-2),
+                                    z3.unsqueeze(-2)), dim=-2) 
 
-                z_int = torch.cat((z0_int.unsqueeze(-2),
-                                   z1.unsqueeze(-2),
-                                   z2.unsqueeze(-2),
-                                   z3.unsqueeze(-2)), dim=-2) 
                    
                 x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
                 x_int = torch.clamp(x_int, 0., 1.)
