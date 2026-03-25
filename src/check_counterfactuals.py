@@ -121,7 +121,7 @@ def main():
                                     z3.unsqueeze(-2)), dim=-2) 
                 
                 elif C == 1:
-                    z1_perm, = torch.flip(z1, dims=(1,))
+                    z1_perm = torch.flip(z1, dims=(1,))
                     z0_perm = torch.flatten(z0, 0, 1)
                     z0_perm = torch.flip(z0, dims=(1,))
                     s1_int = guide.causal_flow.s_cond(z0_perm) * guide.causal_flow.scale_gain
