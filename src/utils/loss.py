@@ -91,8 +91,9 @@ def hungarian_latents_consistency(z1, z2):
     # z1 and z2 have [B, N, L, d] shape
     # compute L1 loss while matching over the N dimension
 
-    z1 = torch.flatten(z1, -2)
-    z2 = torch.flatten(z2, -2)
+    if len(z1.shape) == len(z2.shape) == 4:
+        z1 = torch.flatten(z1, -2)
+        z2 = torch.flatten(z2, -2)
 
     cost_matrix = F.smooth_l1_loss(z2.unsqueeze(1).expand(-1, z1.size(1), -1, -1),
                                 z1.unsqueeze(2).expand(-1, -1, z2.size(1), -1), reduction="none").mean(-1)

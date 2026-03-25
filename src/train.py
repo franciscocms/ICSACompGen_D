@@ -260,15 +260,29 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       with torch.no_grad():  
         x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
         
-      norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
-      norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8) 
+      # noise consistency 
+      consistency_loss = 0.
+      if guide.causal_flow.flag == 0: 
+        invariant_vars = [1, 2, 3]
+        consistency_loss += hungarian_latents_consistency(guide.causal_flow.backward(z_int, guide.causal_flow.flag).detach(), z_noise_int[:, :, 0])
+      elif guide.causal_flow.flag == 1: 
+        invariant_vars = [0, 2, 3]
+        consistency_loss += hungarian_latents_consistency(guide.causal_flow.backward(z_int, guide.causal_flow.flag).detach(), z_noise_int[:, :, 1])
+      elif guide.causal_flow.flag == 2: 
+        invariant_vars = [0, 1, 3]
+      elif guide.causal_flow.flag == 3: 
+        invariant_vars = [0, 1, 2]
       
-      #consistency_loss = F.mse_loss(z_causal_int, z_int)
-      #consistency_loss = F.mse_loss(norm_z_causal_int, norm_z_int)
+      for i in invariant_vars:
+        consistency_loss += hungarian_latents_consistency(mu_noise_int[:, :, i], mu_noise[:, :, i].detach()) + recon_loss_fn(logvar_noise_int[:, :, i], logvar_noise[:, :, i].detach())          
+
+      # causal consistency
+      norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
+      norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8)
       try:
-        consistency_loss = hungarian_latents_consistency(norm_z_causal_int, norm_z_int)
+        consistency_loss += hungarian_latents_consistency(norm_z_causal_int, norm_z_int)
       except:
-        consistency_loss = 0.
+        consistency_loss += 0.
         with torch.no_grad():
           _, _, _, _ = guide.causal_flow(z_noise_int, epoch, False, debug=True)
 
