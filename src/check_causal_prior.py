@@ -98,15 +98,15 @@ def main():
                 for i, var in enumerate(params["latent_vars"]):
                     plt.scatter(np.arange(cp_m.size(0)), torch.norm(cp_m[:, i], dim=-1).cpu(), s=3, label=var, c=target[:, i].cpu())
                     #plt.scatter(u[:, i].cpu(), logvar_noise_prior[:, i].mean(-1).cpu(), s=2, c="red")
-                plt.legend()
-                plt.savefig(f"{params['check_attn_folder']}/mu_causal_prior.png")
-                plt.close()
+                    plt.legend()
+                    plt.savefig(f"{params['check_attn_folder']}/{var}_mu_causal_prior.png")
+                    plt.close()
 
                 for i, var in enumerate(params["latent_vars"]):
                     plt.scatter(np.arange(cp_m.size(0)), torch.norm(cp_logv[:, i], dim=-1).cpu(), s=3, label=var, c=target[:, i].cpu())
-                plt.legend()
-                plt.savefig(f"{params['check_attn_folder']}/logvar_causal_prior.png")
-                plt.close()
+                    plt.legend()
+                    plt.savefig(f"{params['check_attn_folder']}/{var}_logvar_causal_prior.png")
+                    plt.close()
                 if b == 0: break
      
 
