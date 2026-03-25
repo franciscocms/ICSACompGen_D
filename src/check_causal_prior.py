@@ -77,37 +77,63 @@ def main():
         dataset_dir = os.path.join(params["dataset_path"], "eval")
 
         dataset = MyDataset(dataset_dir, OOD_EVAL)
-        dataloader = DataLoader(dataset, 64, shuffle=True, generator=torch.Generator(device='cuda'))
+        dataloader = DataLoader(dataset, 2, shuffle=True, generator=torch.Generator(device='cuda'))
 
         with torch.no_grad():
             for b, (img, target) in enumerate(dataloader):
                 img = img.to(device)
                 target = target.to(device)
 
-                logger.info(img.shape)
+                got_it = False
+                if 0 <= target[0, 0, 0] <= 0.1 and 0.9 <= target[0, 1, 0] <= 1.:
+                    got_it = True
 
-                B = img.size(0)
-                
-                z_noise, z_scm, img_hat, recon_figures = guide(img, target)
-                cp_m, cp_logv = guide.prior_z
+                    logger.info(img.shape)
 
-                cp_m = cp_m.view(-1, cp_m.size(-2), cp_m.size(-1))
-                cp_logv = cp_logv.view(-1, cp_logv.size(-2), cp_logv.size(-1))
-                target = target.view(-1, target.size(-1))
+                    B = img.size(0)
+                    
+                    z_noise, z_scm, img_hat, recon_figures = guide(img, target)
+                    
+                    z0_small = z_scm[0, 0, 0, :]
+                    z0_large = z_scm[0, 1, 0, :]
+                    
+                    alphas = torch.arange(0., 1., 100)
+                    means = []
+                    logvars = []
+                    for alpha in alphas:
+                        z0 = (1-alpha)*z0_small + alpha*z0_large
 
-                for i, var in enumerate(params["latent_vars"]):
-                    plt.scatter(np.arange(cp_m.size(0)), torch.norm(cp_m[:, i], dim=-1).cpu(), s=12, label=var, c=target[:, i].cpu())
+                        s1 = guide.causal_flow.s_cond(z0.reshape((1, 1, z0.size(-1)))) * guide.causal_flow.scale_gain
+                        t1 = guide.causal_flow.t_cond(z0.reshape((1, 1, z0.size(-1)))) * guide.causal_flow.shift_gain
+                        z1 = torch.exp(s1)*z_noise[0, 0, 1, :] + t1
+
+                        # for fixed color label, vary z_scale
+                        zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))), torch.ones((1, 1, 1)*0.5)), dim=-1)
+                        mean, logvar = guide.prior.net[str(i)](zu_i)
+                        logvar = logvar - 1 if params["jobID"] == 270 else logvar - 3
+
+                        means.append(mean)
+                        logvars.append(logvar)
+                    means = torch.stack(means)
+                    logvars = torch.stack(logvars)
+
+                    logger.info(means.shape)
+                    logger.info(logvars.shape)
+
+                    plt.scatter(alphas.cpu(), torch.norm(means[:, i], dim=-1).cpu(), s=12, label=var, c=target[:, i].cpu())
                     #plt.scatter(u[:, i].cpu(), logvar_noise_prior[:, i].mean(-1).cpu(), s=2, c="red")
                     plt.legend()
                     plt.savefig(f"{params['check_attn_folder']}/{var}_mu_causal_prior.png")
                     plt.close()
 
-                for i, var in enumerate(params["latent_vars"]):
-                    plt.scatter(np.arange(cp_m.size(0)), torch.norm(cp_logv[:, i], dim=-1).cpu(), s=12, label=var, c=target[:, i].cpu())
-                    plt.legend()
-                    plt.savefig(f"{params['check_attn_folder']}/{var}_logvar_causal_prior.png")
-                    plt.close()
-                if b == 0: break
+                    for i, var in enumerate(params["latent_vars"]):
+                        if i == 1:
+                            plt.scatter(np.arange(cp_m.size(0)), torch.norm(cp_logv[:, i], dim=-1).cpu(), s=12, label=var, c=target[:, i].cpu())
+                            plt.legend()
+                            plt.savefig(f"{params['check_attn_folder']}/{var}_logvar_causal_prior.png")
+                            plt.close()
+                
+                if got_it: break
      
 
 if __name__ == '__main__':

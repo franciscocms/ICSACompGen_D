@@ -740,7 +740,7 @@ class ConditionalGaussianPrior(nn.Module):
             means.append(mean)   
             logvars.append(logvar)       
         means = torch.stack(means, -2)
-        logvars = torch.stack(logvars, -2) - 1.
+        logvars = torch.stack(logvars, -2) - 1. if params["jobID"] == 270 else torch.stack(logvars, -2) - 3.
         return means, logvars
     
 class CausalGaussianPrior(nn.Module):
@@ -755,10 +755,12 @@ class CausalGaussianPrior(nn.Module):
         for i in range(self.L):
             freq = (i - 6) * np.pi
             self.freq_coeff.append(freq)
-            # self.net[str(i)] = GaussianMLP(nin=ldim + 2, nout=ldim, nh=128, learn_var=True,
-            #                                alpha=alpha[i], beta=beta[i])
-            self.net[str(i)] = GaussianMLP(nin=ldim + 1, nout=ldim, nh=128, learn_var=True,
-                                           alpha=alpha[i], beta=beta[i])
+            if params["jobID"] == 271:
+                self.net[str(i)] = GaussianMLP(nin=ldim + 2, nout=ldim, nh=128, learn_var=True,
+                                            alpha=alpha[i], beta=beta[i])
+            else:
+                self.net[str(i)] = GaussianMLP(nin=ldim + 1, nout=ldim, nh=128, learn_var=True,
+                                            alpha=alpha[i], beta=beta[i])
 
     def forward(self, labels, z):
 
@@ -769,8 +771,11 @@ class CausalGaussianPrior(nn.Module):
                 pa_zi = z[:, :, parent]
             else:
                 pa_zi = torch.zeros_like(z[:, :, 0]).to(device)
-            #zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1), 3.*torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
-            zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
+            
+            if params["jobID"] == 271:
+                zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1), 3.*torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
+            else:
+                zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
 
             out = self.net[str(i)](zu_i)
             
@@ -780,7 +785,7 @@ class CausalGaussianPrior(nn.Module):
             means.append(mean)   
             logvars.append(logvar)       
         means = torch.stack(means, -2)
-        logvars = torch.stack(logvars, -2) - 1.
+        logvars = torch.stack(logvars, -2) - 1. if params["jobID"] == 270 else torch.stack(logvars, -2) - 3.
         return means, logvars
 
 class TCDiscriminator(nn.Module):
