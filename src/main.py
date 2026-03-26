@@ -33,11 +33,11 @@ params = {
     "lr": 4e-4, # 256 with 1e-4 -- 512 for 1e-3
     "use_counterfactual_consistency": True,
     "cc_epoch": 100,
-    "training_from_scratch" : False,
-    "training_epochs": 310, # 400 
+    "training_from_scratch" : True,
+    "training_epochs": 400, # 400 
     "epoch_step": 10,
     "running_type": "train", # train, debug, eval, inspect
-    "epoch_to_load" : 90, 
+    "epoch_to_load" : 350, 
     "ood_eval": True,
     "TC_minimization": False, # usually True
     "alpha": 1., # usually 1.
