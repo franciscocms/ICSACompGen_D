@@ -94,7 +94,7 @@ def main():
                 z_noise, z_scm, img_hat, recon_figures = guide(img, target)
                 z0, z1, z2, z3 = torch.split(torch.flatten(z_scm, -2), params["latent_dim"], -1)
                 
-                C = 1
+                C = 0
 
                 if C == 0:
 
