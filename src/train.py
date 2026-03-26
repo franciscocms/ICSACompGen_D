@@ -100,7 +100,7 @@ else:
   resume_epoch = params['epoch_to_load']
   logger.info(f"resume training from epoch {resume_epoch}...")
   #checkpoint = torch.load(f"{main_dir}/checkpoint-{params['jobID']}/guide_{resume_epoch}.pth", weights_only=False)
-  checkpoint = torch.load(f"{main_dir}/checkpoint-239/guide_{resume_epoch}.pth", weights_only=False)
+  checkpoint = torch.load(f"{main_dir}/checkpoint-273/guide_{resume_epoch}.pth", weights_only=False)
   guide.load_state_dict(checkpoint["model"])
   
 optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
@@ -108,7 +108,7 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=2)
 beta_scheduler = BetaScheduler(0., 1., params["cc_epoch"]) # (0., 1., 100)
 if resume_epoch != 0: 
   optimizer.load_state_dict(checkpoint["optimizer"])
-  scheduler = checkpoint["scheduler"]
+  scheduler.load_state_dict(checkpoint["scheduler"])
   beta_scheduler.current_step = resume_epoch  
 
 if params["TC_minimization"]:
@@ -277,14 +277,14 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         consistency_loss += hungarian_latents_consistency(mu_noise_int[:, :, i], mu_noise[:, :, i].detach()) + recon_loss_fn(logvar_noise_int[:, :, i], logvar_noise[:, :, i].detach())          
 
       # causal consistency
-      norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
-      norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8)
-      try:
-        consistency_loss += hungarian_latents_consistency(norm_z_causal_int, norm_z_int)
-      except:
-        consistency_loss += 0.
-        with torch.no_grad():
-          _, _, _, _ = guide.causal_flow(z_noise_int, epoch, False, debug=True)
+      # norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
+      # norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8)
+      # try:
+      #   consistency_loss += hungarian_latents_consistency(norm_z_causal_int, norm_z_int)
+      # except:
+      #   consistency_loss += 0.
+      #   with torch.no_grad():
+      #     _, _, _, _ = guide.causal_flow(z_noise_int, epoch, False, debug=True)
 
       batch_loss += kl_beta * 0.01 * consistency_loss
       #batch_loss += kl_beta * 1. * consistency_loss
@@ -441,7 +441,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       'epoch': epoch,
       'model': guide.state_dict(),
       'optimizer': optimizer.state_dict(),
-      'scheduler': scheduler
+      'scheduler': scheduler.state_dict()
     }
     torch.save(checkpoint, GUIDE_PATH + '/guide_' + str(epoch) + '.pth')
 
