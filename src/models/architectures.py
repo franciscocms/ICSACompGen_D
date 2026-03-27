@@ -756,10 +756,10 @@ class CausalGaussianPrior(nn.Module):
             freq = (i - 6) * np.pi
             self.freq_coeff.append(freq)
             if params["jobID"] == 271:
-                self.net[str(i)] = GaussianMLP(nin=ldim + 2, nout=ldim, nh=128, learn_var=True,
+                self.net[str(i)] = GaussianMLP(nin=ldim + 2, nout=ldim, nh=ldim*4, learn_var=True,
                                             alpha=alpha[i], beta=beta[i])
             else:
-                self.net[str(i)] = GaussianMLP(nin=ldim + 1, nout=ldim, nh=128, learn_var=True,
+                self.net[str(i)] = GaussianMLP(nin=ldim + 1, nout=ldim, nh=ldim*4, learn_var=True,
                                             alpha=alpha[i], beta=beta[i])
 
     def forward(self, labels, z):
@@ -777,10 +777,10 @@ class CausalGaussianPrior(nn.Module):
             else:
                 zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
             
-            logger.info(f"\nvar {i}")
-            logger.info(f"zu: {zu_i}")
-            for name, p in self.net[str(i)].named_parameters():
-                logger.info(f"{name} - {p}")
+            # logger.info(f"\nvar {i}")
+            # logger.info(f"zu: {zu_i}")
+            # for name, p in self.net[str(i)].named_parameters():
+            #     logger.info(f"{name} - {p}")
 
             out = self.net[str(i)](zu_i)
             
