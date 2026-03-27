@@ -99,8 +99,8 @@ def main():
                     alphas = torch.arange(0., 1., 0.01)
                     means = []
                     logvars = []
-                    u_is = []
-                    for alpha in alphas:
+                    u_i = torch.rand((1, 1, 1, 1)).expand((alphas.size(0), -1, -1, -1))
+                    for i, alpha in enumerate(alphas):
                         z0 = (1-alpha)*z0_small + alpha*z0_large
 
                         s1 = guide.causal_flow.s_cond(z0.reshape((1, 1, z0.size(-1)))) * guide.causal_flow.scale_gain
@@ -109,24 +109,21 @@ def main():
 
                         # for fixed color label, vary z_scale
                         u_i = torch.rand((1, 1, 1))
-                        zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))), u_i), dim=-1)
+                        zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))), u_i[i]), dim=-1)
                         mean, logvar = guide.prior.net[str(1)](zu_i)
                         logvar = logvar - 3
 
-                        u_is.append(u_i)
                         means.append(mean)
                         logvars.append(logvar)
                     means = torch.stack(means)
                     logvars = torch.stack(logvars)
-                    u_is = torch.stack(u_is)
 
                     logger.info(means.shape)
-                    logger.info(logvars.shape)
-                    logger.info(u_is.shape)
+                    logger.info(logvars.shape) 
 
                     plt.scatter(alphas.cpu(), torch.norm(means, dim=-1).cpu(), s=12, label="mean")
                     plt.scatter(alphas.cpu(), torch.norm(logvars, dim=-1).cpu(), s=12, label="logvar")
-                    plt.plot(alphas.cpu(), u_is.squeeze().cpu(), label="u_color")
+                    plt.plot(alphas.cpu(), u_i.cpu(), label="u_color")
 
                     plt.legend()
                     plt.savefig(f"{params['check_attn_folder']}/color_causal_prior.png")
