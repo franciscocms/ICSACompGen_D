@@ -98,6 +98,7 @@ def main():
                     z0_large = z_scm[0, 1, 0, :]
                     
                     alphas = torch.arange(0., 1., 100)
+                    logger.info(alphas.shape)
                     means = []
                     logvars = []
                     for alpha in alphas:
