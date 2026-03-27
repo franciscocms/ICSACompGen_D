@@ -132,8 +132,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
   for name, param in guide.noise_prior.named_parameters():
     param.requires_grad = False
-  # for name, param in guide.prior.named_parameters():
-  #   param.requires_grad = False
+  for name, param in guide.prior.named_parameters():
+    param.requires_grad = False
 
   guide.epoch = epoch
 
