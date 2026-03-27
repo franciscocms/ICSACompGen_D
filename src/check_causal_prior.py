@@ -122,7 +122,7 @@ def main():
 
                     plt.scatter(alphas.cpu(), torch.norm(means, dim=-1).cpu(), s=12, label="mean")
                     plt.scatter(alphas.cpu(), torch.norm(logvars, dim=-1).cpu(), s=12, label="logvar")
-                    plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {round(u_i.squeeze()[0], 2)}")
+                    plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {torch.round(u_i.squeeze()[0], decimals=2)}")
 
                     plt.legend()
                     plt.savefig(f"{params['check_attn_folder']}/color_causal_prior.png")
