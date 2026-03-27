@@ -120,18 +120,13 @@ def main():
                     logger.info(means.shape)
                     logger.info(logvars.shape)
 
-                    plt.scatter(alphas.cpu(), torch.norm(means[:, i], dim=-1).cpu(), s=12, label=var, c=target[:, i].cpu())
-                    #plt.scatter(u[:, i].cpu(), logvar_noise_prior[:, i].mean(-1).cpu(), s=2, c="red")
+                    plt.scatter(alphas.cpu(), torch.norm(means, dim=-1).cpu(), s=12, label="mean")
+                    plt.scatter(alphas.cpu(), torch.norm(logvars, dim=-1).cpu(), s=12, label="logvar")
                     plt.legend()
-                    plt.savefig(f"{params['check_attn_folder']}/{var}_mu_causal_prior.png")
+                    plt.savefig(f"{params['check_attn_folder']}/color_causal_prior.png")
                     plt.close()
 
-                    for i, var in enumerate(params["latent_vars"]):
-                        if i == 1:
-                            plt.scatter(np.arange(cp_m.size(0)), torch.norm(cp_logv[:, i], dim=-1).cpu(), s=12, label=var, c=target[:, i].cpu())
-                            plt.legend()
-                            plt.savefig(f"{params['check_attn_folder']}/{var}_logvar_causal_prior.png")
-                            plt.close()
+                
                 
                 if got_it: break
      
