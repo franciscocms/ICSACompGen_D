@@ -97,8 +97,7 @@ def main():
                     z0_small = z_scm[0, 0, 0, :]
                     z0_large = z_scm[0, 1, 0, :]
                     
-                    alphas = torch.arange(0., 1., 100)
-                    logger.info(alphas.shape)
+                    alphas = torch.arange(0., 1., 0.01)
                     means = []
                     logvars = []
                     for alpha in alphas:
@@ -112,8 +111,6 @@ def main():
                         zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))), torch.ones((1, 1, 1))*0.5), dim=-1)
                         mean, logvar = guide.prior.net[str(1)](zu_i)
                         logvar = logvar - 3
-
-                        logger.info(f"{alpha} - {mean.shape}")
 
                         means.append(mean)
                         logvars.append(logvar)
