@@ -112,6 +112,8 @@ def main():
                         mean, logvar = guide.prior.net[str(1)](zu_i)
                         logvar = logvar - 3
 
+                        logger.info(f"{alpha} - {mean.shape}")
+
                         means.append(mean)
                         logvars.append(logvar)
                     means = torch.stack(means)
