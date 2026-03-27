@@ -108,7 +108,10 @@ def main():
                         z1 = torch.exp(s1)*z_noise[0, 0, 1, :] + t1
 
                         # for fixed color label, vary z_scale
-                        zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))), u_i[i]), dim=-1)
+                        freq_coeff = (1 - 6) * np.pi
+                        zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))),
+                                          u_i[i],
+                                          torch.sin(freq_coeff * u_i)), dim=-1)
                         mean, logvar = guide.prior.net[str(1)](zu_i)
                         logvar = logvar - 3
 
