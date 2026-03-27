@@ -777,10 +777,10 @@ class CausalGaussianPrior(nn.Module):
             else:
                 zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
             
-            logger.info(f"\nvar {i}")
-            logger.info(f"zu: {zu_i}")
-            for name, p in self.net[str(i)].named_parameters():
-                logger.info(f"{p.T}")
+            # logger.info(f"\nvar {i}")
+            # logger.info(f"zu: {zu_i}")
+            # for name, p in self.net[str(i)].named_parameters():
+            #     logger.info(f"{p.T}")
 
             out = self.net[str(i)](zu_i)
             
