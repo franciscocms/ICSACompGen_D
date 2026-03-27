@@ -111,7 +111,7 @@ def main():
                         freq_coeff = (1 - 6) * np.pi
                         zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))),
                                           u_i[i],
-                                          torch.sin(freq_coeff * u_i[i])), dim=-1)
+                                          torch.sin(freq_coeff * u_i[i] * torch.norm(z0.reshape((1, 1, z0.size(-1))), 2))), dim=-1)
                         mean, logvar = guide.prior.net[str(1)](zu_i)
                         logvar = logvar - 3
 
@@ -124,11 +124,15 @@ def main():
                     logger.info(logvars.shape) 
 
                     plt.scatter(alphas.cpu(), torch.norm(means, dim=-1).cpu(), s=12, label="mean")
-                    plt.scatter(alphas.cpu(), torch.norm(logvars, dim=-1).cpu(), s=12, label="logvar")
-                    plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {torch.round(u_i, decimals=2).squeeze()[0]}")
-
+                    #plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {torch.round(u_i, decimals=2).squeeze()[0]}")
                     plt.legend()
-                    plt.savefig(f"{params['check_attn_folder']}/color_causal_prior.png")
+                    plt.savefig(f"{params['check_attn_folder']}/color_mu_causal_prior.png")
+                    plt.close()
+
+                    plt.scatter(alphas.cpu(), torch.norm(logvars, dim=-1).cpu(), s=12, label="logvar")
+                    #plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {torch.round(u_i, decimals=2).squeeze()[0]}")
+                    plt.legend()
+                    plt.savefig(f"{params['check_attn_folder']}/color_logvar_causal_prior.png")
                     plt.close()
 
                 
