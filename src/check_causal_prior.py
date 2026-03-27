@@ -122,7 +122,7 @@ def main():
 
                     plt.scatter(alphas.cpu(), torch.norm(means, dim=-1).cpu(), s=12, label="mean")
                     plt.scatter(alphas.cpu(), torch.norm(logvars, dim=-1).cpu(), s=12, label="logvar")
-                    plt.plot(alphas.cpu(), u_i.cpu(), label="u_color")
+                    plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label="u_color")
 
                     plt.legend()
                     plt.savefig(f"{params['check_attn_folder']}/color_causal_prior.png")
