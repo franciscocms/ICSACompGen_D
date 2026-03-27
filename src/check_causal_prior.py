@@ -88,9 +88,8 @@ def main():
                 if 0 <= target[0, 0, 0] <= 0.1 and 0.9 <= target[0, 1, 0] <= 1.:
                     got_it = True
 
-                    logger.info(img.shape)
-
-                    B = img.size(0)
+                    logger.info(f"small object size: {target[0, 0, 0]}")
+                    logger.info(f"large object size: {target[0, 1, 0]}")
                     
                     z_noise, z_scm, img_hat, recon_figures = guide(img, target)
                     
@@ -100,6 +99,7 @@ def main():
                     alphas = torch.arange(0., 1., 0.01)
                     means = []
                     logvars = []
+                    u_is = []
                     for alpha in alphas:
                         z0 = (1-alpha)*z0_small + alpha*z0_large
 
@@ -108,20 +108,26 @@ def main():
                         z1 = torch.exp(s1)*z_noise[0, 0, 1, :] + t1
 
                         # for fixed color label, vary z_scale
-                        zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))), torch.ones((1, 1, 1))*0.5), dim=-1)
+                        u_i = torch.rand((1, 1, 1))
+                        zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))), u_i), dim=-1)
                         mean, logvar = guide.prior.net[str(1)](zu_i)
                         logvar = logvar - 3
 
+                        u_is.append(u_i)
                         means.append(mean)
                         logvars.append(logvar)
                     means = torch.stack(means)
                     logvars = torch.stack(logvars)
+                    u_is = torch.stack(u_is)
 
                     logger.info(means.shape)
                     logger.info(logvars.shape)
+                    logger.info(u_is.shape)
 
                     plt.scatter(alphas.cpu(), torch.norm(means, dim=-1).cpu(), s=12, label="mean")
                     plt.scatter(alphas.cpu(), torch.norm(logvars, dim=-1).cpu(), s=12, label="logvar")
+                    plt.plot(alphas.cpu(), u_is.squeeze().cpu(), s=12, label="u_color")
+
                     plt.legend()
                     plt.savefig(f"{params['check_attn_folder']}/color_causal_prior.png")
                     plt.close()
