@@ -755,12 +755,10 @@ class CausalGaussianPrior(nn.Module):
         for i in range(self.L):
             freq = (i - 6) * np.pi
             self.freq_coeff.append(freq)
-            if params["jobID"] == 271:
-                self.net[str(i)] = GaussianMLP(nin=ldim + 2, nout=ldim, nh=ldim*4, learn_var=True,
+            self.net[str(i)] = GaussianMLP(nin=ldim + 2, nout=ldim, nh=ldim*4, learn_var=True,
                                             alpha=alpha[i], beta=beta[i])
-            else:
-                self.net[str(i)] = GaussianMLP(nin=ldim + 1, nout=ldim, nh=ldim*4, learn_var=True,
-                                            alpha=alpha[i], beta=beta[i])
+            # self.net[str(i)] = GaussianMLP(nin=ldim + 1, nout=ldim, nh=ldim*4, learn_var=True,
+            #                                 alpha=alpha[i], beta=beta[i])
 
     def forward(self, labels, z):
 
@@ -772,10 +770,8 @@ class CausalGaussianPrior(nn.Module):
             else:
                 pa_zi = torch.zeros_like(z[:, :, 0]).to(device)
             
-            if params["jobID"] == 271:
-                zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1), 3.*torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
-            else:
-                zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
+            zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1), torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
+            #zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
             
             # logger.info(f"\nvar {i}")
             # logger.info(f"zu: {zu_i}")
