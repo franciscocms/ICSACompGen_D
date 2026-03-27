@@ -780,7 +780,7 @@ class CausalGaussianPrior(nn.Module):
             logger.info(f"\nvar {i}")
             logger.info(f"zu: {zu_i}")
             for name, p in self.net[str(i)].named_parameters():
-                logger.info(f"{name} - {p}")
+                logger.info(f"{name} - {p.T.shape} - {p.T}")
 
             out = self.net[str(i)](zu_i)
             
