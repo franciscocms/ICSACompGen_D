@@ -108,7 +108,7 @@ def main():
                         z1 = torch.exp(s1)*z_noise[0, 0, 1, :] + t1
 
                         # for fixed color label, vary z_scale
-                        zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))), torch.ones((1, 1, 1)*0.5)), dim=-1)
+                        zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))), torch.ones((1, 1, 1))*0.5), dim=-1)
                         mean, logvar = guide.prior.net[str(i)](zu_i)
                         logvar = logvar - 1 if params["jobID"] == 270 else logvar - 3
 
