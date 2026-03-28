@@ -54,7 +54,7 @@ def main():
                                   ).to(device)
 
     GUIDE_PATH = f"{main_dir}/checkpoint-{params['jobID']}/guide_{params['epoch_to_load']}.pth"
-    guide.load_state_dict(torch.load(GUIDE_PATH, weights_only=False)["model"])
+    #guide.load_state_dict(torch.load(GUIDE_PATH, weights_only=False)["model"])
     guide.eval()
     
     #logger.info(f'\n\nseed {seed}\n\n')
@@ -125,7 +125,7 @@ def main():
                     logger.info(logvars.shape) 
 
                     
-                    plt.scatter(alphas.cpu(), torch.norm(means, dim=-1).cpu(), s=12, label="mean")
+                    #plt.scatter(alphas.cpu(), torch.norm(means, dim=-1).cpu(), s=12, label="mean")
                     for d in range(means.size(-1)):
                         plt.scatter(alphas.cpu(), means.squeeze()[:, d].cpu(), s=12, label=f"mean {d}")
                     #plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {torch.round(u_i, decimals=2).squeeze()[0]}")
@@ -133,7 +133,7 @@ def main():
                     plt.savefig(f"{params['check_attn_folder']}/color_mu_causal_prior.png")
                     plt.close()
 
-                    plt.scatter(alphas.cpu(), torch.norm(logvars, dim=-1).cpu(), s=12, label="logvar")
+                    #plt.scatter(alphas.cpu(), torch.norm(logvars, dim=-1).cpu(), s=12, label="logvar")
                     for d in range(logvars.size(-1)):
                         plt.scatter(alphas.cpu(), logvars.squeeze()[:, d].cpu(), s=12, label=f"logvar {d}")
                     #plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {torch.round(u_i, decimals=2).squeeze()[0]}")
