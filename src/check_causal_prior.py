@@ -54,7 +54,7 @@ def main():
                                   ).to(device)
 
     GUIDE_PATH = f"{main_dir}/checkpoint-{params['jobID']}/guide_{params['epoch_to_load']}.pth"
-    #guide.load_state_dict(torch.load(GUIDE_PATH, weights_only=False)["model"])
+    guide.load_state_dict(torch.load(GUIDE_PATH, weights_only=False)["model"])
     guide.eval()
     
     #logger.info(f'\n\nseed {seed}\n\n')
@@ -116,7 +116,7 @@ def main():
                                           #torch.sin(freq_coeff * u_i[i])), dim=-1)
                                           #torch.sin(freq_coeff * u_i[i] * torch.norm(z0.reshape((1, 1, z0.size(-1))), 2))), dim=-1)
                         mean, logvar = guide.prior.net[str(1)](zu_i)
-                        logvar = logvar - 3
+                        #logvar = logvar - 3
 
                         means.append(mean)
                         logvars.append(logvar)
