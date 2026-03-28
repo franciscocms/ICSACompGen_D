@@ -15,10 +15,10 @@ from sklearn.mixture import GaussianMixture
 import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
-from src.main import params
-from src.models.architectures import SlotMLPAdditive, SlotMLPAdditiveDecoder, FullNoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, PriorMultivariateCausalFlow, CausalGaussianPrior
-from src.models.slot_attention import SlotAttentionAutoEncoder, SlotAttentionEncoder, SlotAttentionDecoder
-from src.utils.loss import compute_matching_cost
+from srcc.main import params
+from srcc.models.architectures import SlotMLPAdditive, SlotMLPAdditiveDecoder, FullNoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, PriorMultivariateCausalFlow, CausalGaussianPrior
+from srcc.models.slot_attention import SlotAttentionAutoEncoder, SlotAttentionEncoder, SlotAttentionDecoder
+from srcc.utils.loss import compute_matching_cost
 
 import logging
 import warnings
@@ -75,28 +75,18 @@ class InvSlotAttentionGuide(nn.Module):
         #     raise ValueError(f"{model_name} is not a valid model name!")
 
         
-
-
-        
         self.noise_predictors = nn.ModuleDict()
         self.flatt_noise_predictor = nn.ModuleDict()
         
-        self.noise_encoder = FullNoiseEncoder(in_channels=3,
-                                              n_slots=params["num_slots"],
-                                              n_latents=self.L,
-                                              latent_dim=self.ldim,
-                                              stage=params["running_type"],
-                                              clamp_var=False)
+        self.encoder = FullNoiseEncoder(in_channels=3,
+                                        n_slots=params["num_slots"],
+                                        n_latents=self.L,
+                                        latent_dim=self.ldim,
+                                        stage=params["running_type"],
+                                        clamp_var=False)
         
         # self.noise_encoders = nn.ModuleDict()
-        for var_name in params["latent_vars"]:
-            # self.noise_encoders[var_name] = FullNoiseEncoder(in_channels=3,
-            #                                                  n_slots=params["num_slots"],
-            #                                                  n_latents=self.L,
-            #                                                  latent_dim=self.ldim, # not relevant now
-            #                                                  stage=params["running_type"],
-            #                                                  clamp_var=False)
-            
+        for var_name in params["latent_vars"]:            
             self.noise_predictors[var_name] = Predictor(self.ldim,
                                                         self.ldim,
                                                         1)
@@ -140,57 +130,30 @@ class InvSlotAttentionGuide(nn.Module):
 
         assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
 
-        # output_dict = self.model(img)
-        # img_hat = output_dict["reconstructed_image"]
-        # recon_figures = output_dict["reconstructed_figures"]
-        # slots = output_dict["predicted_latents"]
-        # if self.model_name == "slot_attention":
-        #     decoder_masks = output_dict["reconstructed_masks"]
-        #     self.attn = output_dict["attn"]
-        # else:
-        #     decoder_masks = None
-
-        # get noise representations
-        # mu_noise = torch.tensor([]).to(device)
-        # logvar_noise = torch.tensor([]).to(device)
-        # z_noise = torch.tensor([]).to(device)
-        # for i, var in enumerate(params["latent_vars"]):
-        #     mu, logvar, z = self.noise_encoders[var](img) # [B, N, L*ldim]
-        #     mu_noise = torch.cat((mu_noise, mu.unsqueeze(-2)), dim=-2)
-        #     logvar_noise = torch.cat((logvar_noise, logvar.unsqueeze(-2)), dim=-2)
-        #     z_noise = torch.cat((z_noise, z.unsqueeze(-2)), dim=-2)
-        
-        # mu_noise = torch.flatten(mu_noise, -2)
-        # logvar_noise = torch.flatten(logvar_noise, -2)
-        # z_noise = torch.flatten(z_noise, -2)
-
-        mu_noise, logvar_noise, z_noise = self.noise_encoder(img)
+        mu_z, logvar_z, z_scm = self.encoder(img)
         
         # get initial predictions and aligned labels
-        mu_noise_d = mu_noise.detach()
-        preds = self.predictor(mu_noise_d)
+        mu_z_d = mu_z.detach()
+        preds = self.predictor(mu_z_d)
         if torch.isnan(preds).any():
             logger.info(torch.isnan(img).any())
             # for name, param in self.noise_encoder.named_parameters():
             #     logger.info(f"{name} - {param}")
-            logger.info(f"mu_noise: {mu_noise_d}")
-            logger.info(f"logvar_noise: {logvar_noise}")
+            logger.info(f"mu_z: {mu_z_d}")
+            logger.info(f"logvar_z: {logvar_z}")
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
         
-        # get latent-wise noise distributions
-        mu_noise = mu_noise.reshape(mu_noise.size(0), mu_noise.size(1), self.L, self.ldim)
-        logvar_noise = logvar_noise.reshape(logvar_noise.size(0), logvar_noise.size(1), self.L, self.ldim)
-        z_noise = z_noise.reshape(z_noise.size(0), z_noise.size(1), self.L, self.ldim)       
+        # get latent-wise distributions
+        mu_z = mu_z.reshape(mu_z.size(0), mu_z.size(1), self.L, self.ldim)
+        logvar_z = logvar_z.reshape(logvar_z.size(0), logvar_z.size(1), self.L, self.ldim)
+        z_scm = z_scm.reshape(z_scm.size(0), z_scm.size(1), self.L, self.ldim)       
         
-        # causal flow forward
-        z_scm, ss, ts, log_det = self.causal_flow(z_noise, step, self.cc)
+        # causal flow backward
+        z_noise, ss, ts, log_det = self.causal_flow.backward(z_scm)
         self.ss, self.ts, self.log_det = ss, ts, log_det       
         
-        # get noise prior conditioned on u
+        # get noise and causal priors
         self.mu_noise_prior, self.logvar_noise_prior = self.noise_prior(aligned_u_m)
-
-        # get the causally disentangled prior p(z|u) to push z representations
-        #z_scm_d = z_scm.detach()
         self.prior_z = self.prior(aligned_u_m, z_scm)
         
         # slots = self.causal_decoder(z_scm)
@@ -221,5 +184,5 @@ class InvSlotAttentionGuide(nn.Module):
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
         self.flatt_noise_pred_loss = torch.stack(self.flatt_noise_pred_loss)
 
-        return img_hat, z_noise, mu_noise, logvar_noise, z_scm, recon_figures
+        return img_hat, z_noise, z_scm, mu_z, logvar_z, recon_figures
         

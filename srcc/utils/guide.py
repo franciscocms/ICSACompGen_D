@@ -15,7 +15,7 @@ import sys
 import os
 sys.path.insert(0, '../..') # add parent-parent dir
 
-from src.main import params
+from srcc.main import params
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 

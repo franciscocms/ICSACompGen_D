@@ -132,8 +132,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
   for name, param in guide.noise_prior.named_parameters():
     param.requires_grad = False
-  # for name, param in guide.prior.named_parameters():
-  #   param.requires_grad = False
+  for name, param in guide.prior.named_parameters():
+    param.requires_grad = False
 
   guide.epoch = epoch
 
@@ -187,7 +187,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     batch_loss = 0.
     optimizer.zero_grad()
   
-    img_hat, z_noise, mu_noise, logvar_noise, z_scm, recon_figures = guide(img, target, step=epoch)
+    img_hat, z_noise, z_scm, z_mu, z_logvar, recon_figures = guide(img, target, step=epoch)
     recon_loss = recon_loss_fn(img_hat, img)
     batch_loss += 100*recon_loss + kl_beta * (guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
     
@@ -214,23 +214,9 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     else:
       tc_loss = torch.tensor(0.)
 
-    log_z = 0.
-    # cp_v = torch.ones_like(guide.prior_z).to(DEVICE)
-    # for i in range(L):
-    #   log_z += log_normal(z_scm[:, :, i],
-    #                       guide.prior_z[:, :, i],
-    #                       cp_v[:, :, i]).sum(-1)
-    
+    log_z = 0.    
     cp_m, cp_logv = guide.prior_z
     for i in range(L):
-      # if i == 1 and epoch >= params["cc_epoch"]: 
-      #   log_z_coeff = get_scheduled_coefficient(epoch,
-      #                                           params["cc_epoch"], 
-      #                                           params["cc_epoch"] + 100,
-      #                                           1.,
-      #                                           3.)
-      # else: 
-      #   log_z_coeff = 1.
       log_z_coeff = 1
       log_z += log_z_coeff * log_normal(z_scm[:, :, i],
                                         cp_m[:, :, i],
@@ -239,7 +225,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     log_z = torch.mean(log_z)
 
     log_det = guide.log_det
-    batch_loss += kl_beta * (-0.01*log_e - log_det_coeff*log_det + 0.01*torch.square(torch.mean(logvar_noise)) - 0.01*log_z)
+    batch_loss += kl_beta * (-0.01*log_e - log_det_coeff*log_det + 0.01*torch.square(torch.mean(z_logvar)) - 0.01*log_z)
     #batch_loss += kl_beta * (-0.01*log_e - log_det_coeff*log_det - 0.01*log_z)
 
     # causal consistency
@@ -273,8 +259,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       elif guide.causal_flow.flag == 3: 
         invariant_vars = [0, 1, 2]
       
-      for i in invariant_vars:
-        consistency_loss += hungarian_latents_consistency(mu_noise_int[:, :, i], mu_noise[:, :, i].detach()) + recon_loss_fn(logvar_noise_int[:, :, i], logvar_noise[:, :, i].detach())          
+      # for i in invariant_vars:
+      #   consistency_loss += hungarian_latents_consistency(mu_noise_int[:, :, i], mu_noise[:, :, i].detach()) + recon_loss_fn(logvar_noise_int[:, :, i], logvar_noise[:, :, i].detach())          
 
       # causal consistency
       # norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
@@ -421,7 +407,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
                                                                              torch.exp(cp_logv[:, :, i])).sum(-1))
     
     
-    dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(logvar_noise[:, :, i, :], dim=-1))
+    dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(z_logvar[:, :, i, :], dim=-1))
     dict_to_log[f"prior_logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(guide.logvar_noise_prior[:, :, i, :], dim=-1))
 
     dict_to_log[f"s_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ss[:, :, i, :], dim=-1))

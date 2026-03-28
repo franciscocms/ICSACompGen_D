@@ -9,8 +9,8 @@ from typing import Any, Dict
 import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
-from src.main import params
-from src.utils.guide import permute_dims, inverse_permutation
+from srcc.main import params
+from srcc.utils.guide import permute_dims, inverse_permutation
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -294,8 +294,6 @@ class NoiseEncoder(nn.Module):
         return mu, logvars, z
     
 
-
-
 class FullNoiseEncoder(nn.Module):
     def __init__(self, in_channels, n_slots, n_latents, latent_dim, stage="train", clamp_var=False):
         super().__init__()
@@ -574,13 +572,50 @@ class MultivariateCausalFlow(nn.Module):
                                     z3_int.unsqueeze(-2)), dim=-2)
         return self.z_int
         
-
-        
-    def backward(self, z, flag):
+ 
+    def backward(self, z, flag=None):
 
         B, N, _, d = z.shape
 
-        if flag == 0:
+        if flag == None:
+            s0 = self.s_base.expand(B, N, -1)
+            t0 = self.t_base.expand(B, N, -1)
+            e0 = (z[:, :, 0] - t0) * torch.exp(-s0)
+
+            s1 = self.s_cond(z[:, :, 0]) * self.scale_gain
+            t1 = self.t_cond(z[:, :, 0]) * self.shift_gain
+            e1 = (z[:, :, 1] - t1) * torch.exp(-s1)
+
+            s2 = self.s_base.expand(B, N, -1)
+            t2 = self.t_base.expand(B, N, -1)
+            e2 = (z[:, :, 2] - t2) * torch.exp(-s2)
+
+            s3 = self.s_base.expand(B, N, -1)
+            t3 = self.t_base.expand(B, N, -1)
+            e3 = (z[:, :, 3] - t3) * torch.exp(-s3)
+
+            log_det = torch.sum(s0, dim=-1) + torch.sum(s1, dim=-1) + torch.sum(s2, dim=-1) + torch.sum(s3, dim=-1)
+            log_det = torch.mean(log_det) 
+
+            e = torch.cat((e0.unsqueeze(-2),
+                           e1.unsqueeze(-2),
+                           e2.unsqueeze(-2),
+                           e3.unsqueeze(-2)), dim=-2)
+            
+            ss = torch.cat((s0.unsqueeze(-2),
+                        s1.unsqueeze(-2),
+                        s2.unsqueeze(-2),
+                        s3.unsqueeze(-2)), dim=-2)
+            ts = torch.cat((t0.unsqueeze(-2),
+                        t1.unsqueeze(-2),
+                        t2.unsqueeze(-2),
+                        t3.unsqueeze(-2)), dim=-2) 
+            
+            return e, ss, ts, log_det
+
+
+        
+        elif flag == 0:
             
             # z = [z0_int, z1_int, z2, z3]
 
@@ -594,7 +629,7 @@ class MultivariateCausalFlow(nn.Module):
 
             return e0_int
 
-        if flag == 1:
+        elif flag == 1:
             # here we have to get the z_scale that took the influence on z_color 
             # because in this case, z_scale and z_color will have a different order
 
@@ -608,28 +643,8 @@ class MultivariateCausalFlow(nn.Module):
             e1_int = (z[:, :, 1] - t1) * torch.exp(-s1)
             return e1_int    
     
-    # def forward(self, eps):
-    #     z = torch.zeros_like(eps).to(device)
-    #     L_slopes = torch.tensor([]).to(device)
-    #     ss = torch.tensor([]).to(device)
-    #     ts = torch.tensor([]).to(device)
-
-    #     total_dims = self.L*self.ldim
-    #     for i in range(self.L):
-    #         if 1 in self.A[i, :]:
-    #             mask = self.A[i, :].repeat(self.ldim, 1).T.reshape(total_dims).to(device)  
-    #             # logger.info(f"computing child params...")
-    #         else:
-    #             mask = torch.zeros(total_dims).to(device)
-    #             # logger.info(f"computing root params...")
-            
-    #         z[:, :, i, :], s, t = self.nf[str(i)](eps[:, :, i, :], z, mask)
-    #         L_slopes = torch.cat((L_slopes, s.unsqueeze(-2)), dim=-2)
-            
-    #         ss = torch.cat((ss, s.unsqueeze(-2)), dim=-2)
-    #         ts = torch.cat((ts, t.unsqueeze(-2)), dim=-2)
-
-    #     return z, L_slopes, ss, ts
+        else: raise ValueError(f"invalid flag {flag}...")
+    
 
 
 class PriorMultivariateCausalFlow(nn.Module):
@@ -755,11 +770,9 @@ class CausalGaussianPrior(nn.Module):
         for i in range(self.L):
             freq = (i - 6) * np.pi
             self.freq_coeff.append(freq)
-            if params["jobID"] == 271:
-                self.net[str(i)] = GaussianMLP(nin=ldim + 2, nout=ldim, nh=ldim*4, learn_var=True,
-                                            alpha=alpha[i], beta=beta[i])
-            else:
-                self.net[str(i)] = GaussianMLP(nin=ldim + 1, nout=ldim, nh=ldim*4, learn_var=True,
+            # self.net[str(i)] = GaussianMLP(nin=ldim + 2, nout=ldim, nh=ldim*4, learn_var=True,
+            #                                 alpha=alpha[i], beta=beta[i])
+            self.net[str(i)] = GaussianMLP(nin=ldim + 1, nout=ldim, nh=ldim*4, learn_var=True,
                                             alpha=alpha[i], beta=beta[i])
 
     def forward(self, labels, z):
@@ -772,10 +785,11 @@ class CausalGaussianPrior(nn.Module):
             else:
                 pa_zi = torch.zeros_like(z[:, :, 0]).to(device)
             
-            if params["jobID"] == 271:
-                zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1), 3.*torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
-            else:
-                zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
+            # zu_i = torch.cat((pa_zi,
+            #                   labels[:, :, i].unsqueeze(-1), 
+            #                   torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1) * torch.norm(pa_zi, 2))), dim=-1)
+            #zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1), torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
+            zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
             
             # logger.info(f"\nvar {i}")
             # logger.info(f"zu: {zu_i}")
@@ -786,11 +800,12 @@ class CausalGaussianPrior(nn.Module):
             
             assert isinstance(out, tuple)
             mean, logvar = out[0], out[1]
+            logvar = -torch.nn.functional.softplus(logvar) - 1.
 
             means.append(mean)   
             logvars.append(logvar)       
         means = torch.stack(means, -2)
-        logvars = torch.stack(logvars, -2) - 1. if params["jobID"] == 270 else torch.stack(logvars, -2) - 3.
+        logvars = torch.stack(logvars, -2) #- 1. if params["jobID"] == 270 else torch.stack(logvars, -2) - 3.
         return means, logvars
 
 class TCDiscriminator(nn.Module):
