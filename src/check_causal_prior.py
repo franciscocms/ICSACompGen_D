@@ -110,7 +110,7 @@ def main():
                                 z0 = (1-alpha)*z0_small + alpha*z0_large
                                 pa_zi = z0
                             else:
-                                pa_zi = torch.zeros_like((z_scm[:, :, 0]))
+                                pa_zi = torch.zeros_like((z_scm[0, 0, 0]))
 
                             # s1 = guide.causal_flow.s_cond(z0.reshape((1, 1, z0.size(-1)))) * guide.causal_flow.scale_gain
                             # t1 = guide.causal_flow.t_cond(z0.reshape((1, 1, z0.size(-1)))) * guide.causal_flow.shift_gain
