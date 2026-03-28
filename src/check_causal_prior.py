@@ -123,7 +123,7 @@ def main():
                                                 u_i[i]), dim=-1)
                             else:
                                 zu_i = torch.cat((pa_zi.reshape((1, 1, pa_zi.size(-1))),
-                                                alpha[i].reshape((1, 1, 1))), dim=-1)
+                                                alpha[i].unsqueeze(0).unsqueeze(0).unsqueeze(0)), dim=-1)
 
                             # zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))),
                             #                   u_i[i]
@@ -146,6 +146,8 @@ def main():
                             plt.scatter(alphas.cpu(), means.squeeze()[:, d].cpu(), s=12, label=f"mean {d}")
                         #plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {torch.round(u_i, decimals=2).squeeze()[0]}")
                         plt.legend()
+                        if v == 1: plt.xlabel("z_scale interpolation (small to large)")
+                        else: plt.xlabel(f"u_{var}")
                         plt.savefig(f"{params['check_attn_folder']}/{var}_mu_causal_prior.png")
                         plt.close()
 
@@ -153,6 +155,8 @@ def main():
                         for d in range(logvars.size(-1)):
                             plt.scatter(alphas.cpu(), logvars.squeeze()[:, d].cpu(), s=12, label=f"logvar {d}")
                         #plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {torch.round(u_i, decimals=2).squeeze()[0]}")
+                        if v == 1: plt.xlabel("z_scale interpolation (small to large)")
+                        else: plt.xlabel(f"u_{var}")
                         plt.legend()
                         plt.savefig(f"{params['check_attn_folder']}/{var}_logvar_causal_prior.png")
                         plt.close()
