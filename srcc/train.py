@@ -175,7 +175,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   epoch_log_z = 0.
   epoch_log_det = 0.
   epoch_prior_log_det = 0.
-  epoch_logvar_noise = 0.
+  epoch_logvar_z = 0.
   epoch_consistency_loss = 0. 
   
   for img, target in train_dl:
@@ -292,7 +292,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     epoch_log_z += log_z
     epoch_log_det += log_det
     #epoch_prior_log_det += guide.prior.log_det
-    epoch_logvar_noise += torch.square(torch.mean(logvar_noise))
+    epoch_logvar_z += torch.square(torch.mean(z_logvar))
     epoch_consistency_loss += consistency_loss
     
     if params["TC_minimization"]:
@@ -361,7 +361,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   epoch_log_z /= num_iters
   epoch_log_det /= num_iters
   #epoch_prior_log_det /= num_iters
-  epoch_logvar_noise /= num_iters
+  epoch_logvar_z /= num_iters
   epoch_consistency_loss /= num_iters
 
 
@@ -393,7 +393,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   # dict_to_log[f"prior_s_x"] = torch.mean(torch.sum(guide.prior.s2, dim=-1))
   # dict_to_log[f"prior_s_y"] = torch.mean(torch.sum(guide.prior.s3, dim=-1))
 
-  logvar_noise = logvar_noise.reshape(B, params["num_slots"], L, ldim)
   for i in range(L):
     # dict_to_log[f"mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(mu_noise[:, :, i, :], dim=-1))
     # dict_to_log[f"prior_mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(prior_means[:, :, i, :], dim=-1))
