@@ -137,8 +137,8 @@ class InvSlotAttentionGuide(nn.Module):
         preds = self.predictor(mu_z_d)
         if torch.isnan(preds).any():
             logger.info(torch.isnan(img).any())
-            # for name, param in self.noise_encoder.named_parameters():
-            #     logger.info(f"{name} - {param}")
+            for name, param in self.encoder.named_parameters():
+                logger.info(f"\n{name} - {param}")
             logger.info(f"mu_z: {mu_z_d}")
             logger.info(f"logvar_z: {logvar_z}")
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
