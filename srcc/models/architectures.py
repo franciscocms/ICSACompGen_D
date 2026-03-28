@@ -452,6 +452,8 @@ class MultivariateCausalFlow(nn.Module):
         self.t_cond = MLP(ldim, ldim, ldim*4)
 
         self.stage = stage
+        self.scale_gain = 1.
+        self.shift_gain = 1.
         
 
     def forward(self, eps, epoch=0, use_cc=False, debug=False):        
@@ -461,9 +463,6 @@ class MultivariateCausalFlow(nn.Module):
         s0 = self.s_base.expand(B, N, -1)
         t0 = self.t_base.expand(B, N, -1)
         z0 = torch.exp(s0)*eps[:, :, 0, :] + t0
-
-        self.scale_gain = 1.
-        self.shift_gain = 1.
           
         s1 = self.s_cond(z0) * self.scale_gain
         t1 = self.t_cond(z0) * self.shift_gain
