@@ -6,4 +6,4 @@
 #SBATCH -o slurm.%N.%j.out       # File containing STDOUT output
 #SBATCH -e slurm.%N.%j.err       # File containing STDERR output
 
-python check_counterfactuals.py
+python check_causal_prior.py
