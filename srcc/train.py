@@ -215,18 +215,19 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       tc_loss = torch.tensor(0.)
 
     log_z = 0.    
-    cp_m, cp_logv = guide.prior_z
-    for i in range(L):
-      log_z_coeff = 1
-      log_z += log_z_coeff * log_normal(z_scm[:, :, i],
-                                        cp_m[:, :, i],
-                                        torch.exp(cp_logv[:, :, i])).sum(-1)
+    # cp_m, cp_logv = guide.prior_z
+    # for i in range(L):
+    #   log_z_coeff = 1
+    #   log_z += log_z_coeff * log_normal(z_scm[:, :, i],
+    #                                     cp_m[:, :, i],
+    #                                     torch.exp(cp_logv[:, :, i])).sum(-1)
     
-    log_z = torch.mean(log_z)
+    # log_z = torch.mean(log_z)
 
     log_det = guide.log_det
 
-    batch_loss += kl_beta * (-0.01*log_e + log_det_coeff*log_det + 0.01*torch.square(torch.mean(z_logvar)) - 0.01*log_z)
+    batch_loss += kl_beta * (-0.01*log_e + log_det_coeff*log_det + 0.01*torch.square(torch.mean(z_logvar)))
+    #batch_loss += kl_beta * (-0.01*log_e + log_det_coeff*log_det + 0.01*torch.square(torch.mean(z_logvar)) - 0.01*log_z)
     #batch_loss += kl_beta * (-0.01*log_e - log_det_coeff*log_det - 0.01*log_z)
 
     # causal consistency
@@ -382,7 +383,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   dict_to_log["log_z"] = epoch_log_z
   dict_to_log["consistency_loss"] = epoch_consistency_loss
   dict_to_log["beta"] = kl_beta
-  dict_to_log["log_z_color_coeff"] = log_z_coeff
+  #dict_to_log["log_z_color_coeff"] = log_z_coeff
 
   #dict_to_log["logvar_loss"] = prior_logvar_loss
   
@@ -402,9 +403,9 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
                                                                              guide.mu_noise_prior[:, :, i],
                                                                              torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
     
-    dict_to_log[f"log_z_{params['latent_vars'][i]}"] = torch.mean(log_normal(z_scm[:, :, i],
-                                                                             cp_m[:, :, i],
-                                                                             torch.exp(cp_logv[:, :, i])).sum(-1))
+    # dict_to_log[f"log_z_{params['latent_vars'][i]}"] = torch.mean(log_normal(z_scm[:, :, i],
+    #                                                                          cp_m[:, :, i],
+    #                                                                          torch.exp(cp_logv[:, :, i])).sum(-1))
     
     
     dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(z_logvar[:, :, i, :], dim=-1))
