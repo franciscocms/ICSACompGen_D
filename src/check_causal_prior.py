@@ -84,68 +84,77 @@ def main():
                 img = img.to(device)
                 target = target.to(device)
 
-                got_it = False
-                if 0 <= target[0, 0, 0] <= 0.1 and 0.9 <= target[0, 1, 0] <= 1.:
-                    got_it = True
+                for v, var in enumerate(params["latent_vars"]):
 
-                    logger.info(f"small object size: {target[0, 0, 0]}")
-                    logger.info(f"large object size: {target[0, 1, 0]}")
+                    logger.info(f"\nrunning for {var}...")
+
+                    got_it = False
+                    if 0 <= target[0, 0, v] <= 0.1 and 0.9 <= target[0, 1, v] <= 1.:
+                        got_it = True
+
+                        logger.info(f"small object {var}: {target[0, 0, v]}")
+                        logger.info(f"large object {var}: {target[0, 1, v]}")
+                        
+                        z_noise, z_scm, img_hat, recon_figures = guide(img, target)
+                        
+                        if v == 1:
+                            z0_small = z_scm[0, 0, 0, :]
+                            z0_large = z_scm[0, 1, 0, :]
+                        
+                        alphas = torch.arange(0., 1., 0.01)
+                        means = []
+                        logvars = []
+                        u_i = torch.rand((1, 1, 1, 1)).expand((alphas.size(0), -1, -1, -1))
+                        for i, alpha in enumerate(alphas):
+                            if v == 1:
+                                z0 = (1-alpha)*z0_small + alpha*z0_large
+                                pa_zi = z0
+                            else:
+                                pa_zi = torch.zeros_like((z_scm[:, :, 0]))
+
+                            # s1 = guide.causal_flow.s_cond(z0.reshape((1, 1, z0.size(-1)))) * guide.causal_flow.scale_gain
+                            # t1 = guide.causal_flow.t_cond(z0.reshape((1, 1, z0.size(-1)))) * guide.causal_flow.shift_gain
+                            # z1 = torch.exp(s1)*z_noise[0, 0, 1, :] + t1
+
+                            # for fixed color label, vary z_scale
+                            freq_coeff = (v - 6) * np.pi
+                            zu_i = torch.cat((pa_zi.reshape((1, 1, pa_zi.size(-1))),
+                                            u_i[i]), dim=-1)
+                            # zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))),
+                            #                   u_i[i]
+                                            #torch.sin(freq_coeff * u_i[i])), dim=-1)
+                                            #torch.sin(freq_coeff * u_i[i] * torch.norm(z0.reshape((1, 1, z0.size(-1))), 2))), dim=-1)
+                            mean, logvar = guide.prior.net[str(v)](zu_i)
+                            #logvar = logvar - 3
+
+                            means.append(mean)
+                            logvars.append(logvar)
+                        means = torch.stack(means)
+                        logvars = torch.stack(logvars)
+
+                        logger.info(means.shape)
+                        logger.info(logvars.shape) 
+
+                        
+                        #plt.scatter(alphas.cpu(), torch.norm(means, dim=-1).cpu(), s=12, label="mean")
+                        for d in range(means.size(-1)):
+                            plt.scatter(alphas.cpu(), means.squeeze()[:, d].cpu(), s=12, label=f"mean {d}")
+                        #plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {torch.round(u_i, decimals=2).squeeze()[0]}")
+                        plt.legend()
+                        plt.savefig(f"{params['check_attn_folder']}/{var}_mu_causal_prior.png")
+                        plt.close()
+
+                        #plt.scatter(alphas.cpu(), torch.norm(logvars, dim=-1).cpu(), s=12, label="logvar")
+                        for d in range(logvars.size(-1)):
+                            plt.scatter(alphas.cpu(), logvars.squeeze()[:, d].cpu(), s=12, label=f"logvar {d}")
+                        #plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {torch.round(u_i, decimals=2).squeeze()[0]}")
+                        plt.legend()
+                        plt.savefig(f"{params['check_attn_folder']}/{var}_logvar_causal_prior.png")
+                        plt.close()
+
                     
-                    z_noise, z_scm, img_hat, recon_figures = guide(img, target)
                     
-                    z0_small = z_scm[0, 0, 0, :]
-                    z0_large = z_scm[0, 1, 0, :]
-                    
-                    alphas = torch.arange(0., 1., 0.01)
-                    means = []
-                    logvars = []
-                    u_i = torch.rand((1, 1, 1, 1)).expand((alphas.size(0), -1, -1, -1))
-                    for i, alpha in enumerate(alphas):
-                        z0 = (1-alpha)*z0_small + alpha*z0_large
-
-                        s1 = guide.causal_flow.s_cond(z0.reshape((1, 1, z0.size(-1)))) * guide.causal_flow.scale_gain
-                        t1 = guide.causal_flow.t_cond(z0.reshape((1, 1, z0.size(-1)))) * guide.causal_flow.shift_gain
-                        z1 = torch.exp(s1)*z_noise[0, 0, 1, :] + t1
-
-                        # for fixed color label, vary z_scale
-                        freq_coeff = (1 - 6) * np.pi
-                        zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))),
-                                          u_i[i]), dim=-1)
-                        # zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))),
-                        #                   u_i[i]
-                                          #torch.sin(freq_coeff * u_i[i])), dim=-1)
-                                          #torch.sin(freq_coeff * u_i[i] * torch.norm(z0.reshape((1, 1, z0.size(-1))), 2))), dim=-1)
-                        mean, logvar = guide.prior.net[str(1)](zu_i)
-                        #logvar = logvar - 3
-
-                        means.append(mean)
-                        logvars.append(logvar)
-                    means = torch.stack(means)
-                    logvars = torch.stack(logvars)
-
-                    logger.info(means.shape)
-                    logger.info(logvars.shape) 
-
-                    
-                    #plt.scatter(alphas.cpu(), torch.norm(means, dim=-1).cpu(), s=12, label="mean")
-                    for d in range(means.size(-1)):
-                        plt.scatter(alphas.cpu(), means.squeeze()[:, d].cpu(), s=12, label=f"mean {d}")
-                    #plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {torch.round(u_i, decimals=2).squeeze()[0]}")
-                    plt.legend()
-                    plt.savefig(f"{params['check_attn_folder']}/color_mu_causal_prior.png")
-                    plt.close()
-
-                    #plt.scatter(alphas.cpu(), torch.norm(logvars, dim=-1).cpu(), s=12, label="logvar")
-                    for d in range(logvars.size(-1)):
-                        plt.scatter(alphas.cpu(), logvars.squeeze()[:, d].cpu(), s=12, label=f"logvar {d}")
-                    #plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {torch.round(u_i, decimals=2).squeeze()[0]}")
-                    plt.legend()
-                    plt.savefig(f"{params['check_attn_folder']}/color_logvar_causal_prior.png")
-                    plt.close()
-
-                
-                
-                if got_it: break
+                    if got_it: break
      
 
 if __name__ == '__main__':
