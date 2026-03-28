@@ -770,11 +770,11 @@ class CausalGaussianPrior(nn.Module):
             else:
                 pa_zi = torch.zeros_like(z[:, :, 0]).to(device)
             
-            zu_i = torch.cat((pa_zi,
-                              labels[:, :, i].unsqueeze(-1), 
-                              torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1) * torch.norm(pa_zi, 2))), dim=-1)
+            # zu_i = torch.cat((pa_zi,
+            #                   labels[:, :, i].unsqueeze(-1), 
+            #                   torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1) * torch.norm(pa_zi, 2))), dim=-1)
             #zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1), torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
-            #zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
+            zu_i = torch.cat((pa_zi, labels[:, :, i].unsqueeze(-1)), dim=-1)
             
             # logger.info(f"\nvar {i}")
             # logger.info(f"zu: {zu_i}")
