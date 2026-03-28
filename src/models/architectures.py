@@ -785,6 +785,7 @@ class CausalGaussianPrior(nn.Module):
             
             assert isinstance(out, tuple)
             mean, logvar = out[0], out[1]
+            logvar = -torch.nn.functional.softplus(logvar) - 1.
 
             means.append(mean)   
             logvars.append(logvar)       
