@@ -124,13 +124,18 @@ def main():
                     logger.info(means.shape)
                     logger.info(logvars.shape) 
 
+                    
                     plt.scatter(alphas.cpu(), torch.norm(means, dim=-1).cpu(), s=12, label="mean")
+                    for d in means.size(-1):
+                        plt.scatter(alphas.cpu(), means.squeeze()[:, d].cpu(), s=12, label=f"mean {d}")
                     #plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {torch.round(u_i, decimals=2).squeeze()[0]}")
                     plt.legend()
                     plt.savefig(f"{params['check_attn_folder']}/color_mu_causal_prior.png")
                     plt.close()
 
                     plt.scatter(alphas.cpu(), torch.norm(logvars, dim=-1).cpu(), s=12, label="logvar")
+                    for d in logvars.size(-1):
+                        plt.scatter(alphas.cpu(), logvars.squeeze()[:, d].cpu(), s=12, label=f"logvar {d}")
                     #plt.plot(alphas.cpu(), u_i.squeeze().cpu(), label=f"u_color = {torch.round(u_i, decimals=2).squeeze()[0]}")
                     plt.legend()
                     plt.savefig(f"{params['check_attn_folder']}/color_logvar_causal_prior.png")
