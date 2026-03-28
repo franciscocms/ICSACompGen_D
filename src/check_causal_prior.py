@@ -123,7 +123,7 @@ def main():
                                                 u_i[i]), dim=-1)
                             else:
                                 zu_i = torch.cat((pa_zi.reshape((1, 1, pa_zi.size(-1))),
-                                                alpha[i].unsqueeze(0).unsqueeze(0).unsqueeze(0)), dim=-1)
+                                                torch.tensor(alpha[i]).unsqueeze(0).unsqueeze(0).unsqueeze(0)), dim=-1)
 
                             # zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))),
                             #                   u_i[i]
