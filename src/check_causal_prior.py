@@ -80,17 +80,17 @@ def main():
         dataloader = DataLoader(dataset, 2, shuffle=True, generator=torch.Generator(device='cuda'))
 
         with torch.no_grad():
-            for b, (img, target) in enumerate(dataloader):
-                img = img.to(device)
-                target = target.to(device)
+            for v, var in enumerate(params["latent_vars"]):
 
-                for v, var in enumerate(params["latent_vars"]):
-
-                    logger.info(f"\nrunning for {var}...")
+                for b, (img, target) in enumerate(dataloader):
+                    img = img.to(device)
+                    target = target.to(device)
 
                     got_it = False
                     if 0 <= target[0, 0, v] <= 0.1 and 0.9 <= target[0, 1, v] <= 1.:
                         got_it = True
+
+                        logger.info(f"\nrunning for {var}...")
 
                         logger.info(f"small object {var}: {target[0, 0, v]}")
                         logger.info(f"large object {var}: {target[0, 1, v]}")
