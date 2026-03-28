@@ -130,6 +130,7 @@ def main():
                                             #torch.sin(freq_coeff * u_i[i])), dim=-1)
                                             #torch.sin(freq_coeff * u_i[i] * torch.norm(z0.reshape((1, 1, z0.size(-1))), 2))), dim=-1)
                             mean, logvar = guide.prior.net[str(v)](zu_i)
+                            logvar = torch.sigmoid(logvar) * -2
                             #logvar = logvar - 3
 
                             means.append(mean)
