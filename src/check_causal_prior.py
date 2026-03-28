@@ -118,8 +118,13 @@ def main():
 
                             # for fixed color label, vary z_scale
                             freq_coeff = (v - 6) * np.pi
-                            zu_i = torch.cat((pa_zi.reshape((1, 1, pa_zi.size(-1))),
-                                            u_i[i]), dim=-1)
+                            if v == 1:
+                                zu_i = torch.cat((pa_zi.reshape((1, 1, pa_zi.size(-1))),
+                                                u_i[i]), dim=-1)
+                            else:
+                                zu_i = torch.cat((pa_zi.reshape((1, 1, pa_zi.size(-1))),
+                                                alpha[i].reshape((1, 1, 1))), dim=-1)
+
                             # zu_i = torch.cat((z0.reshape((1, 1, z0.size(-1))),
                             #                   u_i[i]
                                             #torch.sin(freq_coeff * u_i[i])), dim=-1)
