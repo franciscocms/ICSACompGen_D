@@ -99,11 +99,10 @@ def main():
                 img = img.to(device)
                 target = target.to(device)
                 
-                img_hat, z_noise, z_scm, z_mu, z_logvar, recon_figures = guide(img, target) # [B, N, L]
+                _, _, img_hat, recon_figures = guide(img, target) # [B, N, L]
                 recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
                 recon_loss += F.mse_loss(img_hat, img)
                 mse = torch.cat((mse, F.mse_loss(img_hat, img, reduction='none').mean((-1, -2, -3))), dim=0)
-                #z_noise = torch.cat((z_noise, batch_z_noise), dim=0)
                 targets = torch.cat((targets, target), dim=0)  
                 all_img = torch.cat((all_img, img), dim=0)
                 all_img_hat = torch.cat((all_img_hat, img_hat), dim=0)
