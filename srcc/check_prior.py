@@ -62,7 +62,7 @@ def main():
                                   ).to(device)
 
     GUIDE_PATH = f"{main_dir}/checkpoint-{params['jobID']}/guide_{params['epoch_to_load']}.pth"
-    guide.load_state_dict(torch.load(GUIDE_PATH, weights_only=False)["model"])
+    #guide.load_state_dict(torch.load(GUIDE_PATH, weights_only=False)["model"])
     guide.eval()
     
     #logger.info(f'\n\nseed {seed}\n\n')
