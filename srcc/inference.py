@@ -99,16 +99,16 @@ def main():
                 img = img.to(device)
                 target = target.to(device)
                 
-                batch_z_noise, _, img_hat, recon_figures = guide(img, target) # [B, N, L]
+                img_hat, z_noise, z_scm, z_mu, z_logvar, recon_figures = guide(img, target) # [B, N, L]
                 recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
                 recon_loss += F.mse_loss(img_hat, img)
                 mse = torch.cat((mse, F.mse_loss(img_hat, img, reduction='none').mean((-1, -2, -3))), dim=0)
-                z_noise = torch.cat((z_noise, batch_z_noise), dim=0)
+                #z_noise = torch.cat((z_noise, batch_z_noise), dim=0)
                 targets = torch.cat((targets, target), dim=0)  
                 all_img = torch.cat((all_img, img), dim=0)
                 all_img_hat = torch.cat((all_img_hat, img_hat), dim=0)
 
-        logger.info(z_noise.shape) # [B, N, L, d] -> B = 5k
+        #logger.info(z_noise.shape) # [B, N, L, d] -> B = 5k
         logger.info(targets.shape)
         logger.info(f"MSE: {recon_loss / (i+1)}")
         logger.info(f"recon r2: {r2_score(all_img.cpu().numpy().flatten(), all_img_hat.cpu().numpy().flatten())}")
@@ -121,7 +121,6 @@ def main():
         scatter = ax_m.scatter(u_scale, u_color, s=2, c=mse.cpu().numpy(), cmap="Wistia", vmin=0., vmax=0.05)
         if OOD_EVAL: cb = figure.colorbar(scatter, ax=ax_m)
         
-
         if False:
             z, _, _, _, _ = guide.causal_flow(z_noise)
 
@@ -175,7 +174,7 @@ def main():
             else: plt.savefig(f"{params['check_attn_folder']}/img_recon_id.png")
             plt.close()  
         
-        make_regression = True
+        make_regression = False
         if make_regression:
             for i, var in enumerate(params["latent_vars"]):            
                 logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
