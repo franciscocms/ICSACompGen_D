@@ -84,18 +84,21 @@ def main():
         
         for i, var in enumerate(params["latent_vars"]):
             logger.info(f"var {i} mu - {mu_noise_prior[[0, 500, 1000, 1500, 1999], i, :]}")
-            plt.scatter(u[:, i].cpu(), torch.norm(mu_noise_prior[:, i], dim=-1).cpu(), s=2, label=var)
-            #plt.scatter(u[:, i].cpu(), logvar_noise_prior[:, i].mean(-1).cpu(), s=2, c="red")
-        plt.legend()
-        plt.savefig(f"{params['check_attn_folder']}/mu_prior.png")
-        plt.close()
+            #plt.scatter(u[:, i].cpu(), torch.norm(mu_noise_prior[:, i], dim=-1).cpu(), s=2, label=var)
+            for j in range(mu_noise_prior.size(-1)):
+                plt.scatter(u[:, i].cpu(), mu_noise_prior[:, i, j].cpu(), s=2, label=f"mean {j}")
+            plt.legend()
+            plt.savefig(f"{params['check_attn_folder']}/{var}_mu_prior.png")
+            plt.close()
 
-        for i, var in enumerate(params["latent_vars"]):
+
             logger.info(f"var {i} logvar - {logvar_noise_prior[[0, 500, 1000, 1500, 1999], i, :]}")
-            plt.scatter(u[:, i].cpu(), torch.norm(logvar_noise_prior[:, i], dim=-1).cpu(), s=2, label=var)
-        plt.legend()
-        plt.savefig(f"{params['check_attn_folder']}/logvar_prior.png")
-        plt.close()
+            #plt.scatter(u[:, i].cpu(), torch.norm(logvar_noise_prior[:, i], dim=-1).cpu(), s=2, label=var)
+            for j in range(logvar_noise_prior.size(-1)):
+                plt.scatter(u[:, i].cpu(), logvar_noise_prior[:, i, j].cpu(), s=2, label=f"logvar {j}")
+            plt.legend()
+            plt.savefig(f"{params['check_attn_folder']}/{var}_logvar_prior.png")
+            plt.close()
 
 
     
