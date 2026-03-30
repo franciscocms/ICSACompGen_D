@@ -195,11 +195,15 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
         os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
     
-    log_e = 0.
-    for i in range(L):
-      log_e += torch.mean(log_normal(z_noise[:, :, i],
-                                     guide.mu_noise_prior[:, :, i],
-                                     torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
+    # log_e = 0.
+    # for i in range(L):
+    #   log_e += torch.mean(log_normal(z_noise[:, :, i],
+    #                                  guide.mu_noise_prior[:, :, i],
+    #                                  torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
+
+    log_e = torch.mean(torch.sum(log_normal(z_noise, 
+                                  guide.mu_noise_prior.T.unsqueeze(-1).expand(-1, z_noise.size(-1)),
+                                  torch.exp(guide.logvar_noise_prior.T.unsqueeze(-1).expand(-1, z_noise.size(-1)))), dim=(-1, -2)))
     
     
     if params["TC_minimization"]:
