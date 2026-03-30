@@ -102,7 +102,9 @@ def main():
                     # logger.info(f"z0: {z0}")
                     z0_int = torch.flip(z0, dims=(1,))
                     # logger.info(f"z0_int: {z0_int}")
-                    
+
+                    z_noise, _, _, _ = guide.causal_flow.backward(z_scm)
+
                     s1_int = guide.causal_flow.s_cond(z0_int) * guide.causal_flow.scale_gain
                     t1_int = guide.causal_flow.t_cond(z0_int) * guide.causal_flow.shift_gain
                     z1_int = torch.exp(s1_int)*z_noise[:, :, 1, :] + t1_int
@@ -136,18 +138,18 @@ def main():
                                             z2.unsqueeze(-2),
                                             z3.unsqueeze(-2)), dim=-2)
 
-                   
                 x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
                 x_int = torch.clamp(x_int, 0., 1.)
 
-                mu_noise_int, logvar_noise_int, z_noise_int = guide.noise_encoder(x_int)
-                mu_noise_int = mu_noise_int.reshape(mu_noise_int.size(0), mu_noise_int.size(1), L, ldim)
-                logvar_noise_int = logvar_noise_int.reshape(logvar_noise_int.size(0), logvar_noise_int.size(1), L, ldim)
-                z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
-                z_causal_int, _, _, _ = guide.causal_flow(z_noise_int, 0, False)
+                # mu_noise_int, logvar_noise_int, z_noise_int = guide.noise_encoder(x_int)
+                # mu_noise_int = mu_noise_int.reshape(mu_noise_int.size(0), mu_noise_int.size(1), L, ldim)
+                # logvar_noise_int = logvar_noise_int.reshape(logvar_noise_int.size(0), logvar_noise_int.size(1), L, ldim)
+                # z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
+                # z_causal_int, _, _, _ = guide.causal_flow(z_noise_int, 0, False)
 
-                with torch.no_grad():  
-                    x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
+                # with torch.no_grad():  
+                #     x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
+                x_int_cons = torch.zeros_like(x_int)
 
                 fig, ax = plt.subplots(B, 4)
                 for i in range(B):
@@ -184,14 +186,15 @@ def main():
                 x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
                 x_int = torch.clamp(x_int, 0., 1.)
 
-                mu_noise_int, logvar_noise_int, z_noise_int = guide.noise_encoder(x_int)
-                mu_noise_int = mu_noise_int.reshape(mu_noise_int.size(0), mu_noise_int.size(1), L, ldim)
-                logvar_noise_int = logvar_noise_int.reshape(logvar_noise_int.size(0), logvar_noise_int.size(1), L, ldim)
-                z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
-                z_causal_int, _, _, _ = guide.causal_flow(z_noise_int, 0, False)
+                # mu_noise_int, logvar_noise_int, z_noise_int = guide.noise_encoder(x_int)
+                # mu_noise_int = mu_noise_int.reshape(mu_noise_int.size(0), mu_noise_int.size(1), L, ldim)
+                # logvar_noise_int = logvar_noise_int.reshape(logvar_noise_int.size(0), logvar_noise_int.size(1), L, ldim)
+                # z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
+                # z_causal_int, _, _, _ = guide.causal_flow(z_noise_int, 0, False)
 
-                with torch.no_grad():  
-                    x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
+                # with torch.no_grad():  
+                #     x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
+                x_int_cons = torch.zeros_like(x_int)
 
                 fig, ax = plt.subplots(B, 4)
                 for i in range(B):
