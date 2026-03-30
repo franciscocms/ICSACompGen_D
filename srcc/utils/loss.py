@@ -46,11 +46,20 @@ def _check_inputs(size, mu, v):
     
 def log_normal(x, mu=None, v=None, broadcast_size=False):
     """compute the log-pdf of a normal distribution with diagonal covariance"""
+    
+    logger.info(x.shape)
+    logger.info(mu.shape)
+    logger.info(v.shape)
+    
     if not broadcast_size:
         mu, v = _check_inputs(None, mu, v)
     else:
         mu, v = _check_inputs(x.size(), mu, v)
     assert mu.shape == v.shape
+
+    logger.info(x.shape)
+    logger.info(mu.shape)
+    logger.info(v.shape)
     
     return -0.5 * (np.log(2 * np.pi) + v.log() + (x - mu).pow(2).div(v))
 
