@@ -736,8 +736,8 @@ class ConditionalGaussianPrior(nn.Module):
             slope = 0.01 #+ (i * 0.05)
             freq = (i - 6) * np.pi
             self.freq_coeff.append(freq)
-            #self.net[str(i)] = GaussianMLP(1, ldim, ldim*4, learn_var, alpha[i], beta[i])
-            self.net[str(i)] = GaussianMLP(2, ldim, ldim*4, learn_var, alpha[i], beta[i])
+            self.net[str(i)] = GaussianMLP(1, ldim, ldim*4, learn_var, alpha[i], beta[i])
+            #self.net[str(i)] = GaussianMLP(2, ldim, ldim*4, learn_var, alpha[i], beta[i])
 
     def forward(self, labels):
 
@@ -745,8 +745,8 @@ class ConditionalGaussianPrior(nn.Module):
         means, logvars = [], []
         for i in range(self.L):
             u_freq = torch.cat((labels[:, :, i].unsqueeze(-1), torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
-            #out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
-            out = self.net[str(i)](u_freq)
+            out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
+            #out = self.net[str(i)](u_freq)
             
             assert isinstance(out, tuple)
             mean, logvar = out[0], out[1]

@@ -79,25 +79,26 @@ def main():
         mu_noise_prior, logvar_noise_prior = guide.noise_prior(u)
 
         u = u.view(-1, u.size(-1))
-        mu_noise_prior = mu_noise_prior.view(-1, mu_noise_prior.size(-1))
-        logvar_noise_prior = logvar_noise_prior.view(-1, logvar_noise_prior.size(-1))
-
-        logger.info(u.shape)
-        logger.info(mu_noise_prior.shape)
-        logger.info(logvar_noise_prior.shape)
+        mu_noise_prior = mu_noise_prior.view(-1, mu_noise_prior.size(-2), mu_noise_prior.size(-1))
+        logvar_noise_prior = logvar_noise_prior.view(-1, logvar_noise_prior.size(-2), logvar_noise_prior.size(-1))
         
         for i, var in enumerate(params["latent_vars"]):
-            plt.scatter(u[:, i].cpu(), mu_noise_prior[:, i].cpu(), s=2, label=f"mean {var}")
-        plt.legend()
-        plt.savefig(f"{params['check_attn_folder']}/mu_prior.png")
-        plt.close()
+            logger.info(f"var {i} mu - {mu_noise_prior[[0, 500, 1000, 1500, 1999], i, :]}")
+            #plt.scatter(u[:, i].cpu(), torch.norm(mu_noise_prior[:, i], dim=-1).cpu(), s=2, label=var)
+            for j in range(mu_noise_prior.size(-1)):
+                plt.scatter(u[:, i].cpu(), mu_noise_prior[:, i, j].cpu(), s=2, label=f"mean {j}")
+            plt.legend()
+            plt.savefig(f"{params['check_attn_folder']}/{var}_mu_prior.png")
+            plt.close()
 
 
-        for i, var in enumerate(params["latent_vars"]):
-            plt.scatter(u[:, i].cpu(), logvar_noise_prior[:, i].cpu(), s=2, label=f"logvar {var}")
-        plt.legend()
-        plt.savefig(f"{params['check_attn_folder']}/logvar_prior.png")
-        plt.close()
+            logger.info(f"var {i} logvar - {logvar_noise_prior[[0, 500, 1000, 1500, 1999], i, :]}")
+            #plt.scatter(u[:, i].cpu(), torch.norm(logvar_noise_prior[:, i], dim=-1).cpu(), s=2, label=var)
+            for j in range(logvar_noise_prior.size(-1)):
+                plt.scatter(u[:, i].cpu(), logvar_noise_prior[:, i, j].cpu(), s=2, label=f"logvar {j}")
+            plt.legend()
+            plt.savefig(f"{params['check_attn_folder']}/{var}_logvar_prior.png")
+            plt.close()
 
 
     
