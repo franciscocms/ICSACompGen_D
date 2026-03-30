@@ -109,9 +109,9 @@ class InvSlotAttentionGuide(nn.Module):
                                                     clamp_var=False)
         
         # self.prior = PriorMultivariateCausalFlow(self.ldim)
-        self.prior = CausalGaussianPrior(self.L,
-                                         self.ldim,
-                                         self.A)
+        # self.prior = CausalGaussianPrior(self.L,
+        #                                  self.ldim,
+        #                                  self.A)
 
         self.predictor = Predictor(self.slot_dim,
                                    self.slot_dim,
@@ -154,7 +154,7 @@ class InvSlotAttentionGuide(nn.Module):
         
         # get noise and causal priors
         self.mu_noise_prior, self.logvar_noise_prior = self.noise_prior(aligned_u_m)
-        self.prior_z = self.prior(aligned_u_m, z_scm)
+        #self.prior_z = self.prior(aligned_u_m, z_scm)
         
         # slots = self.causal_decoder(z_scm)
         # img_hat, recon_figures = self.scene_decoder(slots)
