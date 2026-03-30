@@ -694,7 +694,7 @@ class PriorMultivariateCausalFlow(nn.Module):
         return cp
 
 class GaussianMLP(nn.Module):
-    def __init__(self, nin, nout, nh, learn_var, alpha=1., beta=1.):
+    def __init__(self, nin, nout, nh, learn_var, alpha, beta):
         super().__init__()
         self.learn_var = learn_var
         self.shared = nn.Sequential(
@@ -726,43 +726,36 @@ class ConditionalGaussianPrior(nn.Module):
         self.learn_var = learn_var
         self.clamp_var = clamp_var
         self.L = L
-
+        self.net = nn.ModuleDict()
         # alpha = [0.2, 1., 1.5, 0.7] 
         # beta = [1., 0.2, 0.7, 1.5]
         alpha = [1., 1., 1., 1.]
         beta = [1., 1., 1., 1.]
         self.freq_coeff = []
-        
-        # self.net = nn.ModuleDict()
-        # for i in range(self.L):
-        #     slope = 0.01 #+ (i * 0.05)
-        #     freq = (i - 6) * np.pi
-        #     self.freq_coeff.append(freq)
-        #     self.net[str(i)] = GaussianMLP(1, ldim, ldim*4, learn_var, alpha[i], beta[i])
-        #     #self.net[str(i)] = GaussianMLP(2, ldim, ldim*4, learn_var, alpha[i], beta[i])
-        self.net = GaussianMLP(self.L, self.L, self.L*4, learn_var)
+        for i in range(self.L):
+            slope = 0.01 #+ (i * 0.05)
+            freq = (i - 6) * np.pi
+            self.freq_coeff.append(freq)
+            self.net[str(i)] = GaussianMLP(1, ldim, ldim*4, learn_var, alpha[i], beta[i])
+            #self.net[str(i)] = GaussianMLP(2, ldim, ldim*4, learn_var, alpha[i], beta[i])
 
     def forward(self, labels):
 
         B, N, _ = labels.shape
-        # means, logvars = [], []
-        # for i in range(self.L):
-        #     u_freq = torch.cat((labels[:, :, i].unsqueeze(-1), torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
-        #     out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
-        #     #out = self.net[str(i)](u_freq)
+        means, logvars = [], []
+        for i in range(self.L):
+            u_freq = torch.cat((labels[:, :, i].unsqueeze(-1), torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
+            out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
+            #out = self.net[str(i)](u_freq)
             
-        #     assert isinstance(out, tuple)
-        #     mean, logvar = out[0], out[1]
-        #     if self.clamp_var:
-        #         logvar = torch.clamp(logvar, -2., 2.)
-        #     means.append(mean)   
-        #     logvars.append(logvar)       
-        # means = torch.stack(means, -2)
-        # logvars = torch.stack(logvars, -2) - 1. if params["jobID"] == 270 else torch.stack(logvars, -2) - 3.
-        
-        means, logvars = self.net(labels)
-        logvars = logvars - 3
-
+            assert isinstance(out, tuple)
+            mean, logvar = out[0], out[1]
+            if self.clamp_var:
+                logvar = torch.clamp(logvar, -2., 2.)
+            means.append(mean)   
+            logvars.append(logvar)       
+        means = torch.stack(means, -2)
+        logvars = torch.stack(logvars, -2) - 1. if params["jobID"] == 270 else torch.stack(logvars, -2) - 3.
         return means, logvars
     
 class CausalGaussianPrior(nn.Module):
