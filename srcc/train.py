@@ -414,7 +414,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     
     
     dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(z_logvar[:, :, i, :], dim=-1))
-    dict_to_log[f"prior_logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(guide.logvar_noise_prior[:, :, i, :], dim=-1))
+    dict_to_log[f"prior_logvar_{params['latent_vars'][i]}"] = torch.mean(guide.logvar_noise_prior[:, :, i])
 
     dict_to_log[f"s_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ss[:, :, i, :], dim=-1))
     dict_to_log[f"t_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ts[:, :, i, :], dim=-1))
