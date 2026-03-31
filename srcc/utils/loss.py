@@ -61,9 +61,9 @@ def log_normal(x, mu=None, v=None, broadcast_size=False):
         mu = mu.expand(-1, -1, x.size(-1))
         v = v.expand(-1, -1, x.size(-1))
 
-    logger.info(f"\n{x[0, 0]}")
-    logger.info(mu[0, 0])
-    logger.info((x-mu)[0, 0])
+    # logger.info(f"\n{x[0, 0]}")
+    # logger.info(mu[0, 0])
+    # logger.info((x-mu)[0, 0])
     
     return -0.5 * (np.log(2 * np.pi) + v.log() + (x - mu).pow(2).div(v))
 

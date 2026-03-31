@@ -34,7 +34,7 @@ params = {
     "use_counterfactual_consistency": True,
     "cc_epoch": 100,
     "training_from_scratch" : True,
-    "training_epochs": 1, # 400 
+    "training_epochs": 400, # 400 
     "epoch_step": 10,
     "running_type": "train", # train, debug, eval, inspect
     "epoch_to_load" : 400, 
