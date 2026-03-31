@@ -99,6 +99,19 @@ def main():
             plt.legend()
             plt.savefig(f"{params['check_attn_folder']}/{var}_logvar_prior.png")
             plt.close()
+        
+        for i, var in enumerate(params["latent_vars"]):
+            plt.scatter(u[:, i].cpu(), torch.norm(mu_noise_prior[:, i], dim=-1).cpu(), s=2, label=var)
+        plt.legend()
+        plt.savefig(f"{params['check_attn_folder']}/mu_prior.png")
+        plt.close()
+
+
+        for i, var in enumerate(params["latent_vars"]):
+            plt.scatter(u[:, i].cpu(), torch.norm(logvar_noise_prior[:, i], dim=-1).cpu(), s=2, label=var)
+        plt.legend()
+        plt.savefig(f"{params['check_attn_folder']}/logvar_prior.png")
+        plt.close()
 
 
     
