@@ -98,10 +98,10 @@ def main():
 
                 if C == 0:
 
-                    # logger.info(f"e0: {z_noise[:, :, 0]}")
-                    # logger.info(f"z0: {z0}")
+                    logger.info(f"e0: {z_noise[:, :, 0]}")
+                    logger.info(f"z0: {z0}")
                     z0_int = torch.flip(z0, dims=(1,))
-                    # logger.info(f"z0_int: {z0_int}")
+                    logger.info(f"z0_int: {z0_int}")
 
                     z_noise, _, _, _ = guide.causal_flow.backward(z_scm)
 
@@ -109,12 +109,12 @@ def main():
                     t1_int = guide.causal_flow.t_cond(z0_int) * guide.causal_flow.shift_gain
                     z1_int = torch.exp(s1_int)*z_noise[:, :, 1, :] + t1_int
 
-                    # logger.info(f"\nz1: {z1}")
-                    # logger.info(f"\ne1: {z_noise[:, :, 1, :]}")
-                    # logger.info(f"\nexp(s1_int): {torch.exp(s1_int)}")
-                    # logger.info(f"\nexp(s1_int)e1: {torch.exp(s1_int)*z_noise[:, :, 1, :]}")
-                    # logger.info(f"\nt1_int: {t1_int}")
-                    # logger.info(f"\nz1_int: {z1_int}")
+                    logger.info(f"\nz1: {z1}")
+                    logger.info(f"\ne1: {z_noise[:, :, 1, :]}")
+                    logger.info(f"\nexp(s1_int): {torch.exp(s1_int)}")
+                    logger.info(f"\nexp(s1_int)e1: {torch.exp(s1_int)*z_noise[:, :, 1, :]}")
+                    logger.info(f"\nt1_int: {t1_int}")
+                    logger.info(f"\nz1_int: {z1_int}")
                     
 
                     z_int = torch.cat((z0_int.unsqueeze(-2),
