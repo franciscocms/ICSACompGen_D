@@ -260,10 +260,10 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       #   consistency_loss += hungarian_latents_consistency(mu_noise_int[:, :, i], mu_noise[:, :, i].detach()) + recon_loss_fn(logvar_noise_int[:, :, i], logvar_noise[:, :, i].detach())          
 
       # causal consistency
-      norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
-      norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8)
+      # norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
+      # norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8)
       try:
-        consistency_loss += hungarian_latents_consistency(norm_z_causal_int, norm_z_int)
+        consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
       except:
         consistency_loss += 0.
         # with torch.no_grad():
