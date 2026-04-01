@@ -32,7 +32,7 @@ params = {
     "batch_size": 64, # 256 for 32GB
     "lr": 4e-4, # 256 with 1e-4 -- 512 for 1e-3
     "use_counterfactual_consistency": True,
-    "cc_epoch": 100,
+    "cc_epoch": 20,
     "training_from_scratch" : True,
     "training_epochs": 400, # 400 
     "epoch_step": 10,
