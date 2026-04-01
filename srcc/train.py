@@ -225,7 +225,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     log_det = guide.log_det
 
-    batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det + 0.01*torch.square(torch.mean(z_logvar)))
+    batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det + 0.001*torch.square(torch.mean(z_logvar)))
     #batch_loss += kl_beta * (-0.01*log_e + log_det_coeff*log_det + 0.01*torch.square(torch.mean(z_logvar)))
     #batch_loss += kl_beta * (-0.01*log_e + log_det_coeff*log_det)
 
@@ -233,6 +233,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
       
       z_int = guide.causal_flow.counterfactuals(z_noise.detach(), z_scm.detach())
+      z_noise_int, _, _, _ = guide.causal_flow.backward(z_int)
       with torch.no_grad():
         #z_int = guide.causal_flow.counterfactuals(z_noise.detach(), z_scm.detach())        
         x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
@@ -240,24 +241,32 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
       _, _, z_causal_int = guide.encoder(x_int)
       z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim) 
+      z_noise_int_cons, _, _, _ = guide.causal_flow.backward(z_causal_int)
       with torch.no_grad():  
         x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
+
+      
+
+      #APPLY NOISE CONSISTENCY: THINK BETWEEN WHICH ONES, ORIGINAL, ABDUCED FROM COUNT OR COMPUTED FROM Z_CAUSAL_INT...
+
+
+
         
       # noise consistency 
       consistency_loss = 0.
-      # if guide.causal_flow.flag == 0: 
-      #   invariant_vars = [1, 2, 3]
-      #   consistency_loss += hungarian_latents_consistency(guide.causal_flow.backward(z_int, guide.causal_flow.flag).detach(), z_noise_int[:, :, 0])
-      # elif guide.causal_flow.flag == 1: 
-      #   invariant_vars = [0, 2, 3]
-      #   consistency_loss += hungarian_latents_consistency(guide.causal_flow.backward(z_int, guide.causal_flow.flag).detach(), z_noise_int[:, :, 1])
-      # elif guide.causal_flow.flag == 2: 
-      #   invariant_vars = [0, 1, 3]
-      # elif guide.causal_flow.flag == 3: 
-      #   invariant_vars = [0, 1, 2]
+      if guide.causal_flow.flag == 0: 
+        invariant_vars = [1, 2, 3]
+        #consistency_loss += hungarian_latents_consistency(guide.causal_flow.backward(z_int, guide.causal_flow.flag).detach(), z_noise_int[:, :, 0])
+      elif guide.causal_flow.flag == 1: 
+        invariant_vars = [0, 2, 3]
+        #consistency_loss += hungarian_latents_consistency(guide.causal_flow.backward(z_int, guide.causal_flow.flag).detach(), z_noise_int[:, :, 1])
+      elif guide.causal_flow.flag == 2: 
+        invariant_vars = [0, 1, 3]
+      elif guide.causal_flow.flag == 3: 
+        invariant_vars = [0, 1, 2]
       
-      # for i in invariant_vars:
-      #   consistency_loss += hungarian_latents_consistency(mu_noise_int[:, :, i], mu_noise[:, :, i].detach()) + recon_loss_fn(logvar_noise_int[:, :, i], logvar_noise[:, :, i].detach())          
+      for i in invariant_vars:
+        consistency_loss += hungarian_latents_consistency(z_noise_int[:, :, i], z_noise[:, :, i].detach())
 
       # causal consistency
       # norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
