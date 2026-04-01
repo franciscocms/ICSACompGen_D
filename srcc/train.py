@@ -241,7 +241,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
       _, _, z_causal_int = guide.encoder(x_int)
       z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim) 
-      z_noise_int_cons, _, _, _ = guide.causal_flow.backward(z_causal_int)
+      #z_noise_int_cons, _, _, _ = guide.causal_flow.backward(z_causal_int)
       with torch.no_grad():  
         x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
 
