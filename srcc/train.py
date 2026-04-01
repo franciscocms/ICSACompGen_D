@@ -224,7 +224,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     # log_z = torch.mean(log_z)
 
     log_det = guide.log_det
-
     batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det + 0.005*torch.square(torch.mean(z_logvar)))
     #batch_loss += kl_beta * (-0.01*log_e + log_det_coeff*log_det + 0.01*torch.square(torch.mean(z_logvar)))
     #batch_loss += kl_beta * (-0.01*log_e + log_det_coeff*log_det)
@@ -399,24 +398,21 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   # dict_to_log[f"prior_s_x"] = torch.mean(torch.sum(guide.prior.s2, dim=-1))
   # dict_to_log[f"prior_s_y"] = torch.mean(torch.sum(guide.prior.s3, dim=-1))
 
+  
   for i in range(L):
     # dict_to_log[f"mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(mu_noise[:, :, i, :], dim=-1))
     # dict_to_log[f"prior_mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(prior_means[:, :, i, :], dim=-1))
 
-    dict_to_log[f"log_e_{params['latent_vars'][i]}"] = torch.mean(log_normal(z_noise[:, :, i],
-                                                                             guide.mu_noise_prior[:, :, i],
-                                                                             torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
-    
-    # dict_to_log[f"log_z_{params['latent_vars'][i]}"] = torch.mean(log_normal(z_scm[:, :, i],
-    #                                                                          cp_m[:, :, i],
-    #                                                                          torch.exp(cp_logv[:, :, i])).sum(-1))
-    
-    
-    dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(z_logvar[:, :, i, :], dim=-1))
-    dict_to_log[f"prior_logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(guide.logvar_noise_prior[:, :, i, :], dim=-1))
+    with torch.no_grad():
+      dict_to_log[f"log_e_{params['latent_vars'][i]}"] = torch.mean(log_normal(z_noise[:, :, i],
+                                                                              guide.mu_noise_prior[:, :, i],
+                                                                              torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))    
+      
+      dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(z_logvar[:, :, i, :], dim=-1))
+      dict_to_log[f"prior_logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(guide.logvar_noise_prior[:, :, i, :], dim=-1))
 
-    dict_to_log[f"s_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ss[:, :, i, :], dim=-1))
-    dict_to_log[f"t_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ts[:, :, i, :], dim=-1))
+      dict_to_log[f"s_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ss[:, :, i, :], dim=-1))
+      dict_to_log[f"t_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ts[:, :, i, :], dim=-1))
 
     #dict_to_log[f"dist_{params['latent_vars'][i]}"] = dist[i]
 
