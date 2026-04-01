@@ -253,20 +253,20 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
         
       # noise consistency 
-      consistency_loss = 0.
-      if guide.causal_flow.flag == 0: 
-        invariant_vars = [1, 2, 3]
-        #consistency_loss += hungarian_latents_consistency(guide.causal_flow.backward(z_int, guide.causal_flow.flag).detach(), z_noise_int[:, :, 0])
-      elif guide.causal_flow.flag == 1: 
-        invariant_vars = [0, 2, 3]
-        #consistency_loss += hungarian_latents_consistency(guide.causal_flow.backward(z_int, guide.causal_flow.flag).detach(), z_noise_int[:, :, 1])
-      elif guide.causal_flow.flag == 2: 
-        invariant_vars = [0, 1, 3]
-      elif guide.causal_flow.flag == 3: 
-        invariant_vars = [0, 1, 2]
+      # consistency_loss = 0.
+      # if guide.causal_flow.flag == 0: 
+      #   invariant_vars = [1, 2, 3]
+      #   #consistency_loss += hungarian_latents_consistency(guide.causal_flow.backward(z_int, guide.causal_flow.flag).detach(), z_noise_int[:, :, 0])
+      # elif guide.causal_flow.flag == 1: 
+      #   invariant_vars = [0, 2, 3]
+      #   #consistency_loss += hungarian_latents_consistency(guide.causal_flow.backward(z_int, guide.causal_flow.flag).detach(), z_noise_int[:, :, 1])
+      # elif guide.causal_flow.flag == 2: 
+      #   invariant_vars = [0, 1, 3]
+      # elif guide.causal_flow.flag == 3: 
+      #   invariant_vars = [0, 1, 2]
       
-      for i in invariant_vars:
-        consistency_loss += hungarian_latents_consistency(z_noise_int[:, :, i], z_noise[:, :, i].detach())
+      # for i in invariant_vars:
+      #   consistency_loss += hungarian_latents_consistency(z_noise_int[:, :, i], z_noise[:, :, i].detach())
 
       # causal consistency
       # norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
