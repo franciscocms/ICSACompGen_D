@@ -232,8 +232,10 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
       consistency_loss = 0.
       
-      z_int = guide.causal_flow.counterfactuals(z_noise.detach(), z_scm.detach())
-      #z_noise_int, _, _, _ = guide.causal_flow.backward(z_int) --> throws gradients computation error (second pass)
+      # z_int = guide.causal_flow.counterfactuals(z_noise.detach(), z_scm.detach())
+      z_int = guide.causal_flow.counterfactuals(z_noise, z_scm)
+      
+      #z_noise_int, _, _, _ = guide.causal_flow.backward(z_int)
       with torch.no_grad():
         #z_int = guide.causal_flow.counterfactuals(z_noise.detach(), z_scm.detach())        
         x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))

@@ -611,9 +611,7 @@ class MultivariateCausalFlow(nn.Module):
                         t3.unsqueeze(-2)), dim=-2) 
             
             return e, ss, ts, log_det
-
-
-        
+   
         elif flag == 0:
             
             # z = [z0_int, z1_int, z2, z3]
