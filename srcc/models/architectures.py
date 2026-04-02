@@ -701,14 +701,17 @@ class GaussianMLP(nn.Module):
             nn.Linear(nin, nh),
             nn.ELU(),
             nn.Linear(nh, nh),
+            nn.ELU(),
+            nn.Linear(nh, nh),
             nn.ELU()
         )
         
         self.mean_head = nn.Linear(nh, nout)
         if learn_var: self.logvar_head = nn.Linear(nh, nout)
 
-        nn.init.xavier_uniform_(self.mean_head.weight)
-        nn.init.kaiming_normal_(self.logvar_head.weight)
+        # nn.init.xavier_uniform_(self.mean_head.weight)
+        # nn.init.kaiming_normal_(self.logvar_head.weight)
+
         self.alpha = alpha
         self.beta = beta
         self.nout = nout
@@ -727,16 +730,16 @@ class ConditionalGaussianPrior(nn.Module):
         self.clamp_var = clamp_var
         self.L = L
         self.net = nn.ModuleDict()
-        # alpha = [0.2, 1., 1.5, 0.7] 
-        # beta = [1., 0.2, 0.7, 1.5]
-        alpha = [1., 1., 1., 1.]
-        beta = [1., 1., 1., 1.]
+        alpha = [2., 3., 1.5, 0.7] 
+        beta = [3., 2., 4., 1.5]
+        # alpha = [1., 1., 1., 1.]
+        # beta = [1., 1., 1., 1.]
         self.freq_coeff = []
         for i in range(self.L):
             slope = 0.01 #+ (i * 0.05)
             freq = (i - 6) * np.pi
             self.freq_coeff.append(freq)
-            self.net[str(i)] = GaussianMLP(1, 1, ldim*4, learn_var, alpha[i], beta[i])
+            self.net[str(i)] = GaussianMLP(1, 1, 32, learn_var, alpha[i], beta[i])
             #self.net[str(i)] = GaussianMLP(2, ldim, ldim*4, learn_var, alpha[i], beta[i])
 
     def forward(self, labels):

@@ -109,9 +109,9 @@ class InvSlotAttentionGuide(nn.Module):
                                                     clamp_var=False)
         
         # self.prior = PriorMultivariateCausalFlow(self.ldim)
-        self.prior = CausalGaussianPrior(self.L,
-                                         self.ldim,
-                                         self.A)
+        # self.prior = CausalGaussianPrior(self.L,
+        #                                  self.ldim,
+        #                                  self.A)
 
         self.predictor = Predictor(self.slot_dim,
                                    self.slot_dim,
