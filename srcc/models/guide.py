@@ -140,8 +140,12 @@ class InvSlotAttentionGuide(nn.Module):
             for name, param in self.encoder.named_parameters():
                 logger.info(f"\n{name} - {param}")
             logger.info(f"mu_z: {mu_z_d}")
-            logger.info(f"logvar_z: {logvar_z}")
+            logger.info(f"logvar_z: {logvar_z}")        
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
+
+        logger.info(f"\npreds: {preds}")
+        logger.info(f"\nlabels: {labels}")
+        logger.info(f"\naligned labels: {aligned_u_m}")
         
         # get latent-wise distributions
         mu_z = mu_z.reshape(mu_z.size(0), mu_z.size(1), self.L, self.ldim)
