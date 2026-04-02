@@ -230,6 +230,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     # causal consistency
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
+      consistency_loss = 0.
       
       z_int = guide.causal_flow.counterfactuals(z_noise.detach(), z_scm.detach())
       #z_noise_int, _, _, _ = guide.causal_flow.backward(z_int) --> throws gradients computation error (second pass)
@@ -252,7 +253,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
         
       # noise consistency 
-      consistency_loss = 0.
+
       # if guide.causal_flow.flag == 0: 
       #   invariant_vars = [1, 2, 3]
       #   #consistency_loss += hungarian_latents_consistency(guide.causal_flow.backward(z_int, guide.causal_flow.flag).detach(), z_noise_int[:, :, 0])
@@ -272,7 +273,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       # norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8)
 
       consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
-
       batch_loss += kl_beta * 0.01 * consistency_loss
       #batch_loss += kl_beta * 1. * consistency_loss
     else:
