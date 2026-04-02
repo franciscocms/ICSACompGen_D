@@ -697,17 +697,17 @@ class GaussianMLP(nn.Module):
     def __init__(self, nin, nout, nh, learn_var, alpha, beta):
         super().__init__()
         self.learn_var = learn_var
-        self.shared = nn.Sequential(
-            nn.Linear(nin, nh),
-            nn.ELU(),
-            nn.Linear(nh, nh),
-            nn.ELU(),
-            nn.Linear(nh, nh),
-            nn.ELU()
-        )
+        # self.shared = nn.Sequential(
+        #     nn.Linear(nin, nh),
+        #     nn.ELU(),
+        #     nn.Linear(nh, nh),
+        #     nn.ELU(),
+        #     nn.Linear(nh, nh),
+        #     nn.ELU()
+        # )
         
-        self.mean_head = nn.Linear(nh, nout)
-        if learn_var: self.logvar_head = nn.Linear(nh, nout)
+        self.mean_head = nn.Linear(nin, nout)
+        if learn_var: self.logvar_head = nn.Linear(nin, nout)
 
         # nn.init.xavier_uniform_(self.mean_head.weight)
         # nn.init.kaiming_normal_(self.logvar_head.weight)
@@ -717,9 +717,9 @@ class GaussianMLP(nn.Module):
         self.nout = nout
 
     def forward(self, x):
-        x = self.shared(x)
+        #x = self.shared(x)
         mean = self.alpha * self.mean_head(x)
-        if self.learn_var: logvar = self.beta * self.logvar_head(x)
+        if self.learn_var: logvar = self.beta * self.logvar_head(torch.square(x))
         else: logvar = torch.zeros_like(mean)
         return mean, logvar
         
@@ -730,10 +730,10 @@ class ConditionalGaussianPrior(nn.Module):
         self.clamp_var = clamp_var
         self.L = L
         self.net = nn.ModuleDict()
-        alpha = [2., 3., 1.5, 0.7] 
-        beta = [3., 2., 4., 1.5]
-        # alpha = [1., 1., 1., 1.]
-        # beta = [1., 1., 1., 1.]
+        # alpha = [2., 3., 1.5, 0.7] 
+        # beta = [3., 2., 4., 1.5]
+        alpha = [1., 1., 1., 1.]
+        beta = [1., 1., 1., 1.]
         self.freq_coeff = []
         for i in range(self.L):
             slope = 0.01 #+ (i * 0.05)
