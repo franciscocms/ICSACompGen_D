@@ -141,15 +141,9 @@ def main():
                 x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
                 x_int = torch.clamp(x_int, 0., 1.)
 
-                # mu_noise_int, logvar_noise_int, z_noise_int = guide.noise_encoder(x_int)
-                # mu_noise_int = mu_noise_int.reshape(mu_noise_int.size(0), mu_noise_int.size(1), L, ldim)
-                # logvar_noise_int = logvar_noise_int.reshape(logvar_noise_int.size(0), logvar_noise_int.size(1), L, ldim)
-                # z_noise_int = z_noise_int.reshape(z_noise_int.size(0), z_noise_int.size(1), L, ldim)
-                # z_causal_int, _, _, _ = guide.causal_flow(z_noise_int, 0, False)
-
-                # with torch.no_grad():  
-                #     x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
-                x_int_cons = torch.zeros_like(x_int)
+                _, _, z_causal_int = guide.encoder(x_int)
+                x_int_cons, _ = guide.scene_decoder(z_causal_int)
+                
 
                 fig, ax = plt.subplots(B, 4)
                 for i in range(B):
