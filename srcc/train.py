@@ -232,10 +232,9 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
       consistency_loss = 0.
       
-      # z_int = guide.causal_flow.counterfactuals(z_noise.detach(), z_scm.detach())
-      z_int = guide.causal_flow.counterfactuals(z_noise, z_scm)
-      
+      z_int, flag = guide.causal_flow.counterfactuals(z_noise, z_scm)
       #z_noise_int, _, _, _ = guide.causal_flow.backward(z_int)
+      
       with torch.no_grad():
         #z_int = guide.causal_flow.counterfactuals(z_noise.detach(), z_scm.detach())        
         x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
@@ -246,13 +245,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       #z_noise_int_cons, _, _, _ = guide.causal_flow.backward(z_causal_int)
       with torch.no_grad():  
         x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
-
-      
-
-      #APPLY NOISE CONSISTENCY: THINK BETWEEN WHICH ONES, ORIGINAL, ABDUCED FROM COUNT OR COMPUTED FROM Z_CAUSAL_INT...
-
-
-
         
       # noise consistency 
 

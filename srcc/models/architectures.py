@@ -147,6 +147,80 @@ class SlotEncoder(torch.nn.Module):
         out = x.view(-1, self.n_slots, self.n_slot_latents)
         return out
 
+class FiLMLayer(nn.Module):
+    def __init__(self, feature_dim, geo_dim):
+        super().__init__()
+        # Generates scale and shift for every single neuron in this layer
+        self.conditioner = nn.Linear(geo_dim, 2 * feature_dim)
+        
+    def forward(self, x, z_geo):
+        params = self.conditioner(z_geo)
+        gamma, beta = torch.chunk(params, 2, dim=-1)
+        # Softplus ensures gamma > 0, keeping the cross-derivative non-zero
+        return F.softplus(gamma) * x + beta
+
+class CompositionalObjectDecoder(nn.Module):
+    def __init__(self, ldim, hidden_dim=256, img_size=64):
+        super().__init__()
+        self.img_size = img_size
+        
+        # Define latent split (App=Color/Shape, Geo=Scale/Pos)
+        self.app_dim = ldim 
+        self.geo_dim = 3 * ldim 
+
+        # --- The Appearance Trunk ---
+        # This path only 'sees' Color. It learns a generic 'object-ness'.
+        self.fc1 = nn.Linear(self.app_dim, hidden_dim)
+        self.film1 = FiLMLayer(hidden_dim, self.geo_dim)
+        
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.film2 = FiLMLayer(hidden_dim, self.geo_dim)
+        
+        self.fc3 = nn.Linear(hidden_dim, hidden_dim)
+        self.film3 = FiLMLayer(hidden_dim, self.geo_dim)
+
+        self.to_pixels = nn.Sequential(
+            nn.Linear(256, 256),
+            nn.ELU(),
+            nn.Linear(256, 32 * 4 * 4),
+            nn.ELU(),
+            View((-1, 32, 4, 4)),
+            nn.ConvTranspose2d(32, 32, 4, 2, 1),
+            nn.ELU(),
+            nn.ConvTranspose2d(32, 32, 4, 2, 1),
+            nn.ELU(),
+            nn.ConvTranspose2d(32, 32, 4, 2, 1),
+            nn.ELU(),
+            nn.ConvTranspose2d(32, 3, 4, 2, 1),
+        )
+
+    def forward(self, z):
+        # z shape: (B, L * ldim)
+        # Manually slice the composition (assuming fixed order from your prior)
+        # This is where the causal structure is enforced
+        z_app = z[:, self.app_dim:2*self.app_dim]
+        z_geo = torch.cat((z[:, :self.app_dim],
+                           z[:, 2*self.app_dim:]), dim=-1)
+
+        # Layer 1: Start with Appearance, modulate with Geometry
+        x = self.fc1(z_app)
+        x = self.film1(x, z_geo)
+        x = F.elu(x)
+
+        # Layer 2: Deepen the interaction
+        x = self.fc2(x)
+        x = self.film2(x, z_geo)
+        x = F.elu(x)
+
+        # Layer 3: Final refinement
+        x = self.fc3(x)
+        x = self.film3(x, z_geo)
+        x = F.elu(x)
+
+        # Output to image
+        out = self.to_pixels(x)
+        return out.view(-1, 3, self.img_size, self.img_size)
+    
 class SlotMLPAdditiveDecoder(torch.nn.Module):
     """
     Model generates x_hat = sum_{i=1}^{n_slots} f(z_i),
@@ -162,7 +236,8 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         super(SlotMLPAdditiveDecoder, self).__init__()
         self.n_slots = n_slots
         self.n_slot_latents = n_slot_latents
-        self.decoder = get_decoder(n_slot_latents, in_channels)
+        #self.decoder = get_decoder(n_slot_latents, in_channels)
+        self.decoder = CompositionalObjectDecoder(params["latent_dim"])
         self.model_name = "SlotMLPAdditiveDecoder"
 
     def forward(self, latents):
@@ -569,7 +644,7 @@ class MultivariateCausalFlow(nn.Module):
                                     z1.unsqueeze(-2),
                                     z2.unsqueeze(-2),
                                     z3_int.unsqueeze(-2)), dim=-2)
-        return self.z_int
+        return self.z_int, self.flag
         
  
     def backward(self, z, flag=None):
