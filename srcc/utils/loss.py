@@ -82,20 +82,24 @@ def compute_matching_cost(preds, labels):
     cost_matrix_ = cost_matrix.detach().cpu().numpy()
     try:
         indices = np.array([linear_sum_assignment(p) for p in cost_matrix_])
+
+        _, col_ind = indices[:, 0], indices[:, 1]  
+        indices_ = indices.shape[2] * indices[:, 0] + indices[:, 1]
+
+        losses = torch.gather(cost_matrix.flatten(1,2), 1, torch.from_numpy(indices_).to(device=cost_matrix.device))
+        total_loss = losses.mean()
+
+        # Reorder labels to match slot order
+        matched_labels = labels[torch.arange(B, device=labels.device).view(B, 1),
+                            col_ind]
     except:
         logger.info(f"preds: {preds}")
         logger.info(f"labels: {labels}")
         logger.info(f"cost_matrix_: {cost_matrix_}")
 
-    _, col_ind = indices[:, 0], indices[:, 1]  
-    indices_ = indices.shape[2] * indices[:, 0] + indices[:, 1]
-
-    losses = torch.gather(cost_matrix.flatten(1,2), 1, torch.from_numpy(indices_).to(device=cost_matrix.device))
-    total_loss = losses.mean()
-
-    # Reorder labels to match slot order
-    matched_labels = labels[torch.arange(B, device=labels.device).view(B, 1),
-                        col_ind]
+        total_loss = 0.
+        matched_labels = labels
+    
 
     return total_loss, matched_labels
 
