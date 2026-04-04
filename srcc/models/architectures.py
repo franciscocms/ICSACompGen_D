@@ -195,6 +195,28 @@ class CompositionalObjectDecoder(nn.Module):
         )
 
     def forward(self, z):
+        z0, z1, z2, z3 = torch.split(z, params["latent_dim"], -1)
+
+        # Layer 1: Start with Appearance, modulate with Geometry
+        x = self.fc1(z0)
+        x = self.film1(x, z1)
+        x = F.elu(x)
+
+        # Layer 2: Deepen the interaction
+        x = self.fc2(x)
+        x = self.film2(x, z2)
+        x = F.elu(x)
+
+        # Layer 3: Final refinement
+        x = self.fc3(x)
+        x = self.film3(x, z3)
+        x = F.elu(x)
+
+        # Output to image
+        out = self.to_pixels(x)
+        return out.view(-1, 3, self.img_size, self.img_size)
+    
+    def old_forward(self, z):
         # z shape: (B, L * ldim)
         # Manually slice the composition (assuming fixed order from your prior)
         # This is where the causal structure is enforced
