@@ -133,6 +133,10 @@ def main():
                     #e1_int = e1_int.detach()
                     z1_int = torch.exp(guide.causal_flow.s_cond(z0) * guide.causal_flow.scale_gain) * e1_int + guide.causal_flow.t_cond(z0) * guide.causal_flow.shift_gain
 
+                    logger.info(f"\nz1: {z1}")
+                    logger.info(f"\nz1_int: {z1_int}")
+                    
+                    
                     z_int = torch.cat((z0.unsqueeze(-2),
                                             z1_int.unsqueeze(-2),
                                             z2.unsqueeze(-2),
