@@ -163,7 +163,7 @@ def main():
                         ax[i, j].grid(False)
                         ax[i, j].axis('off')
 
-                plt.savefig(f"{params['check_attn_folder']}/{params["latent_vars"][C]}_counterfactuals.png")
+                plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_counterfactuals.png")
                 plt.close()
 
                 #####################################################################################################
@@ -200,7 +200,7 @@ def main():
                         ax[i, j].grid(False)
                         ax[i, j].axis('off')
 
-                plt.savefig(f"{params['check_attn_folder']}/{params["latent_vars"][C]}_permutation.png")
+                plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_permutation.png")
                 plt.close()
 
                 if b == 0: break
