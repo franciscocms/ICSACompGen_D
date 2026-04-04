@@ -80,7 +80,7 @@ def main():
         dataset_dir = os.path.join(params["dataset_path"], "eval")
 
         dataset = MyDataset(dataset_dir, OOD_EVAL)
-        dataloader = DataLoader(dataset, 3, shuffle=True, generator=torch.Generator(device='cuda'))
+        dataloader = DataLoader(dataset, 4, shuffle=True, generator=torch.Generator(device='cuda'))
 
         with torch.no_grad():
             for b, (img, target) in enumerate(dataloader):
@@ -130,9 +130,11 @@ def main():
                     t1_int = guide.causal_flow.t_cond(z0_perm) * guide.causal_flow.shift_gain
                     e1_int = (z1_perm - t1_int) * torch.exp(-s1_int)
 
-                    logger.info(f"\ns0: {guide.causal_flow.s_cond(z0)}")
-                    logger.info(f"\nt0: {guide.causal_flow.t_cond(z0)}")
                     logger.info(f"\ne1: {e1_int}")
+                    logger.info(f"\nexp(s0): {torch.exp(guide.causal_flow.s_cond(z0))}")
+                    logger.info(f"\nexp(s0)*e1: {torch.exp(guide.causal_flow.s_cond(z0))*e1_int}")
+                    logger.info(f"\nt0: {guide.causal_flow.t_cond(z0)}")
+                    
                     
                     #e1_int = e1_int.detach()
                     z1_int = torch.exp(guide.causal_flow.s_cond(z0) * guide.causal_flow.scale_gain) * e1_int + guide.causal_flow.t_cond(z0) * guide.causal_flow.shift_gain
