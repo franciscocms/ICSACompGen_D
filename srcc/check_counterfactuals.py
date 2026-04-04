@@ -129,6 +129,10 @@ def main():
                     s1_int = guide.causal_flow.s_cond(z0_perm) * guide.causal_flow.scale_gain
                     t1_int = guide.causal_flow.t_cond(z0_perm) * guide.causal_flow.shift_gain
                     e1_int = (z1_perm - t1_int) * torch.exp(-s1_int)
+
+                    logger.info(f"\ns0: {guide.causal_flow.s_cond(z0)}")
+                    logger.info(f"\nt0: {guide.causal_flow.t_cond(z0)}")
+                    logger.info(f"\ne1: {e1_int}")
                     
                     #e1_int = e1_int.detach()
                     z1_int = torch.exp(guide.causal_flow.s_cond(z0) * guide.causal_flow.scale_gain) * e1_int + guide.causal_flow.t_cond(z0) * guide.causal_flow.shift_gain
@@ -155,7 +159,7 @@ def main():
                     ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
                     if i == 0: ax[i, 1].set_title("img_hat")
                     ax[i, 2].imshow(np.clip(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                    if i == 0: ax[i, 2].set_title(f"int 0")
+                    if i == 0: ax[i, 2].set_title(f"int {C}")
                     ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
                     if i == 0: ax[i, 3].set_title(f"img_hat_cons")
 
@@ -192,7 +196,7 @@ def main():
                     ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
                     if i == 0: ax[i, 1].set_title("img_hat")
                     ax[i, 2].imshow(np.clip(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                    if i == 0: ax[i, 2].set_title(f"int 0")
+                    if i == 0: ax[i, 2].set_title(f"perm {C}")
                     ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
                     if i == 0: ax[i, 3].set_title(f"img_hat_cons")
 
