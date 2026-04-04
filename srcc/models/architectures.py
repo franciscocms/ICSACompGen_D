@@ -197,8 +197,8 @@ class CompositionalObjectDecoder(nn.Module):
         z0, z1, z2, z3 = torch.split(z, params["latent_dim"], -1)
 
         # Layer 1: Start with Appearance, modulate with Geometry
-        x = self.fc1(z1)
-        x = self.film1(x, z0)
+        x = self.fc1(z0)
+        x = self.film1(x, z1)
         x = F.elu(x)
 
         # Layer 2: Deepen the interaction

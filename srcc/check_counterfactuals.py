@@ -94,7 +94,7 @@ def main():
                 z_noise, z_scm, img_hat, recon_figures = guide(img, target)
                 z0, z1, z2, z3 = torch.split(torch.flatten(z_scm, -2), params["latent_dim"], -1)
                 
-                C = 0
+                C = 1
 
                 if C == 0:
 
@@ -159,7 +159,7 @@ def main():
                         ax[i, j].grid(False)
                         ax[i, j].axis('off')
 
-                plt.savefig(f"{params['check_attn_folder']}/counterfactuals.png")
+                plt.savefig(f"{params['check_attn_folder']}/{params["latent_vars"][C]}_counterfactuals.png")
                 plt.close()
 
                 #####################################################################################################
@@ -196,7 +196,7 @@ def main():
                         ax[i, j].grid(False)
                         ax[i, j].axis('off')
 
-                plt.savefig(f"{params['check_attn_folder']}/permutation.png")
+                plt.savefig(f"{params['check_attn_folder']}/{params["latent_vars"][C]}_permutation.png")
                 plt.close()
 
                 if b == 0: break
