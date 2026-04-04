@@ -164,9 +164,8 @@ class CompositionalObjectDecoder(nn.Module):
         super().__init__()
         self.img_size = img_size
         
-        # Define latent split (App=Color/Shape, Geo=Scale/Pos)
         self.app_dim = ldim 
-        self.geo_dim = 3 * ldim 
+        self.geo_dim = ldim 
 
         # --- The Appearance Trunk ---
         # This path only 'sees' Color. It learns a generic 'object-ness'.
