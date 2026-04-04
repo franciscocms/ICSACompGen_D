@@ -155,7 +155,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
   # update coefficients
   TC_coeff = params["TC_coeff"]
-  log_det_coeff = 0.01 # 0.1
+  log_det_coeff = 0.001 # 0.1
 
   kl_beta = beta_scheduler.get_beta()
 
