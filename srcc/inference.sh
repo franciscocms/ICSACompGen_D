@@ -2,8 +2,8 @@
 #
 #SBATCH --partition=gpu_min8gb    # Debug partition
 #SBATCH --qos=gpu_min8gb          # Debug QoS level
-#SBATCH --job-name=eval293        # Job name
+#SBATCH --job-name=eval294        # Job name
 #SBATCH -o slurm.%N.%j.out       # File containing STDOUT output
 #SBATCH -e slurm.%N.%j.err       # File containing STDERR output
 
-python check_counterfactuals.py
+python inference.py
