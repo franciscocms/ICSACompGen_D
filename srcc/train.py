@@ -267,7 +267,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       # norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8)
 
       consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
-      batch_loss += kl_beta * 1. * consistency_loss
+      batch_loss += kl_beta * 0.1 * consistency_loss
     else:
       consistency_loss = 0.
       x_int = torch.zeros_like(img_hat)

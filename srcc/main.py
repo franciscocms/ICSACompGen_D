@@ -8,17 +8,17 @@ main_dir = os.path.abspath(__file__+'/../../')
 params = {
     "device": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
     "random_seed": 20,
-    "dataset_path": "/nas-ctm01/datasets/public/CG_linear_035", # CG_linear -> 0.5, CG_linear_015 -> 0.15
-    "ID_window": 0.35,
+    "dataset_path": "/nas-ctm01/datasets/public/CG_linear_025", # CG_linear -> 0.5, CG_linear_015 -> 0.15
+    "ID_window": 0.25,
     "latent_vars": ["scale", "color", "x_pos", "y_pos"],
     "factor_ranges": {
-        "scale": [0.3, 1.], # 0.5, 1.
+        "scale": [0.3, 1.],
         "color": [0.05, 0.95],
         "x_pos": [0.15, 0.85],
         "y_pos": [0.15, 0.85]
     },
     "factor_scaling": {
-        "scale": 15, # 12
+        "scale": 15,
         "color": 360,
         "x_pos": 64,
         "y_pos": 64
@@ -29,14 +29,14 @@ params = {
     "resolution": (64, 64),
     "model_name": "additiveAE",
     "num_slots": 2,
-    "batch_size": 64, # 256 for 32GB
-    "lr": 4e-4, # 256 with 1e-4 -- 512 for 1e-3
-    "use_counterfactual_consistency": False,
+    "batch_size": 64, 
+    "lr": 4e-4, 
+    "use_counterfactual_consistency": True,
     "cc_epoch": 100,
     "training_from_scratch" : True,
     "training_epochs": 400, # 400 
     "epoch_step": 10,
-    "running_type": "eval", # train, debug, eval, inspect
+    "running_type": "train", # train, debug, eval, inspect
     "epoch_to_load" : 400, 
     "ood_eval": True,
     "TC_minimization": False, # usually True
@@ -48,7 +48,7 @@ params = {
     "causal_dropout_prob": 0., # 0.6 for models with causal flow, 1.0 for models without
     "latent_dim": 4, # 4
     "check_attn": True,
-    "jobID": 295,  
+    "jobID": 297,  
     "mesh_iters": 4,
     "mesh_lr": 5, 
     "mesh_noise": 1e-3,
