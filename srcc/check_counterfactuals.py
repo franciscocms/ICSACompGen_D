@@ -176,8 +176,8 @@ def main():
                 z_count = torch.flatten(torch.flatten(z_int[:, :, :2], 0, 1), -2)
 
                 pca = PCA(n_components=2)
-                z_pca = pca.fit_transform(z)
-                z_count_pca = pca.fit_transform(z_count)
+                z_pca = pca.fit_transform(z.cpu())
+                z_count_pca = pca.fit_transform(z_count.cpu())
 
                 plt.scatter(z_pca[:, 0], z_pca[:, 1], s=2, alpha=0.5, c='blue')
                 plt.scatter(z_count_pca[:, 0], z_count_pca[:, 1], s=2, alpha=0.5, c='red')
@@ -200,7 +200,7 @@ def main():
                 z_perm = torch.flatten(torch.flatten(z_int[:, :, :2], 0, 1), -2)
 
                 pca = PCA(n_components=2)
-                z_perm_pca = pca.fit_transform(z_perm)
+                z_perm_pca = pca.fit_transform(z_perm.cpu())
 
                 plt.scatter(z_pca[:, 0], z_pca[:, 1], s=2, alpha=0.5, c='blue')
                 plt.scatter(z_perm_pca[:, 0], z_perm_pca[:, 1], s=2, alpha=0.5, c='red')
