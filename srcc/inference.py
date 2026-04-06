@@ -116,7 +116,6 @@ def main():
         u_color = torch.flatten(targets[:, :, 1], 0, 1).cpu().numpy()
         mse = mse.repeat_interleave(params["num_slots"])
         
-        
         scatter = ax_m.scatter(u_scale, u_color, s=2, c=mse.cpu().numpy(), cmap="Wistia", vmin=0., vmax=0.05)
         if OOD_EVAL: cb = figure.colorbar(scatter, ax=ax_m)
         
