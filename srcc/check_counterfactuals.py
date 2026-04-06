@@ -1,8 +1,8 @@
 import torch
 import numpy as np
-import torch.nn.functional as F
-from torch.autograd.functional import jacobian
 from torch.utils.data import DataLoader
+
+from sklearn.decomposition import PCA
 
 import os
 import shutil
@@ -80,7 +80,7 @@ def main():
         dataset_dir = os.path.join(params["dataset_path"], "eval")
 
         dataset = MyDataset(dataset_dir, OOD_EVAL)
-        dataloader = DataLoader(dataset, 4, shuffle=True, generator=torch.Generator(device='cuda'))
+        dataloader = DataLoader(dataset, 64, shuffle=True, generator=torch.Generator(device='cuda'))
 
         with torch.no_grad():
             for b, (img, target) in enumerate(dataloader):
@@ -172,6 +172,18 @@ def main():
                 plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_counterfactuals.png")
                 plt.close()
 
+                z = torch.flatten(torch.flatten(z_scm[:, :, :2], 0, 1), -2)
+                z_count = torch.flatten(torch.flatten(z_int[:, :, :2], 0, 1), -2)
+
+                pca = PCA(n_components=2)
+                z_pca = pca.fit_transform(z)
+                z_count_pca = pca.fit_transform(z_count)
+
+                plt.scatter(z_pca[:, 0], z_pca[:, 1], s=2, alpha=0.5, c='blue')
+                plt.scatter(z_count_pca[:, 0], z_count_pca[:, 1], s=2, alpha=0.5, c='red')
+                plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_counterfactuals_manifold.png")
+                plt.close()
+
                 #####################################################################################################
 
                 if C == 0:
@@ -184,6 +196,16 @@ def main():
                                     z1_perm.unsqueeze(-2),
                                     z2.unsqueeze(-2),
                                     z3.unsqueeze(-2)), dim=-2) 
+                    
+                z_perm = torch.flatten(torch.flatten(z_int[:, :, :2], 0, 1), -2)
+
+                pca = PCA(n_components=2)
+                z_perm_pca = pca.fit_transform(z_perm)
+
+                plt.scatter(z_pca[:, 0], z_pca[:, 1], s=2, alpha=0.5, c='blue')
+                plt.scatter(z_perm_pca[:, 0], z_perm_pca[:, 1], s=2, alpha=0.5, c='red')
+                plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_permutations_manifold.png")
+                plt.close()
 
                    
                 x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
