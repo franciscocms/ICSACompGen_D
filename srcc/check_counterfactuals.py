@@ -87,6 +87,8 @@ def main():
                 img = img.to(device)
                 target = target.to(device)
 
+                logger.info(target)
+
                 logger.info(img.shape)
 
                 B = img.size(0)
