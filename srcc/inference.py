@@ -77,7 +77,7 @@ def main():
     for p in guide.parameters():
         p.requires_grad = False
 
-    figure, ax_m = plt.subplots()
+    # figure, ax_m = plt.subplots()
     
     for OOD_EVAL in [False, True]:
 
@@ -99,9 +99,10 @@ def main():
                 img = img.to(device)
                 target = target.to(device)
                 
-                _, _, img_hat, recon_figures = guide(img, target) # [B, N, L]
+                batch_z_noise, _, img_hat, recon_figures = guide(img, target) # [B, N, L]
                 recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
                 recon_loss += F.mse_loss(img_hat, img)
+                z_noise = torch.cat((z_noise, batch_z_noise), dim=0)
                 mse = torch.cat((mse, F.mse_loss(img_hat, img, reduction='none').mean((-1, -2, -3))), dim=0)
                 targets = torch.cat((targets, target), dim=0)  
                 all_img = torch.cat((all_img, img), dim=0)
@@ -116,8 +117,8 @@ def main():
         u_color = torch.flatten(targets[:, :, 1], 0, 1).cpu().numpy()
         mse = mse.repeat_interleave(params["num_slots"])
         
-        scatter = ax_m.scatter(u_scale, u_color, s=2, c=mse.cpu().numpy(), cmap="Wistia", vmin=0., vmax=0.05)
-        if OOD_EVAL: cb = figure.colorbar(scatter, ax=ax_m)
+        # scatter = ax_m.scatter(u_scale, u_color, s=2, c=mse.cpu().numpy(), cmap="Wistia", vmin=0., vmax=0.05)
+        # if OOD_EVAL: cb = figure.colorbar(scatter, ax=ax_m)
         
         if False:
             z, _, _, _, _ = guide.causal_flow(z_noise)
@@ -172,7 +173,7 @@ def main():
             else: plt.savefig(f"{params['check_attn_folder']}/img_recon_id.png")
             plt.close()  
         
-        make_regression = False
+        make_regression = True
         if make_regression:
             for i, var in enumerate(params["latent_vars"]):            
                 logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
@@ -220,7 +221,7 @@ def main():
                         logger.info(f"epoch {epoch}:")
                         logger.info(f"train loss {train_loss} - test r2_score: {r2_pred}")
                     
-                save_preds = False
+                save_preds = True
                 if save_preds:
                     plt.scatter(a_target, a_preds, s=2)
                     if OOD_EVAL: plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}_ood.png")
@@ -232,8 +233,8 @@ def main():
                 if i == 1: break
     
     
-    plt.savefig(f"{params['check_attn_folder']}/mse.png")
-    plt.close()    
+    # plt.savefig(f"{params['check_attn_folder']}/mse.png")
+    # plt.close()    
 
 if __name__ == '__main__':
     main()
