@@ -78,16 +78,16 @@ class InvSlotAttentionGuide(nn.Module):
         self.noise_predictors = nn.ModuleDict()
         self.flatt_noise_predictor = nn.ModuleDict()
         
-        self.encoder = FullNoiseEncoder(in_channels=3,
-                                        n_slots=params["num_slots"],
-                                        n_latents=self.L,
-                                        latent_dim=self.ldim,
-                                        stage=params["running_type"],
-                                        clamp_var=False)
+        # self.encoder = FullNoiseEncoder(in_channels=3,
+        #                                 n_slots=params["num_slots"],
+        #                                 n_latents=self.L,
+        #                                 latent_dim=self.ldim,
+        #                                 stage=params["running_type"],
+        #                                 clamp_var=False)
 
-        # self.encoder = RobustEncoder(n_slots=params["num_slots"],
-        #                              n_latents=self.L,
-        #                              latent_dim=self.ldim)
+        self.encoder = RobustEncoder(n_slots=params["num_slots"],
+                                     n_latents=self.L,
+                                     latent_dim=self.ldim)
         
         # self.noise_encoders = nn.ModuleDict()
         for var_name in params["latent_vars"]:            
