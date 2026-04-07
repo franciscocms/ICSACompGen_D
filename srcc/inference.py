@@ -200,7 +200,7 @@ def main():
 
                 logger.info(f"test r2 score: {r2_pred}")
 
-                #if i == 1: break
+                if i == 1: break
     
     
     # plt.savefig(f"{params['check_attn_folder']}/mse.png")
