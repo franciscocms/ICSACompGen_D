@@ -95,6 +95,25 @@ def main():
                 
                 z_noise, z_scm, img_hat, recon_figures = guide(img, target)
                 z0, z1, z2, z3 = torch.split(torch.flatten(z_scm, -2), params["latent_dim"], -1)
+
+                pca = PCA(n_components=2)
+                scale_pca = pca.fit_transform(z0.cpu())
+
+                pca = PCA(n_components=2)
+                color_pca = pca.fit_transform(z1.cpu())
+
+                pca = PCA(n_components=2)
+                x_pca = pca.fit_transform(z2.cpu())
+
+                pca = PCA(n_components=2)
+                y_pca = pca.fit_transform(z3.cpu())
+
+                plt.scatter(scale_pca[:, 0], scale_pca[:, 1], s=2, alpha=0.5, label="scale")
+                plt.scatter(color_pca[:, 0], color_pca[:, 1], s=2, alpha=0.5, label="color")
+                plt.scatter(x_pca[:, 0], x_pca[:, 1], s=2, alpha=0.5, label="x")
+                plt.scatter(y_pca[:, 0], y_pca[:, 1], s=2, alpha=0.5, label="y")
+                plt.savefig(f"{params['check_attn_folder']}/z_pca.png")
+                plt.close()
                 
                 C = 1
 
