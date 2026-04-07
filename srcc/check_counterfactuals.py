@@ -112,8 +112,6 @@ def main():
                 pca = PCA(n_components=2)
                 y_pca = pca.fit_transform(torch.flatten(z3, 0, 1).cpu())
 
-
-
                 plt.scatter(scale_pca[:, 0], scale_pca[:, 1], s=2, alpha=0.5, label="scale", c=aligned_targets[:, 0])
                 plt.legend()
                 plt.savefig(f"{params['check_attn_folder']}/z_pca_scale.png")
@@ -132,6 +130,38 @@ def main():
                 plt.scatter(y_pca[:, 0], y_pca[:, 1], s=2, alpha=0.5, label="y", c=aligned_targets[:, 3])
                 plt.legend()
                 plt.savefig(f"{params['check_attn_folder']}/z_pca_y.png")
+                plt.close()
+
+                pca = PCA(n_components=2)
+                scale_pca = pca.fit_transform(torch.flatten(z_noise[:, :, 0], 0, 1).cpu())
+
+                pca = PCA(n_components=2)
+                color_pca = pca.fit_transform(torch.flatten(z_noise[:, :, 1], 0, 1).cpu())
+
+                pca = PCA(n_components=2)
+                x_pca = pca.fit_transform(torch.flatten(z_noise[:, :, 2], 0, 1).cpu())
+
+                pca = PCA(n_components=2)
+                y_pca = pca.fit_transform(torch.flatten(z_noise[:, :, 3], 0, 1).cpu())
+
+                plt.scatter(scale_pca[:, 0], scale_pca[:, 1], s=2, alpha=0.5, label="scale", c=aligned_targets[:, 0])
+                plt.legend()
+                plt.savefig(f"{params['check_attn_folder']}/e_pca_scale.png")
+                plt.close()
+
+                plt.scatter(color_pca[:, 0], color_pca[:, 1], s=2, alpha=0.5, label="color", c=aligned_targets[:, 1])
+                plt.legend()
+                plt.savefig(f"{params['check_attn_folder']}/e_pca_color.png")
+                plt.close()
+
+                plt.scatter(x_pca[:, 0], x_pca[:, 1], s=2, alpha=0.5, label="x", c=aligned_targets[:, 2])
+                plt.legend()
+                plt.savefig(f"{params['check_attn_folder']}/e_pca_x.png")
+                plt.close()
+
+                plt.scatter(y_pca[:, 0], y_pca[:, 1], s=2, alpha=0.5, label="y", c=aligned_targets[:, 3])
+                plt.legend()
+                plt.savefig(f"{params['check_attn_folder']}/e_pca_y.png")
                 plt.close()
                 
                 
