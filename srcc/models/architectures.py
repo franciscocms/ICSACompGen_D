@@ -422,7 +422,7 @@ class FullNoiseEncoder(nn.Module):
         self.n_slots = n_slots
         self.fc_mean = nn.Linear(128, out_dim)
         self.fc_logvar = nn.Linear(128, out_dim)
-    
+
     def encode(self, x):
         x = self.encoder(x)
         mean = self.fc_mean(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
@@ -432,6 +432,77 @@ class FullNoiseEncoder(nn.Module):
         if self.clamp_var: logvar = torch.clamp(logvar, -3., 3.)
         return mean, logvar
 
+    def forward(self, x):
+        mu, logvar = self.encode(x)
+        stds = torch.exp(0.5*logvar)
+        z = mu + torch.randn_like(mu)*stds
+        return mu, logvar, z
+    
+
+class AddCoords(nn.Module):
+    """ Adds (x, y) coordinates as extra channels to help measure scale/position. """
+    def forward(self, x):
+        batch_size, _, h, w = x.size()
+        xx_range = torch.arange(w, device=x.device).float() / (w - 1) * 2 - 1
+        yy_range = torch.arange(h, device=x.device).float() / (h - 1) * 2 - 1
+        # Create 2D grids
+        xx_channel = xx_range.view(1, 1, 1, w).expand(batch_size, 1, h, w)
+        yy_channel = yy_range.view(1, 1, h, 1).expand(batch_size, 1, h, w)
+        return torch.cat([x, xx_channel, yy_channel], dim=1)
+
+class ScaleSensitiveBlock(nn.Module):
+    def __init__(self, in_channels, out_channels, stride=2):
+        super().__init__()
+        # Use 3x3 for better feature extraction before the 'jump'
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
+        # Use stride in a separate layer to decouple feature learning from downsampling
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, 
+                               stride=stride, padding=1)
+        self.norm = nn.GroupNorm(8, out_channels) # Better than BatchNorm for small batches
+        self.act = nn.ELU() # ELU avoids the "flat" bins of ReLU
+
+    def forward(self, x):
+        x = self.act(self.conv1(x))
+        x = self.act(self.norm(self.conv2(x)))
+        return x
+
+class RobustEncoder(nn.Module):
+    def __init__(self, n_slots, n_latents, latent_dim, input_channels=3):
+        super().__init__()
+        self.add_coords = AddCoords()
+        
+        out_dim = n_slots * n_latents * latent_dim
+        # Initial layer sees 3 RGB + 2 Coord channels = 5
+        self.layer1 = ScaleSensitiveBlock(input_channels + 2, 32) # 64 -> 32
+        self.layer2 = ScaleSensitiveBlock(32, 64)                # 32 -> 16
+        self.layer3 = ScaleSensitiveBlock(64, 128)               # 16 -> 8
+        self.layer4 = ScaleSensitiveBlock(128, 256)              # 8 -> 4
+        
+        # Avoid GlobalAveragePooling; use MaxPool to preserve 'edge' signals for scale
+        self.pool = nn.AdaptiveMaxPool2d((1, 1))
+        self.fc = nn.Linear(256, 128)
+
+        self.fc_mean = nn.Linear(128, out_dim)
+        self.fc_logvar = nn.Linear(128, out_dim)
+
+        self.n_latents = n_latents
+        self.latent_dim = latent_dim
+        self.n_slots = n_slots
+
+    def encode(self, x):
+        x = self.add_coords(x)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+        x = self.pool(x).view(x.size(0), -1)
+        x = F.elu(self.fc(x))
+
+        mean = self.fc_mean(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
+        logvar = self.fc_logvar(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
+    
+        return mean, logvar
+    
     def forward(self, x):
         mu, logvar = self.encode(x)
         stds = torch.exp(0.5*logvar)
