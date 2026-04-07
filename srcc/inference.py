@@ -120,36 +120,6 @@ def main():
         # scatter = ax_m.scatter(u_scale, u_color, s=2, c=mse.cpu().numpy(), cmap="Wistia", vmin=0., vmax=0.05)
         # if OOD_EVAL: cb = figure.colorbar(scatter, ax=ax_m)
         
-        if False:
-            z, _, _, _, _ = guide.causal_flow(z_noise)
-
-            # split in z_scale, z_color, ....
-            z_scale, z_color, z_x, z_y = torch.flatten(z, -2, -1).split(params["latent_dim"], -1)
-            z_scale = z_scale.detach()
-            z_color = z_color.detach()
-            logger.info(z_color[0, 0])
-            z_color = torch.randn_like(z_scale).to(device)
-            z_color.requires_grad = True
-            optimizer = torch.optim.Adam([z_color], lr=1.)
-
-            for i in range(301):
-                
-                optimizer.zero_grad()
-
-                e_color = (z_color - guide.causal_flow.t_cond(z_scale)) * torch.exp(-guide.causal_flow.s_cond(z_scale))
-                loss = F.mse_loss(e_color, z_noise[:, :, 1])
-
-                if i % 50 == 0: logger.info(f"iter {i} - loss: {loss}")
-                #logger.info(z_color[0, 0])
-
-                loss.backward()
-                optimizer.step()
-
-            with torch.no_grad():
-                slots = guide.causal_decoder(torch.cat((z_scale.unsqueeze(-2), z_color.unsqueeze(-2), z_x.unsqueeze(-2), z_y.unsqueeze(-2)), dim=-2))
-                img_hat, recon_figures = guide.scene_decoder(slots)
-                recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
-        
         save_recons = True
         if save_recons:
             n_figures = 5
@@ -189,7 +159,7 @@ def main():
 
                 optimizer = torch.optim.AdamW(probe.parameters(), lr=1e-3, weight_decay=0.001)
                 
-                for epoch in range(30):
+                for epoch in range(51):
                     train_loss = 0.
                     train_iters = 0
                     for e, target in train_loader:
