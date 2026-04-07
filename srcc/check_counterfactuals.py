@@ -153,24 +153,23 @@ def main():
                 _, _, z_causal_int = guide.encoder(x_int)
                 x_int_cons, _ = guide.scene_decoder(z_causal_int)
                 
-                if B <= 5:
-                    fig, ax = plt.subplots(B, 4)
-                    for i in range(B):
-                        ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                        if i == 0: ax[i, 0].set_title("img")
-                        ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                        if i == 0: ax[i, 1].set_title("img_hat")
-                        ax[i, 2].imshow(np.clip(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                        if i == 0: ax[i, 2].set_title(f"int {C}")
-                        ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                        if i == 0: ax[i, 3].set_title(f"img_hat_cons")
+                fig, ax = plt.subplots(4, 4)
+                for i in range(4):
+                    ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                    if i == 0: ax[i, 0].set_title("img")
+                    ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                    if i == 0: ax[i, 1].set_title("img_hat")
+                    ax[i, 2].imshow(np.clip(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                    if i == 0: ax[i, 2].set_title(f"int {C}")
+                    ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                    if i == 0: ax[i, 3].set_title(f"img_hat_cons")
 
-                        for j in range(4):
-                            ax[i, j].grid(False)
-                            ax[i, j].axis('off')
+                    for j in range(4):
+                        ax[i, j].grid(False)
+                        ax[i, j].axis('off')
 
-                    plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_counterfactuals.png")
-                    plt.close()
+                plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_counterfactuals.png")
+                plt.close()
 
                 z = torch.flatten(torch.flatten(z_scm[:, :, :2], 0, 1), -2)
                 z_count = torch.flatten(torch.flatten(z_int[:, :, :2], 0, 1), -2)
@@ -218,24 +217,24 @@ def main():
                 _, _, z_causal_int = guide.encoder(x_int)
                 x_int_cons, _ = guide.scene_decoder(z_causal_int)
 
-                if B <= 5:
-                    fig, ax = plt.subplots(B, 4)
-                    for i in range(B):
-                        ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                        if i == 0: ax[i, 0].set_title("img")
-                        ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                        if i == 0: ax[i, 1].set_title("img_hat")
-                        ax[i, 2].imshow(np.clip(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                        if i == 0: ax[i, 2].set_title(f"perm {C}")
-                        ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                        if i == 0: ax[i, 3].set_title(f"img_hat_cons")
 
-                        for j in range(4):
-                            ax[i, j].grid(False)
-                            ax[i, j].axis('off')
+                fig, ax = plt.subplots(4, 4)
+                for i in range(4):
+                    ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                    if i == 0: ax[i, 0].set_title("img")
+                    ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                    if i == 0: ax[i, 1].set_title("img_hat")
+                    ax[i, 2].imshow(np.clip(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                    if i == 0: ax[i, 2].set_title(f"perm {C}")
+                    ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                    if i == 0: ax[i, 3].set_title(f"img_hat_cons")
 
-                    plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_permutation.png")
-                    plt.close()
+                    for j in range(4):
+                        ax[i, j].grid(False)
+                        ax[i, j].axis('off')
+
+                plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_permutation.png")
+                plt.close()
 
                 if b == 0: break
      
