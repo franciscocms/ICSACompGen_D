@@ -96,7 +96,7 @@ def main():
                 
                 mu_z, z_noise, z_scm, img_hat, recon_figures = guide(img, target)
                 z0, z1, z2, z3 = torch.split(torch.flatten(z_scm, -2), params["latent_dim"], -1)
-                preds = guide.predictor(mu_z)
+                preds = guide.predictor(torch.flatten(mu_z, -2))
                 _, aligned_targets = compute_matching_cost(preds, target)
                 aligned_targets = torch.flatten(aligned_targets, 0, 1)
 
