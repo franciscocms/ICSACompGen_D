@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
 from srcc.main import params
-from srcc.models.architectures import SlotMLPAdditive, SlotMLPAdditiveDecoder, FullNoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, PriorMultivariateCausalFlow, CausalGaussianPrior
+from srcc.models.architectures import SlotMLPAdditive, SlotMLPAdditiveDecoder, FullNoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, PriorMultivariateCausalFlow, CausalGaussianPrior, RobustEncoder
 from srcc.models.slot_attention import SlotAttentionAutoEncoder, SlotAttentionEncoder, SlotAttentionDecoder
 from srcc.utils.loss import compute_matching_cost
 
@@ -78,12 +78,16 @@ class InvSlotAttentionGuide(nn.Module):
         self.noise_predictors = nn.ModuleDict()
         self.flatt_noise_predictor = nn.ModuleDict()
         
-        self.encoder = FullNoiseEncoder(in_channels=3,
-                                        n_slots=params["num_slots"],
-                                        n_latents=self.L,
-                                        latent_dim=self.ldim,
-                                        stage=params["running_type"],
-                                        clamp_var=False)
+        # self.encoder = FullNoiseEncoder(in_channels=3,
+        #                                 n_slots=params["num_slots"],
+        #                                 n_latents=self.L,
+        #                                 latent_dim=self.ldim,
+        #                                 stage=params["running_type"],
+        #                                 clamp_var=False)
+
+        self.encoder = RobustEncoder(n_slots=params["num_slots"],
+                                     n_latents=self.L,
+                                     latent_dim=self.ldim)
         
         # self.noise_encoders = nn.ModuleDict()
         for var_name in params["latent_vars"]:            
