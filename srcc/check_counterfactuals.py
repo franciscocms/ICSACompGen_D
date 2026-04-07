@@ -98,7 +98,7 @@ def main():
                 z0, z1, z2, z3 = torch.split(torch.flatten(z_scm, -2), params["latent_dim"], -1)
                 preds = guide.predictor(torch.flatten(mu_z, -2))
                 _, aligned_targets = compute_matching_cost(preds, target)
-                aligned_targets = torch.flatten(aligned_targets, 0, 1)
+                aligned_targets = torch.flatten(aligned_targets, 0, 1).cpu()
 
                 pca = PCA(n_components=2)
                 scale_pca = pca.fit_transform(torch.flatten(z0, 0, 1).cpu())
