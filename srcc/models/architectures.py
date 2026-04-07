@@ -874,9 +874,6 @@ class GaussianMLP(nn.Module):
         self.mean_head = nn.Linear(nin, nout)
         if learn_var: self.logvar_head = nn.Linear(nin, nout)
 
-        # nn.init.xavier_uniform_(self.mean_head.weight)
-        # nn.init.kaiming_normal_(self.logvar_head.weight)
-
         self.alpha = alpha
         self.beta = beta
         self.nout = nout
