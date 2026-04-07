@@ -17,6 +17,7 @@ from models.guide import InvSlotAttentionGuide
 from models.architectures import Predictor
 from main import params
 from datasets.data_utils import MyDataset
+from utils.loss import compute_matching_cost
 
 
 import logging
@@ -93,8 +94,11 @@ def main():
 
                 B = img.size(0)
                 
-                z_noise, z_scm, img_hat, recon_figures = guide(img, target)
+                mu_z, z_noise, z_scm, img_hat, recon_figures = guide(img, target)
                 z0, z1, z2, z3 = torch.split(torch.flatten(z_scm, -2), params["latent_dim"], -1)
+                preds = guide.predictor(mu_z)
+                _, aligned_targets = compute_matching_cost(preds, target)
+                aligned_targets = torch.flatten(aligned_targets, 0, 1)
 
                 pca = PCA(n_components=2)
                 scale_pca = pca.fit_transform(torch.flatten(z0, 0, 1).cpu())
@@ -108,12 +112,28 @@ def main():
                 pca = PCA(n_components=2)
                 y_pca = pca.fit_transform(torch.flatten(z3, 0, 1).cpu())
 
-                plt.scatter(scale_pca[:, 0], scale_pca[:, 1], s=2, alpha=0.5, label="scale")
-                plt.scatter(color_pca[:, 0], color_pca[:, 1], s=2, alpha=0.5, label="color")
-                plt.scatter(x_pca[:, 0], x_pca[:, 1], s=2, alpha=0.5, label="x")
-                plt.scatter(y_pca[:, 0], y_pca[:, 1], s=2, alpha=0.5, label="y")
-                plt.savefig(f"{params['check_attn_folder']}/z_pca.png")
+
+
+                plt.scatter(scale_pca[:, 0], scale_pca[:, 1], s=2, alpha=0.5, label="scale", c=aligned_targets[:, 0])
+                plt.legend()
+                plt.savefig(f"{params['check_attn_folder']}/z_pca_scale.png")
                 plt.close()
+
+                plt.scatter(color_pca[:, 0], color_pca[:, 1], s=2, alpha=0.5, label="color", c=aligned_targets[:, 1])
+                plt.legend()
+                plt.savefig(f"{params['check_attn_folder']}/z_pca_color.png")
+                plt.close()
+
+                plt.scatter(x_pca[:, 0], x_pca[:, 1], s=2, alpha=0.5, label="x", c=aligned_targets[:, 2])
+                plt.legend()
+                plt.savefig(f"{params['check_attn_folder']}/z_pca_x.png")
+                plt.close()
+
+                plt.scatter(y_pca[:, 0], y_pca[:, 1], s=2, alpha=0.5, label="y", c=aligned_targets[:, 3])
+                plt.legend()
+                plt.savefig(f"{params['check_attn_folder']}/z_pca_y.png")
+                plt.close()
+                
                 
                 C = 1
 
