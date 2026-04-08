@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
 from srcc.main import params
-from srcc.models.architectures import SlotMLPAdditiveDecoder, FullNoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, PriorMultivariateCausalFlow, CausalGaussianPrior, RobustEncoder
+from srcc.models.architectures import SlotMLPAdditiveDecoder, FullNoiseEncoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, PriorMultivariateCausalFlow, CausalGaussianPrior, RobustEncoder
 from srcc.models.slot_attention import SlotAttentionAutoEncoder, SlotAttentionEncoder, SlotAttentionDecoder
 from srcc.utils.loss import compute_matching_cost
 
