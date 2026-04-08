@@ -84,68 +84,7 @@ def get_decoder(in_dim, out_channels):
     decoder = nn.Sequential(*module_list)
     return decoder
 
-class SlotMLPAdditive(torch.nn.Module):
-    """
-    Model predicts latent vector z_hat_i = f^{-1}(x) for each slot and generates x_hat = sum_{i=1}^{n_slots} f(z_hat_i),
-    by summing the output of each slot. For the output z_hat reshaped into (batch_size, n_slots, n_slot_latents).
-    Model outputs x_hat, z_hat and list of x_hat_i.
-    """
 
-    def __init__(
-        self,
-        in_channels: int,
-        n_slots: int,
-        n_slot_latents: int,
-        no_overlap: bool = False,
-    ) -> None:
-        super(SlotMLPAdditive, self).__init__()
-        self.n_slots = n_slots
-        self.n_slot_latents = n_slot_latents
-        self.no_overlap = no_overlap
-        self.encoder = SlotEncoder(in_channels, n_slots, n_slot_latents)
-        self.decoder = SlotMLPAdditiveDecoder(in_channels, n_slots, n_slot_latents)       
-
-    def forward(
-        self,
-        x,
-    ) -> Dict[str, Any]:
-        """
-        Compute forward pass of the model.
-        Reconstruction: \hat{x} = sum_{i=1}^{n_slots} f(z_i)
-        "Imagined" latent vectors: z_tilde = \pi(f^{-1}(\hat{x})})
-        "Imagined" images: \hat{x_tilde} = sum_{i=1}^{n_slots} f(z_tilde_i)
-
-        Args:
-            x: input image, of shape (batch_size, in_channels, height, width)
-
-
-        Returns:
-            A tuple containing the following:
-                - hat_x: reconstructed input image
-                - hat_z: latent vectors for input image
-                - figures: figures visualizing each latent vector
-        """
-        hat_z = self.encoder(x)
-        hat_x, figures = self.decoder(hat_z)
-
-        output_dict = {
-            "reconstructed_image": hat_x,
-            "predicted_latents": hat_z,
-            "reconstructed_figures": figures.permute(1, 0, 2, 3, 4),
-        }
-        return output_dict
-
-class SlotEncoder(torch.nn.Module):
-    def __init__(self, in_channels, n_slots, n_slot_latents):
-        super(SlotEncoder, self).__init__()
-        self.n_slots = n_slots
-        self.n_slot_latents = n_slot_latents
-        self.encoder = get_encoder(in_channels, n_slots * n_slot_latents)
-
-    def forward(self, x):
-        x = self.encoder(x)
-        out = x.view(-1, self.n_slots, self.n_slot_latents)
-        return out
 
 class FiLMLayer(nn.Module):
     def __init__(self, feature_dim, geo_dim):
@@ -242,6 +181,7 @@ class CompositionalObjectDecoder(nn.Module):
         out = self.to_pixels(x)
         return out.view(-1, 3, self.img_size, self.img_size)
     
+
 class SlotMLPAdditiveDecoder(torch.nn.Module):
     """
     Model generates x_hat = sum_{i=1}^{n_slots} f(z_i),
@@ -257,14 +197,16 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         super(SlotMLPAdditiveDecoder, self).__init__()
         self.n_slots = n_slots
         self.n_slot_latents = n_slot_latents
-        #self.decoder = get_decoder(n_slot_latents, in_channels)
-        self.decoder = CompositionalObjectDecoder(params["latent_dim"])
+        self.decoder = get_decoder(n_slot_latents, in_channels)
+        #self.decoder = CompositionalObjectDecoder(params["latent_dim"])
         self.model_name = "SlotMLPAdditiveDecoder"
 
     def forward(self, latents):
         # Reshape latents from [batch_size, n_slots, features] to [batch_size*n_slots, features]
-        batch_size, n_slots, features = latents.size()
-        reshaped_latents = latents.view(batch_size * n_slots, features)
+        # batch_size, n_slots, features = latents.size()
+        # reshaped_latents = latents.view(batch_size * n_slots, features)
+        batch_size, n_slots, n_features, features = latents.size()
+        reshaped_latents = latents.view(batch_size * n_slots, n_features, features)
 
         # Pass reshaped latents through decoder
         reshaped_figures = self.decoder(reshaped_latents)
@@ -272,7 +214,7 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         # Reshape figures back to [batch_size, n_slots, ...]
         figures = reshaped_figures.view(
             batch_size, n_slots, *reshaped_figures.shape[1:]
-        )
+        ).sum(dim=2)
         # Sum over the n_slots dimension for image  
         image = figures.sum(dim=1)
 
@@ -290,106 +232,6 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
 
         return image, figures
     
-class Encoder(nn.Module):
-    def __init__(self, nin, nh, nout):
-        super().__init__()
-
-        self.layers = nn.Sequential(
-            nn.Linear(nin, nh),
-            nn.ELU(),
-            nn.Linear(nh, nh),
-            nn.ELU(),
-            nn.Linear(nh, nh),
-            nn.ELU()
-        )
-        self.fc_mean = nn.Linear(nh, nout)
-        self.fc_logvar = nn.Linear(nh, nout)
-
-    def forward(self, x):
-        x = self.layers(x)
-        return self.fc_mean(x), self.fc_logvar(x)
-
-class IdentityEncoder(nn.Module):
-    def __init__(self, nin, nh, nout, slot_dim):
-        super().__init__()
-        # We define a dummy parameter so the optimizer doesn't crash 
-        # if it expects parameters to optimize
-        self.projection = nn.Linear(nin, nout)
-    
-    def forward(self, s):
-        # s: [B, N, 64]
-        mu = self.projection(s)
-        
-        # We set logvar to a very small number (e.g., -20) 
-        # so variance is essentially zero
-        logvar = torch.full_like(mu, -20.0) 
-        
-        return mu, logvar
-
-class ResBlock(nn.Module):
-    def __init__(self, dim):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(dim, dim),
-            nn.LayerNorm(dim),
-            nn.SiLU(),
-            nn.Linear(dim, dim)
-        )
-    def forward(self, x):
-        return x + self.net(x)
-    
-class Decoder(nn.Module):
-    def __init__(self, nin, nout):
-        super().__init__()
-        #self.proj = nn.Linear(nin, nout)
-        nhidden = nin*4
-
-        self.nets = nn.ModuleDict()
-        for i in range(len(params["latent_vars"])):
-            self.nets[str(i)] = nn.Sequential(nn.Linear(nin, nhidden),
-                                         nn.ELU(), 
-                                         nn.Linear(nhidden, nhidden),
-                                         nn.ELU(),
-                                         nn.Linear(nhidden, nhidden),
-                                         nn.ELU(),
-                                         nn.Linear(nhidden, nhidden),
-                                         nn.ELU(),
-                                         nn.Linear(nhidden, nout)
-                                         )
-
-    def forward(self, z):
-        # z: [B, N, L, d]
-        slot_hat = 0.
-        for i in range(len(params["latent_vars"])):
-            slot_hat += self.nets[str(i)](z[:, :, i])
-        # slot_hat = torch.cat((self.nets[str(0)](z[:, :, 0]),
-        #                       self.nets[str(1)](z[:, :, 1]),
-        #                       self.nets[str(2)](z[:, :, 2]),
-        #                       self.nets[str(3)](z[:, :, 3])), dim=-1)
-        return slot_hat
-    
-class CausalDecoder(nn.Module):
-    def __init__(self, nin, nout):  
-        super().__init__()
-        self.decoder = Decoder(nin=nin, nout=nout)    # takes the reparameterized z to generate hat(u_m)
-
-    def forward(self, z):
-        rec = self.decoder(z)
-        return rec
-
-class NoiseEncoder(nn.Module):
-    def __init__(self, nin, nh, nout):
-        super().__init__()
-        self.encoder = Encoder(nin, nh, nout) 
-        #self.encoder = IdentityEncoder(nin, nh, nout, slot_dim) 
-
-    def encode(self, x):
-        mu, logvars = self.encoder(x)
-        stds = torch.exp(0.5*logvars)
-        z = mu + torch.randn_like(mu)*stds # reparameterization trick
-        return mu, logvars, z
-    
-
 class FullNoiseEncoder(nn.Module):
     def __init__(self, in_channels, n_slots, n_latents, latent_dim, stage="train", clamp_var=False):
         super().__init__()

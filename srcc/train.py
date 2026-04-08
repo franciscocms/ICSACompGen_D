@@ -236,15 +236,16 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       #z_noise_int, _, _, _ = guide.causal_flow.backward(z_int)
       
       with torch.no_grad():
-        #z_int = guide.causal_flow.counterfactuals(z_noise.detach(), z_scm.detach())        
-        x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
+        #x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
+        x_int, _ = guide.scene_decoder(z_int)
         x_int = torch.clamp(x_int, 0., 1.)
 
       _, _, z_causal_int = guide.encoder(x_int)
       z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim) 
       #z_noise_int_cons, _, _, _ = guide.causal_flow.backward(z_causal_int)
       with torch.no_grad():  
-        x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
+        #x_int_cons, _ = guide.scene_decoder(torch.flatten(z_causal_int, -2))
+        x_int_cons, _ = guide.scene_decoder(z_causal_int)
         
       # noise consistency 
 

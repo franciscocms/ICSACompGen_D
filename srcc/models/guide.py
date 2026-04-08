@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
 from srcc.main import params
-from srcc.models.architectures import SlotMLPAdditive, SlotMLPAdditiveDecoder, FullNoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, PriorMultivariateCausalFlow, CausalGaussianPrior, RobustEncoder
+from srcc.models.architectures import SlotMLPAdditiveDecoder, FullNoiseEncoder, CausalDecoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, PriorMultivariateCausalFlow, CausalGaussianPrior, RobustEncoder
 from srcc.models.slot_attention import SlotAttentionAutoEncoder, SlotAttentionEncoder, SlotAttentionDecoder
 from srcc.utils.loss import compute_matching_cost
 
@@ -49,45 +49,20 @@ class InvSlotAttentionGuide(nn.Module):
         self.slot_dim = self.L*self.ldim
         self.model_name = model_name
         self.cc = params["use_counterfactual_consistency"]
-
-        # if model_name == "slot_attention":
-        #     slot_encoder = SlotAttentionEncoder(resolution=params["resolution"],
-        #                                         hid_dim=self.slot_dim,
-        #                                         ch_dim=32)
-        #     slot_decoder = SlotAttentionDecoder(ch_dim=32,
-        #                                         hid_dim=self.slot_dim,
-        #                                         resolution=params["resolution"],
-        #                                         init_resolution=params["resolution"])
-        #     self.model = SlotAttentionAutoEncoder(encoder=slot_encoder,
-        #                                             decoder=slot_decoder,
-        #                                             num_slots=params["num_slots"],
-        #                                             num_iterations=3,
-        #                                             hid_dim=self.slot_dim,
-        #                                             init_resolution=params["resolution"],
-        #                                             softmax=True,
-        #                                             sampling=True)
-        # elif model_name == "additiveAE":
-        #     self.model = SlotMLPAdditive(in_channels=3,
-        #                                  n_slots=params["num_slots"],
-        #                                  n_slot_latents=self.slot_dim,
-        #                                  )
-        # else:
-        #     raise ValueError(f"{model_name} is not a valid model name!")
-
         
         self.noise_predictors = nn.ModuleDict()
         self.flatt_noise_predictor = nn.ModuleDict()
         
-        # self.encoder = FullNoiseEncoder(in_channels=3,
-        #                                 n_slots=params["num_slots"],
-        #                                 n_latents=self.L,
-        #                                 latent_dim=self.ldim,
-        #                                 stage=params["running_type"],
-        #                                 clamp_var=False)
+        self.encoder = FullNoiseEncoder(in_channels=3,
+                                        n_slots=params["num_slots"],
+                                        n_latents=self.L,
+                                        latent_dim=self.ldim,
+                                        stage=params["running_type"],
+                                        clamp_var=False)
 
-        self.encoder = RobustEncoder(n_slots=params["num_slots"],
-                                     n_latents=self.L,
-                                     latent_dim=self.ldim)
+        # self.encoder = RobustEncoder(n_slots=params["num_slots"],
+        #                              n_latents=self.L,
+        #                              latent_dim=self.ldim)
         
         # self.noise_encoders = nn.ModuleDict()
         for var_name in params["latent_vars"]:            
@@ -100,7 +75,8 @@ class InvSlotAttentionGuide(nn.Module):
         
         self.scene_decoder = SlotMLPAdditiveDecoder(in_channels=3,
                                                     n_slots=params["num_slots"],
-                                                    n_slot_latents=self.slot_dim
+                                                    #n_slot_latents=self.slot_dim
+                                                    n_slot_latents=self.ldim
                                                     )
 
         self.causal_flow = MultivariateCausalFlow(self.L,
@@ -162,11 +138,9 @@ class InvSlotAttentionGuide(nn.Module):
         
         # get noise and causal priors
         self.mu_noise_prior, self.logvar_noise_prior = self.noise_prior(aligned_u_m)
-        #self.prior_z = self.prior(aligned_u_m, z_scm)
-        
-        # slots = self.causal_decoder(z_scm)
-        # img_hat, recon_figures = self.scene_decoder(slots)
-        img_hat, recon_figures = self.scene_decoder(torch.flatten(z_scm, -2))
+
+        #img_hat, recon_figures = self.scene_decoder(torch.flatten(z_scm, -2))
+        img_hat, recon_figures = self.scene_decoder(z_scm)
 
         if params["running_type"] == "eval": 
             return mu_z, z_noise, z_scm, img_hat, recon_figures
