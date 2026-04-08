@@ -210,11 +210,11 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
 
         # Pass reshaped latents through decoder
         reshaped_figures = self.decoder(reshaped_latents)
-        logger.info(reshaped_figures.shape)
+        #logger.info(reshaped_figures.shape)
 
         # Reshape figures back to [batch_size, n_slots, ...]
         figures = reshaped_figures.view(
-            batch_size, n_slots, *reshaped_figures.shape[1:]
+            batch_size, n_slots, n_features, *reshaped_figures.shape[1:]
         ).sum(dim=2)
         # Sum over the n_slots dimension for image  
         image = figures.sum(dim=1)
