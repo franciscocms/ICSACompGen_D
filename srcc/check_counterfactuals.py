@@ -165,7 +165,7 @@ def main():
                 plt.close()
                 
                 
-                C = 0
+                C = 1
 
                 if C == 0:
 
