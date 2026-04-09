@@ -219,9 +219,12 @@ def main():
                                             z2.unsqueeze(-2),
                                             z3.unsqueeze(-2)), dim=-2)
 
-                x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
+                #x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
+                x_int, _ = guide.scene_decoder(z_int)
                 x_int = torch.clamp(x_int, 0., 1.)
                 _, _, z_causal_int = guide.encoder(x_int)
+                
+                z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim)
                 x_int_cons, _ = guide.scene_decoder(z_causal_int)
                 
                 fig, ax = plt.subplots(4, 4)
@@ -283,9 +286,11 @@ def main():
                 plt.close()
 
                    
-                x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
+                #x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
+                x_int, _ = guide.scene_decoder(z_int)
                 x_int = torch.clamp(x_int, 0., 1.)
                 _, _, z_causal_int = guide.encoder(x_int)
+                z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim)
                 x_int_cons, _ = guide.scene_decoder(z_causal_int)
 
 
