@@ -117,10 +117,10 @@ def main():
         u_color = torch.flatten(targets[:, :, 1], 0, 1).cpu().numpy()
         mse = mse.repeat_interleave(params["num_slots"])
         
-        scatter = ax_m.scatter(u_scale, u_color, s=5, c=mse.cpu().numpy(), alpha=0.5, cmap="Wistia", vmin=0., vmax=mse.cpu().numpy().max())
+        scatter = ax_m.scatter(u_scale, u_color, s=10, c=mse.cpu().numpy(), alpha=0.5, cmap="BuPu", vmin=0., vmax=mse.cpu().numpy().max())
         if OOD_EVAL: cb = figure.colorbar(scatter, ax=ax_m)
         
-        save_recons = False
+        save_recons = True
         if save_recons:
             n_figures = 5
             assert img.size(0) >= n_figures
