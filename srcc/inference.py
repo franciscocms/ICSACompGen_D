@@ -77,7 +77,7 @@ def main():
     for p in guide.parameters():
         p.requires_grad = False
 
-    # figure, ax_m = plt.subplots()
+    figure, ax_m = plt.subplots()
     
     for OOD_EVAL in [False, True]:
 
@@ -117,8 +117,8 @@ def main():
         u_color = torch.flatten(targets[:, :, 1], 0, 1).cpu().numpy()
         mse = mse.repeat_interleave(params["num_slots"])
         
-        # scatter = ax_m.scatter(u_scale, u_color, s=2, c=mse.cpu().numpy(), cmap="Wistia", vmin=0., vmax=0.05)
-        # if OOD_EVAL: cb = figure.colorbar(scatter, ax=ax_m)
+        scatter = ax_m.scatter(u_scale, u_color, s=5, c=mse.cpu().numpy(), alpha=0.5, cmap="Wistia", vmin=0., vmax=mse.cpu().numpy().max())
+        if OOD_EVAL: cb = figure.colorbar(scatter, ax=ax_m)
         
         save_recons = True
         if save_recons:
@@ -203,8 +203,8 @@ def main():
                 if i == 1: break
     
     
-    # plt.savefig(f"{params['check_attn_folder']}/mse.png")
-    # plt.close()    
+    plt.savefig(f"{params['check_attn_folder']}/mse.png")
+    plt.close()    
 
 if __name__ == '__main__':
     main()
