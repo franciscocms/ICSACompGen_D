@@ -7,9 +7,9 @@ import shutil
 import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
-from src.utils.generate import render, norm
-from src.main import params
-from src.datasets.data_utils import sample_identifiable_bounded_, sample_ood, sample_id_linear, sample_ood_linear
+from srcc.utils.generate import render, norm
+from srcc.main import params
+from srcc.datasets.data_utils import sample_identifiable_bounded_, sample_ood, sample_id_linear, sample_ood_linear
 
 import logging
 logfile_name = f"generate.log"
