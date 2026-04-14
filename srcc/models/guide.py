@@ -133,7 +133,7 @@ class InvSlotAttentionGuide(nn.Module):
         z_scm = z_scm.reshape(z_scm.size(0), z_scm.size(1), self.L, self.ldim)       
         
         # causal flow backward
-        z_noise, ss, ts, log_det = self.causal_flow.backward(z_scm)
+        z_noise, ss, ts, log_det = self.causal_flow.backward(z_scm, no_flow=True)
         self.ss, self.ts, self.log_det = ss, ts, log_det       
         
         # get noise and causal priors

@@ -704,9 +704,15 @@ class MultivariateCausalFlow(nn.Module):
         return self.z_int, self.flag
         
  
-    def backward(self, z, flag=None):
+    def backward(self, z, flag=None, no_flow=False):
 
         B, N, _, d = z.shape
+        
+        if no_flow:
+            ss = torch.zeros_like(z)
+            ts = torch.zeros_like(z)
+            log_det = 0.
+            return z, ss, ts, log_det
 
         if flag == None:
             s0 = self.s_base.expand(B, N, -1)
