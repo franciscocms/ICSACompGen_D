@@ -94,6 +94,7 @@ def main():
         all_img = torch.tensor([])
         all_img_hat = torch.tensor([])
         recon_loss = 0.  
+        r2 = []
         with torch.no_grad():
             for i, (img, target) in enumerate(dataloader):
                 img = img.to(device)
@@ -111,7 +112,14 @@ def main():
         #logger.info(z_noise.shape) # [B, N, L, d] -> B = 5k
         logger.info(targets.shape)
         logger.info(f"MSE: {recon_loss / (i+1)}")
-        logger.info(f"recon r2: {r2_score(all_img.cpu().numpy().flatten(), all_img_hat.cpu().numpy().flatten())}")
+        
+        for b in range(all_img.size(0)):
+            r2.append(r2_score(all_img[b].cpu().numpy(), all_img_hat[b].cpu().numpy()))
+
+        
+        #logger.info(f"recon r2: {r2_score(all_img.cpu().numpy().flatten(), all_img_hat.cpu().numpy().flatten())}")
+        r2 = np.array(r2)
+        logger.info(f"recon r2: {r2.mean()} - {r2.std()}")
         
         u_scale = torch.flatten(targets[:, :, 0], 0, 1).cpu().numpy()
         u_color = torch.flatten(targets[:, :, 1], 0, 1).cpu().numpy()
