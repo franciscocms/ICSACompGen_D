@@ -114,7 +114,7 @@ def main():
         logger.info(f"MSE: {recon_loss / (i+1)}")
         
         for b in range(all_img.size(0)):
-            r2.append(r2_score(all_img[b].cpu().numpy(), all_img_hat[b].cpu().numpy()))
+            r2.append(r2_score(all_img[b].cpu().numpy().flatten(), all_img_hat[b].cpu().numpy().flatten()))
 
         
         #logger.info(f"recon r2: {r2_score(all_img.cpu().numpy().flatten(), all_img_hat.cpu().numpy().flatten())}")
