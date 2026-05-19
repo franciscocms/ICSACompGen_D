@@ -214,8 +214,7 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         decoder = nn.Sequential(*module_list)
         return decoder
 
-    def sbd(self, zi):
-        B, N = params["batch_size"], params["num_slots"]
+    def sbd(self, zi, B, N):
         zi = zi.view(zi.squeeze().shape + (1, 1))
         zi = zi.expand((-1, -1, params["resolution"][0], params["resolution"][1]))
         x = torch.linspace(-1, 1, params["resolution"][0]).to(device)
@@ -237,10 +236,10 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         H, W = params["resolution"]
         
         z1, z2, z3, z4 = torch.split(reshaped_latents, 1, 1)
-        z1 = self.sbd(z1)
-        z2 = self.sbd(z2)
-        z3 = self.sbd(z3)
-        z4 = self.sbd(z4)
+        z1 = self.sbd(z1, batch_size, n_slots)
+        z2 = self.sbd(z2, batch_size, n_slots)
+        z3 = self.sbd(z3, batch_size, n_slots)
+        z4 = self.sbd(z4, batch_size, n_slots)
 
         # Pass reshaped latents through decoder
         reshaped_figures = self.z1_decoder(z1) + self.z2_decoder(z2) + self.z3_decoder(z3) + self.z4_decoder(z4)
