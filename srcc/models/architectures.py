@@ -242,7 +242,7 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         z4 = self.sbd(z4, batch_size, n_slots)
 
         # Pass reshaped latents through decoder
-        reshaped_figures = self.z1_decoder(z1) + self.z2_decoder(z2) + self.z3_decoder(z3) + self.z4_decoder(z4)
+        reshaped_figures = self.z1_decoder(z1) * self.z2_decoder(z2) * self.z3_decoder(z3) * self.z4_decoder(z4)
         #logger.info(reshaped_figures.shape)
 
         # Reshape figures back to [batch_size, n_slots, ...]
