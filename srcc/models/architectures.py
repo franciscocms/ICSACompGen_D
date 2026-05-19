@@ -218,8 +218,8 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         B, N = params["batch_size"], params["num_slots"]
         zi = zi.view(zi.squeeze().shape + (1, 1))
         zi = zi.expand((-1, -1, params["resolution"][0], params["resolution"][1]))
-        x = torch.linspace(-1, 1, params["resolution"][0])
-        y = torch.linspace(-1, 1, params["resolution"][1])
+        x = torch.linspace(-1, 1, params["resolution"][0]).to(device)
+        y = torch.linspace(-1, 1, params["resolution"][1]).to(device)
         x_grid, y_grid = torch.meshgrid(x, y)
         x_grid = x_grid.view((1, 1) + x_grid.shape)
         y_grid = y_grid.view((1, 1) + y_grid.shape)
