@@ -952,7 +952,7 @@ class ConditionalGaussianPrior(nn.Module):
         B, N, _ = labels.shape
         means, logvars = [], []
         for i in range(self.L):
-            u_freq = torch.cat((labels[:, :, i].unsqueeze(-1), torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
+            #u_freq = torch.cat((labels[:, :, i].unsqueeze(-1), torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
             out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
             #out = self.net[str(i)](u_freq)
             
