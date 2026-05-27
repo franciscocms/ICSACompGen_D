@@ -183,6 +183,82 @@ class CompositionalObjectDecoder(nn.Module):
         return out.view(-1, 3, self.img_size, self.img_size)
 
 
+class ConvDecoder(nn.Module):
+    def __init__(self, latent_dim=4):
+        super().__init__()
+
+        self.net = nn.Sequential(
+            # B x 4
+            nn.Linear(latent_dim, 256),
+            nn.ELU(),
+
+            nn.Linear(256, 512),
+            nn.ELU(),
+
+            nn.Linear(512, 1024),
+            nn.ELU(),
+
+            # Project into feature map
+            nn.Linear(1024, 256 * 8 * 8),
+            nn.ELU()
+        )
+
+        self.conv_net = nn.Sequential(
+            # B x 256 x 8 x 8
+
+            nn.ConvTranspose2d(
+                256, 128,
+                kernel_size=4,
+                stride=2,
+                padding=1
+            ),
+            nn.ELU(),
+
+            # B x 128 x 16 x 16
+
+            nn.ConvTranspose2d(
+                128, 64,
+                kernel_size=4,
+                stride=2,
+                padding=1
+            ),
+            nn.ELU(),
+
+            # B x 64 x 32 x 32
+
+            nn.ConvTranspose2d(
+                64, 32,
+                kernel_size=4,
+                stride=2,
+                padding=1
+            ),
+            nn.ELU(),
+
+            # B x 32 x 64 x 64
+
+            nn.Conv2d(
+                32, 3,
+                kernel_size=3,
+                padding=1
+            ),
+
+            nn.Sigmoid()
+        )
+
+    def forward(self, z):
+        """
+        z: Tensor of shape (B, 4)
+        """
+
+        x = self.net(z)
+
+        # reshape into spatial feature map
+        x = x.view(-1, 256, 8, 8)
+
+        x = self.conv_net(x)
+
+        return x
+
 class SlotMLPAdditiveDecoder(torch.nn.Module):
     def __init__(
         self,
@@ -194,10 +270,10 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         self.n_slots = n_slots
         self.n_slot_latents = n_slot_latents
         
-        self.z1_decoder = self.build_decoder(6, 3)
-        self.z2_decoder = self.build_decoder(6, 3)
-        self.z3_decoder = self.build_decoder(6, 1)
-        self.z4_decoder = self.build_decoder(6, 1)
+        self.z1_decoder = ConvDecoder()
+        self.z2_decoder = ConvDecoder()
+        self.z3_decoder = ConvDecoder()
+        self.z4_decoder = ConvDecoder()
         
         self.model_name = "SlotMLPAdditiveDecoder"
 
@@ -236,13 +312,13 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         H, W = params["resolution"]
         
         z1, z2, z3, z4 = torch.split(reshaped_latents, 1, 1)
-        z1 = self.sbd(z1, batch_size, n_slots)
-        z2 = self.sbd(z2, batch_size, n_slots)
-        z3 = self.sbd(z3, batch_size, n_slots)
-        z4 = self.sbd(z4, batch_size, n_slots)
+        # z1 = self.sbd(z1, batch_size, n_slots)
+        # z2 = self.sbd(z2, batch_size, n_slots)
+        # z3 = self.sbd(z3, batch_size, n_slots)
+        # z4 = self.sbd(z4, batch_size, n_slots)
 
         # Pass reshaped latents through decoder
-        reshaped_figures = self.z1_decoder(z1) * self.z2_decoder(z2) * self.z3_decoder(z3) * self.z4_decoder(z4)
+        reshaped_figures = self.z1_decoder(z1.squeeze()) * self.z2_decoder(z2.squeeze()) * self.z3_decoder(z3.squeeze()) * self.z4_decoder(z4.squeeze())
         #logger.info(reshaped_figures.shape)
 
         # Reshape figures back to [batch_size, n_slots, ...]
