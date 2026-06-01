@@ -139,8 +139,8 @@ class InvSlotAttentionGuide(nn.Module):
         # get noise and causal priors
         self.mu_noise_prior, self.logvar_noise_prior = self.noise_prior(aligned_u_m)
 
-        #img_hat, recon_figures = self.scene_decoder(torch.flatten(z_scm, -2))
-        img_hat, recon_figures = self.scene_decoder(z_scm)
+        #img_hat, recon_figures = self.scene_decoder(z_scm)
+        img_hat, recon_figures = self.scene_decoder(z_noise)
 
         if params["running_type"] == "eval": 
             return mu_z, z_noise, z_scm, img_hat, recon_figures

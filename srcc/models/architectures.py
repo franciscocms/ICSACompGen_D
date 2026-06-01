@@ -816,6 +816,10 @@ class MultivariateCausalFlow(nn.Module):
                                     z1_int.unsqueeze(-2),
                                     z2.unsqueeze(-2),
                                     z3.unsqueeze(-2)), dim=-2)
+            
+            eps0_int = (z0_int - self.t_base.expand(B, N, -1)) * torch.exp(-self.s_base.expand(B, N, -1))
+            self.eps_int = torch.cat((eps0_int, eps[:, :, 1:]), dim=-2)
+
         elif self.flag == 1:
             z1_perm, self.perm = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
             z1_perm = z1_perm.view(B, N, -1)
@@ -832,7 +836,9 @@ class MultivariateCausalFlow(nn.Module):
                                     z1_int.unsqueeze(-2),
                                     z2.unsqueeze(-2),
                                     z3.unsqueeze(-2)), dim=-2)
-
+            
+            eps1_int = (z1_int - self.t_cond(z1)*self.shift_gain) * torch.exp(-self.s_cond(z1) * self.scale_gain)
+            self.eps_int = torch.cat((eps[:, :, 0], eps1_int, eps[:, :, 2:]), dim=-2)
 
         elif self.flag == 2:
             z2_int, self.perm = permute_dims(torch.flatten(z2, 0, 1), z2.size(-1))
@@ -841,6 +847,8 @@ class MultivariateCausalFlow(nn.Module):
                                     z1.unsqueeze(-2),
                                     z2_int.unsqueeze(-2),
                                     z3.unsqueeze(-2)), dim=-2)
+            eps2_int = (z2_int - self.t2_base.expand(B, N, -1)) * torch.exp(-self.s2_base.expand(B, N, -1))
+            self.eps_int = torch.cat((eps[:, :, :2], eps2_int, eps[:, :, -1]), dim=-2)
         
         elif self.flag == 3:
             z3_int, self.perm = permute_dims(torch.flatten(z3, 0, 1), z3.size(-1))
@@ -849,7 +857,10 @@ class MultivariateCausalFlow(nn.Module):
                                     z1.unsqueeze(-2),
                                     z2.unsqueeze(-2),
                                     z3_int.unsqueeze(-2)), dim=-2)
-        return self.z_int, self.flag
+            eps3_int = (z3_int - self.t3_base.expand(B, N, -1)) * torch.exp(-self.s3_base.expand(B, N, -1))
+            self.eps_int = torch.cat((eps[:, :, :3], eps3_int), dim=-2)
+        
+        return self.z_int, self.eps_int, self.flag
         
  
     def backward(self, z, flag=None, no_flow=False):
