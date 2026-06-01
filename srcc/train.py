@@ -266,7 +266,11 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       # norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
       # norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8)
 
-      consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
+      try:
+        consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
+      except:
+        logger.info(z_causal_int)
+        logger.info(z_int)
       #consistency_loss += hungarian_latents_consistency(eps_int_cons, eps_int)
       batch_loss += kl_beta * 0.1 * consistency_loss
     else:
