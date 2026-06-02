@@ -9,8 +9,8 @@ from typing import Any, Dict
 import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
-from src.main import params
-from src.utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape
+from srcc.main import params
+from srcc.utils.guide import minimize_entropy_of_sinkhorn, sinkhorn, assert_shape
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 

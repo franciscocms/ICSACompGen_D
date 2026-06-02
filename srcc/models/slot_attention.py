@@ -7,14 +7,14 @@ from typing import Any, Dict
 import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
-from src.main import params
+from srcc.main import params
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 import logging
 logger = logging.getLogger(params["running_type"])
 
-from src.utils.guide import sample_z_from_latents
+from srcc.utils.guide import sample_z_from_latents
 
 class SlotAttentionAutoEncoder(nn.Module):
     def __init__(

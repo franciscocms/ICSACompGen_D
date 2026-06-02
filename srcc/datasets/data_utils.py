@@ -13,8 +13,8 @@ import numpy as np
 import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
-from src.main import params
-from src.utils.generate import norm
+from srcc.main import params
+from srcc.utils.generate import norm
 import logging
 logger = logging.getLogger(params["running_type"])
 
