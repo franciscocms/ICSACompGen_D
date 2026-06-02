@@ -791,7 +791,56 @@ class MultivariateCausalFlow(nn.Module):
 
         return z, ss, ts, log_det
 
-    
+    def intervention(self, eps, z, flag=None):
+        B, N, _, _ = z.shape
+
+        z0, z1, z2, z3 = torch.split(torch.flatten(z, -2), params["latent_dim"], -1)
+
+        self.flag = torch.distributions.Categorical(
+            torch.tensor([1/len(params["latent_vars"]) for _ in range(len(params["latent_vars"]))])
+            ).sample() if flag == None else flag
+        
+        # z1 is [B, N, d]
+        
+        if self.flag == 0:
+            z0_int, self.perm = permute_dims(torch.flatten(z0, 0, 1), z0.size(-1))
+            z0_int = z0_int.view(B, N, -1)
+            
+            s1_int = self.s_cond(z0_int) * self.scale_gain
+            t1_int = self.t_cond(z0_int) * self.shift_gain
+            z1_int = torch.exp(s1_int)*eps[:, :, 1, :] + t1_int
+
+            self.z_int = torch.cat((z0_int.unsqueeze(-2),
+                                    z1_int.unsqueeze(-2),
+                                    z2.unsqueeze(-2),
+                                    z3.unsqueeze(-2)), dim=-2)
+            
+        elif self.flag == 1:
+            z1_perm, self.perm = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
+            z1_int = z1_perm.view(B, N, -1)
+            self.z_int = torch.cat((z0.unsqueeze(-2),
+                                    z1_int.unsqueeze(-2),
+                                    z2.unsqueeze(-2),
+                                    z3.unsqueeze(-2)), dim=-2)
+        
+        elif self.flag == 2:
+            z2_perm, self.perm = permute_dims(torch.flatten(z2, 0, 1), z2.size(-1))
+            z2_int = z2_perm.view(B, N, -1)
+            self.z_int = torch.cat((z0.unsqueeze(-2),
+                                    z1.unsqueeze(-2),
+                                    z2_int.unsqueeze(-2),
+                                    z3.unsqueeze(-2)), dim=-2)
+        
+        elif self.flag == 3:
+            z3_perm, self.perm = permute_dims(torch.flatten(z3, 0, 1), z2.size(-1))
+            z3_int = z3_perm.view(B, N, -1)
+            self.z_int = torch.cat((z0.unsqueeze(-2),
+                                    z1.unsqueeze(-2),
+                                    z2.unsqueeze(-2),
+                                    z3_int.unsqueeze(-2)), dim=-2)
+        
+        return self.z_int, self.flag
+
     def counterfactuals(self, eps, z, flag=None):
             
         B, N, _, _ = z.shape

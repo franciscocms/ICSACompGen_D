@@ -232,19 +232,20 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
       consistency_loss = 0.
       
-      z_int, eps_int, flag = guide.causal_flow.counterfactuals(z_noise, z_scm)
+      #z_int, eps_int, flag = guide.causal_flow.counterfactuals(z_noise, z_scm)
+      z_int, flag = guide.causal_flow.intervention(z_noise, z_scm)
       
       with torch.no_grad():
-        #x_int, _ = guide.scene_decoder(z_int)
-        x_int, _ = guide.scene_decoder(eps_int)
+        x_int, _ = guide.scene_decoder(z_int)
+        #x_int, _ = guide.scene_decoder(eps_int)
         x_int = torch.clamp(x_int, 0., 1.)
 
       _, _, z_causal_int = guide.encoder(x_int)
       z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim) 
-      eps_int_cons, _, _, _ = guide.causal_flow.backward(z_causal_int)
+      #eps_int_cons, _, _, _ = guide.causal_flow.backward(z_causal_int)
       with torch.no_grad():  
-        #x_int_cons, _ = guide.scene_decoder(z_causal_int)
-        x_int_cons, _ = guide.scene_decoder(eps_int_cons)
+        x_int_cons, _ = guide.scene_decoder(z_causal_int)
+        #x_int_cons, _ = guide.scene_decoder(eps_int_cons)
         
       # noise consistency 
 
@@ -266,11 +267,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       # norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
       # norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8)
 
-      try:
-        consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
-      except:
-        logger.info(z_causal_int)
-        logger.info(z_int)
+      consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
       #consistency_loss += hungarian_latents_consistency(eps_int_cons, eps_int)
       batch_loss += kl_beta * 0.1 * consistency_loss
     else:
