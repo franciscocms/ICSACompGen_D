@@ -335,43 +335,43 @@ uncomment if to use the multiplicative decoder with SBD inspiration for each f_a
 f(z) = f_app(z_color) + f_geom(z_geom), where z_geom = cat(z_scale, z_x, z_y)
 """
 
-class SlotMLPAdditiveDecoder(torch.nn.Module):
-    def __init__(
-        self,
-        in_channels: int,
-        n_slots: int,
-        n_slot_latents: int,
-    ) -> None:
-        super(SlotMLPAdditiveDecoder, self).__init__()
-        self.n_slots = n_slots
-        self.n_slot_latents = n_slot_latents
+# class SlotMLPAdditiveDecoder(torch.nn.Module):
+#     def __init__(
+#         self,
+#         in_channels: int,
+#         n_slots: int,
+#         n_slot_latents: int,
+#     ) -> None:
+#         super(SlotMLPAdditiveDecoder, self).__init__()
+#         self.n_slots = n_slots
+#         self.n_slot_latents = n_slot_latents
         
-        self.app_decoder = nn.Sequential(
-            nn.Conv2d(6, 64, kernel_size=3, padding=1),
-            nn.ELU(),
-            nn.Conv2d(64, 64, kernel_size=3, padding=1),
-            nn.ELU(),
-            nn.Conv2d(64, 3, kernel_size=3, padding=1)
-        )
+#         self.app_decoder = nn.Sequential(
+#             nn.Conv2d(6, 64, kernel_size=3, padding=1),
+#             nn.ELU(),
+#             nn.Conv2d(64, 64, kernel_size=3, padding=1),
+#             nn.ELU(),
+#             nn.Conv2d(64, 3, kernel_size=3, padding=1)
+#         )
         
-        self.geom_scale_decoder = nn.Sequential(
-            nn.Conv2d(6, 64, kernel_size=3, padding=1),
-            nn.ELU(),
-            nn.Conv2d(64, 64, kernel_size=3, padding=1),
-            nn.ELU(),
-            nn.Conv2d(64, 1, kernel_size=3, padding=1),
-        )
+#         self.geom_scale_decoder = nn.Sequential(
+#             nn.Conv2d(6, 64, kernel_size=3, padding=1),
+#             nn.ELU(),
+#             nn.Conv2d(64, 64, kernel_size=3, padding=1),
+#             nn.ELU(),
+#             nn.Conv2d(64, 1, kernel_size=3, padding=1),
+#         )
 
-        self.geom_pos_decoder = nn.Sequential(
-            nn.Conv2d(10, 64, kernel_size=3, padding=1),
-            nn.ELU(),
-            nn.Conv2d(64, 64, kernel_size=3, padding=1),
-            nn.ELU(),
-            nn.Conv2d(64, 1, kernel_size=3, padding=1),
-            nn.Sigmoid()
-        )
+#         self.geom_pos_decoder = nn.Sequential(
+#             nn.Conv2d(10, 64, kernel_size=3, padding=1),
+#             nn.ELU(),
+#             nn.Conv2d(64, 64, kernel_size=3, padding=1),
+#             nn.ELU(),
+#             nn.Conv2d(64, 1, kernel_size=3, padding=1),
+#             nn.Sigmoid()
+#         )
 
-        self.model_name = "SlotMLPAdditiveDecoder"
+#         self.model_name = "SlotMLPAdditiveDecoder"
 
     # def forward(self, latents):
     #     # Reshape latents from [batch_size, n_slots, features] to [batch_size*n_slots, features]
