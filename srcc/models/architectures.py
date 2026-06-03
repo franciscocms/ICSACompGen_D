@@ -259,76 +259,76 @@ class ConvDecoder(nn.Module):
 
         return x
 
-# class SlotMLPAdditiveDecoder(torch.nn.Module):
-#     def __init__(
-#         self,
-#         in_channels: int,
-#         n_slots: int,
-#         n_slot_latents: int,
-#     ) -> None:
-#         super(SlotMLPAdditiveDecoder, self).__init__()
-#         self.n_slots = n_slots
-#         self.n_slot_latents = n_slot_latents
+class SlotMLPAdditiveDecoder(torch.nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        n_slots: int,
+        n_slot_latents: int,
+    ) -> None:
+        super(SlotMLPAdditiveDecoder, self).__init__()
+        self.n_slots = n_slots
+        self.n_slot_latents = n_slot_latents
         
-#         self.z1_decoder = ConvDecoder()
-#         self.z2_decoder = ConvDecoder()
-#         self.z3_decoder = ConvDecoder()
-#         self.z4_decoder = ConvDecoder()
+        self.z1_decoder = ConvDecoder()
+        self.z2_decoder = ConvDecoder()
+        self.z3_decoder = ConvDecoder()
+        self.z4_decoder = ConvDecoder()
         
-#         self.model_name = "SlotMLPAdditiveDecoder"
+        self.model_name = "SlotMLPAdditiveDecoder"
 
-#     def build_decoder(self, in_channels, out_channels):
-#         module_list = [
-#             nn.Conv2d(in_channels, 64, kernel_size=3, padding=1),
-#             nn.ELU(),
-#             nn.Conv2d(64, 64, kernel_size=3, padding=1),
-#             nn.ELU(),
-#             nn.Conv2d(64, out_channels, kernel_size=3, padding=1)       
-#         ]
-#         if out_channels == 1:
-#             module_list.append(nn.Sigmoid())
-#         decoder = nn.Sequential(*module_list)
-#         return decoder
+    def build_decoder(self, in_channels, out_channels):
+        module_list = [
+            nn.Conv2d(in_channels, 64, kernel_size=3, padding=1),
+            nn.ELU(),
+            nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            nn.ELU(),
+            nn.Conv2d(64, out_channels, kernel_size=3, padding=1)       
+        ]
+        if out_channels == 1:
+            module_list.append(nn.Sigmoid())
+        decoder = nn.Sequential(*module_list)
+        return decoder
 
-#     def sbd(self, zi, B, N):
-#         zi = zi.view(zi.squeeze().shape + (1, 1))
-#         zi = zi.expand((-1, -1, params["resolution"][0], params["resolution"][1]))
-#         x = torch.linspace(-1, 1, params["resolution"][0]).to(device)
-#         y = torch.linspace(-1, 1, params["resolution"][1]).to(device)
-#         x_grid, y_grid = torch.meshgrid(x, y)
-#         x_grid = x_grid.view((1, 1) + x_grid.shape)
-#         y_grid = y_grid.view((1, 1) + y_grid.shape)
-#         zi_grid = torch.cat((x_grid.expand(B*N, -1, -1, -1),
-#                             y_grid.expand(B*N, -1, -1, -1), zi), dim=1)
-#         return zi_grid
+    def sbd(self, zi, B, N):
+        zi = zi.view(zi.squeeze().shape + (1, 1))
+        zi = zi.expand((-1, -1, params["resolution"][0], params["resolution"][1]))
+        x = torch.linspace(-1, 1, params["resolution"][0]).to(device)
+        y = torch.linspace(-1, 1, params["resolution"][1]).to(device)
+        x_grid, y_grid = torch.meshgrid(x, y)
+        x_grid = x_grid.view((1, 1) + x_grid.shape)
+        y_grid = y_grid.view((1, 1) + y_grid.shape)
+        zi_grid = torch.cat((x_grid.expand(B*N, -1, -1, -1),
+                            y_grid.expand(B*N, -1, -1, -1), zi), dim=1)
+        return zi_grid
 
-#     def forward(self, latents):
-#         # Reshape latents from [batch_size, n_slots, features] to [batch_size*n_slots, features]
-#         # batch_size, n_slots, features = latents.size()
-#         # reshaped_latents = latents.view(batch_size * n_slots, features)
-#         batch_size, n_slots, n_features, features = latents.size()
-#         reshaped_latents = latents.view(batch_size * n_slots, n_features, features)
+    def forward(self, latents):
+        # Reshape latents from [batch_size, n_slots, features] to [batch_size*n_slots, features]
+        # batch_size, n_slots, features = latents.size()
+        # reshaped_latents = latents.view(batch_size * n_slots, features)
+        batch_size, n_slots, n_features, features = latents.size()
+        reshaped_latents = latents.view(batch_size * n_slots, n_features, features)
 
-#         H, W = params["resolution"]
+        H, W = params["resolution"]
         
-#         z1, z2, z3, z4 = torch.split(reshaped_latents, 1, 1)
-#         # z1 = self.sbd(z1, batch_size, n_slots)
-#         # z2 = self.sbd(z2, batch_size, n_slots)
-#         # z3 = self.sbd(z3, batch_size, n_slots)
-#         # z4 = self.sbd(z4, batch_size, n_slots)
+        z1, z2, z3, z4 = torch.split(reshaped_latents, 1, 1)
+        # z1 = self.sbd(z1, batch_size, n_slots)
+        # z2 = self.sbd(z2, batch_size, n_slots)
+        # z3 = self.sbd(z3, batch_size, n_slots)
+        # z4 = self.sbd(z4, batch_size, n_slots)
 
-#         # Pass reshaped latents through decoder
-#         reshaped_figures = self.z1_decoder(z1.squeeze()) * self.z2_decoder(z2.squeeze()) * self.z3_decoder(z3.squeeze()) * self.z4_decoder(z4.squeeze())
-#         #logger.info(reshaped_figures.shape)
+        # Pass reshaped latents through decoder
+        reshaped_figures = self.z1_decoder(z1.squeeze()) * self.z2_decoder(z2.squeeze()) * self.z3_decoder(z3.squeeze()) * self.z4_decoder(z4.squeeze())
+        #logger.info(reshaped_figures.shape)
 
-#         # Reshape figures back to [batch_size, n_slots, ...]
-#         figures = reshaped_figures.view(
-#             batch_size, n_slots, *reshaped_figures.shape[1:]
-#         )
-#         # Sum over the n_slots dimension for image  
-#         image = figures.sum(dim=1)
+        # Reshape figures back to [batch_size, n_slots, ...]
+        figures = reshaped_figures.view(
+            batch_size, n_slots, *reshaped_figures.shape[1:]
+        )
+        # Sum over the n_slots dimension for image  
+        image = figures.sum(dim=1)
 
-#         return image, figures
+        return image, figures
 
 """
 uncomment if to use the multiplicative decoder with SBD inspiration for each f_app and f_geom
@@ -373,53 +373,53 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
 
         self.model_name = "SlotMLPAdditiveDecoder"
 
-    def forward(self, latents):
-        # Reshape latents from [batch_size, n_slots, features] to [batch_size*n_slots, features]
-        # batch_size, n_slots, features = latents.size()
-        # reshaped_latents = latents.view(batch_size * n_slots, features)
-        batch_size, n_slots, n_features, features = latents.size()
-        reshaped_latents = latents.view(batch_size * n_slots, n_features, features)
+    # def forward(self, latents):
+    #     # Reshape latents from [batch_size, n_slots, features] to [batch_size*n_slots, features]
+    #     # batch_size, n_slots, features = latents.size()
+    #     # reshaped_latents = latents.view(batch_size * n_slots, features)
+    #     batch_size, n_slots, n_features, features = latents.size()
+    #     reshaped_latents = latents.view(batch_size * n_slots, n_features, features)
 
-        H, W = params["resolution"]
+    #     H, W = params["resolution"]
         
-        z_app = reshaped_latents[:, 1]
-        z_geom_scale = reshaped_latents[:, 0]
-        z_geom_pos = torch.flatten(reshaped_latents[:, [2, 3]], -2)
+    #     z_app = reshaped_latents[:, 1]
+    #     z_geom_scale = reshaped_latents[:, 0]
+    #     z_geom_pos = torch.flatten(reshaped_latents[:, [2, 3]], -2)
 
-        z_app = z_app.view(z_app.shape + (1, 1))
-        z_geom_scale = z_geom_scale.view(z_geom_scale.shape + (1, 1))
-        z_geom_pos = z_geom_pos.view(z_geom_pos.shape + (1, 1))
+    #     z_app = z_app.view(z_app.shape + (1, 1))
+    #     z_geom_scale = z_geom_scale.view(z_geom_scale.shape + (1, 1))
+    #     z_geom_pos = z_geom_pos.view(z_geom_pos.shape + (1, 1))
 
-        z_app = z_app.expand((-1, -1, H, W))
-        z_geom_scale = z_geom_scale.expand((-1, -1, H, W))
-        z_geom_pos = z_geom_pos.expand((-1, -1, H, W))
+    #     z_app = z_app.expand((-1, -1, H, W))
+    #     z_geom_scale = z_geom_scale.expand((-1, -1, H, W))
+    #     z_geom_pos = z_geom_pos.expand((-1, -1, H, W))
 
-        x = torch.linspace(-1, 1, W).to(device)
-        y = torch.linspace(-1, 1, H).to(device)
-        x_grid, y_grid = torch.meshgrid(x, y)
-        x_grid = x_grid.view((1, 1) + x_grid.shape)
-        y_grid = y_grid.view((1, 1) + y_grid.shape)
+    #     x = torch.linspace(-1, 1, W).to(device)
+    #     y = torch.linspace(-1, 1, H).to(device)
+    #     x_grid, y_grid = torch.meshgrid(x, y)
+    #     x_grid = x_grid.view((1, 1) + x_grid.shape)
+    #     y_grid = y_grid.view((1, 1) + y_grid.shape)
 
-        z_app_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
-                                y_grid.expand(batch_size * n_slots, -1, -1, -1), z_app), dim=1)
+    #     z_app_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
+    #                             y_grid.expand(batch_size * n_slots, -1, -1, -1), z_app), dim=1)
 
-        z_geom_scale_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
-                                y_grid.expand(batch_size * n_slots, -1, -1, -1), z_geom_scale), dim=1)
-        z_geom_pos_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
-                                y_grid.expand(batch_size * n_slots, -1, -1, -1), z_geom_pos), dim=1)
+    #     z_geom_scale_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
+    #                             y_grid.expand(batch_size * n_slots, -1, -1, -1), z_geom_scale), dim=1)
+    #     z_geom_pos_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
+    #                             y_grid.expand(batch_size * n_slots, -1, -1, -1), z_geom_pos), dim=1)
 
-        # Pass reshaped latents through decoder
-        reshaped_figures = self.app_decoder(z_app_grid) * self.geom_scale_decoder(z_geom_scale_grid) * self.geom_pos_decoder(z_geom_pos_grid)
-        #logger.info(reshaped_figures.shape)
+    #     # Pass reshaped latents through decoder
+    #     reshaped_figures = self.app_decoder(z_app_grid) * self.geom_scale_decoder(z_geom_scale_grid) * self.geom_pos_decoder(z_geom_pos_grid)
+    #     #logger.info(reshaped_figures.shape)
 
-        # Reshape figures back to [batch_size, n_slots, ...]
-        figures = reshaped_figures.view(
-            batch_size, n_slots, *reshaped_figures.shape[1:]
-        )
-        # Sum over the n_slots dimension for image  
-        image = figures.sum(dim=1)
+    #     # Reshape figures back to [batch_size, n_slots, ...]
+    #     figures = reshaped_figures.view(
+    #         batch_size, n_slots, *reshaped_figures.shape[1:]
+    #     )
+    #     # Sum over the n_slots dimension for image  
+    #     image = figures.sum(dim=1)
 
-        return image, figures
+    #     return image, figures
 
 
 """
