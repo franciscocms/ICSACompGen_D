@@ -354,14 +354,23 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
             nn.Conv2d(64, 3, kernel_size=3, padding=1)
         )
         
-        self.geom_decoder = nn.Sequential(
-            nn.Conv2d(14, 64, kernel_size=3, padding=1),
+        self.geom_scale_decoder = nn.Sequential(
+            nn.Conv2d(6, 64, kernel_size=3, padding=1),
+            nn.ELU(),
+            nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            nn.ELU(),
+            nn.Conv2d(64, 1, kernel_size=3, padding=1),
+        )
+
+        self.geom_pos_decoder = nn.Sequential(
+            nn.Conv2d(10, 64, kernel_size=3, padding=1),
             nn.ELU(),
             nn.Conv2d(64, 64, kernel_size=3, padding=1),
             nn.ELU(),
             nn.Conv2d(64, 1, kernel_size=3, padding=1),
             nn.Sigmoid()
         )
+
         self.model_name = "SlotMLPAdditiveDecoder"
 
     def forward(self, latents):
@@ -374,13 +383,16 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         H, W = params["resolution"]
         
         z_app = reshaped_latents[:, 1]
-        z_geom = torch.flatten(reshaped_latents[:, [0, 2, 3]], -2)
+        z_geom_scale = reshaped_latents[:, 0]
+        z_geom_pos = torch.flatten(reshaped_latents[:, [2, 3]], -2)
 
         z_app = z_app.view(z_app.shape + (1, 1))
-        z_geom = z_geom.view(z_geom.shape + (1, 1))
+        z_geom_scale = z_geom_scale.view(z_geom_scale.shape + (1, 1))
+        z_geom_pos = z_geom_pos.view(z_geom_pos.shape + (1, 1))
 
         z_app = z_app.expand((-1, -1, H, W))
-        z_geom = z_geom.expand((-1, -1, H, W))
+        z_geom_scale = z_geom_scale.expand((-1, -1, H, W))
+        z_geom_pos = z_geom_pos.expand((-1, -1, H, W))
 
         x = torch.linspace(-1, 1, W).to(device)
         y = torch.linspace(-1, 1, H).to(device)
@@ -391,11 +403,13 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         z_app_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
                                 y_grid.expand(batch_size * n_slots, -1, -1, -1), z_app), dim=1)
 
-        z_geom_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
-                                y_grid.expand(batch_size * n_slots, -1, -1, -1), z_geom), dim=1)
+        z_geom_scale_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
+                                y_grid.expand(batch_size * n_slots, -1, -1, -1), z_geom_scale), dim=1)
+        z_geom_pos_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
+                                y_grid.expand(batch_size * n_slots, -1, -1, -1), z_geom_pos), dim=1)
 
         # Pass reshaped latents through decoder
-        reshaped_figures = self.app_decoder(z_app_grid) * self.geom_decoder(z_geom_grid)
+        reshaped_figures = self.app_decoder(z_app_grid) * self.geom_scale_decoder(z_geom_scale_grid) * self.geom_pos_decoder(z_geom_pos_grid)
         #logger.info(reshaped_figures.shape)
 
         # Reshape figures back to [batch_size, n_slots, ...]
