@@ -233,7 +233,10 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       consistency_loss = 0.
       
       #z_int, eps_int, flag = guide.causal_flow.counterfactuals(z_noise, z_scm)
-      z_int, flag = guide.causal_flow.intervention(z_noise, z_scm, flag = 1)
+      int_flag = torch.distributions.Categorical(
+        torch.tensor([1/2 for _ in range(2)])
+        ).sample()
+      z_int, flag = guide.causal_flow.intervention(z_noise, z_scm, flag = int_flag)
       
       with torch.no_grad():
         x_int, _ = guide.scene_decoder(z_int)
