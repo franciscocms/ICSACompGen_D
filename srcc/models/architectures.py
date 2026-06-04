@@ -242,7 +242,7 @@ class ConvDecoder(nn.Module):
                 padding=1
             ),
 
-            nn.Sigmoid()
+            #nn.Sigmoid()
         )
 
     def forward(self, z):
@@ -318,7 +318,7 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         # z4 = self.sbd(z4, batch_size, n_slots)
 
         # Pass reshaped latents through decoder
-        reshaped_figures = self.z1_decoder(z1.squeeze()) * self.z2_decoder(z2.squeeze()) * self.z3_decoder(z3.squeeze()) * self.z4_decoder(z4.squeeze())
+        reshaped_figures = (self.z1_decoder(z1.squeeze()) + self.z2_decoder(z2.squeeze()) + self.z3_decoder(z3.squeeze()) + self.z4_decoder(z4.squeeze())) / 4
         #logger.info(reshaped_figures.shape)
 
         # Reshape figures back to [batch_size, n_slots, ...]
