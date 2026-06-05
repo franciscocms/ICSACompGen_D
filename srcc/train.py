@@ -224,9 +224,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     # log_z = torch.mean(log_z)
 
     log_det = guide.log_det
-    batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det + 0.005*torch.square(torch.mean(z_logvar)))
-    #batch_loss += kl_beta * (-0.01*log_e + log_det_coeff*log_det + 0.01*torch.square(torch.mean(z_logvar)))
-    #batch_loss += kl_beta * (-0.01*log_e + log_det_coeff*log_det)
+    batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det)
+    #batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det + 0.005*torch.square(torch.mean(z_logvar)))
 
     # causal consistency
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
@@ -369,9 +368,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
   dict_to_log = {'train_loss': epoch_train_loss}
   dict_to_log["rec_loss"] = epoch_recon_loss
-  #dict_to_log["causal_rec_loss"] = causal_recon_loss
   dict_to_log["pred_loss"] = epoch_pred_loss
-  #dict_to_log["slot_rec_loss"] = slot_recon_loss
   dict_to_log["log_det"] = epoch_log_det
   #dict_to_log["log_det_prior"] = epoch_prior_log_det
   dict_to_log["log_det_coeff"] = log_det_coeff
@@ -380,23 +377,9 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   dict_to_log["log_z"] = epoch_log_z
   dict_to_log["consistency_loss"] = epoch_consistency_loss
   dict_to_log["beta"] = kl_beta
-  #dict_to_log["log_z_color_coeff"] = log_z_coeff
-
-  #dict_to_log["logvar_loss"] = prior_logvar_loss
-  
-  # dict_to_log["prior_means_distance_e"] = torch.mean(prior_means_distance_e)
   dict_to_log["LR"] = epoch_lr
-
-  # dict_to_log[f"prior_s_scale"] = torch.mean(torch.sum(guide.prior.s0, dim=-1))
-  # dict_to_log[f"prior_s_color"] = torch.mean(torch.sum(guide.prior.s1, dim=-1))
-  # dict_to_log[f"prior_s_x"] = torch.mean(torch.sum(guide.prior.s2, dim=-1))
-  # dict_to_log[f"prior_s_y"] = torch.mean(torch.sum(guide.prior.s3, dim=-1))
-
   
   for i in range(L):
-    # dict_to_log[f"mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(mu_noise[:, :, i, :], dim=-1))
-    # dict_to_log[f"prior_mu_{params['latent_vars'][i]}"] = torch.mean(torch.mean(prior_means[:, :, i, :], dim=-1))
-
     with torch.no_grad():
       dict_to_log[f"log_e_{params['latent_vars'][i]}"] = torch.mean(log_normal(z_noise[:, :, i],
                                                                               guide.mu_noise_prior[:, :, i],
@@ -407,8 +390,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
       dict_to_log[f"s_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ss[:, :, i, :], dim=-1))
       dict_to_log[f"t_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ts[:, :, i, :], dim=-1))
-
-    #dict_to_log[f"dist_{params['latent_vars'][i]}"] = dist[i]
 
     dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
     dict_to_log[f"flatt_noise_pred_loss_{params['latent_vars'][i]}"] = guide.flatt_noise_pred_loss[i]
