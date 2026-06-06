@@ -290,7 +290,8 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
             nn.Conv2d(64, out_channels, kernel_size=3, padding=1)       
         ]
         #if out_channels == 1:
-        module_list.append(nn.Sigmoid())
+        #module_list.append(nn.Sigmoid())
+        module_list.append(nn.ELU())
         decoder = nn.Sequential(*module_list)
         return decoder
 
