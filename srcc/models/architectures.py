@@ -290,8 +290,8 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
             nn.Conv2d(64, out_channels, kernel_size=3, padding=1)       
         ]
         #if out_channels == 1:
-        #module_list.append(nn.Sigmoid())
-        module_list.append(nn.ELU())
+        module_list.append(nn.Sigmoid())
+        #module_list.append(nn.ELU())
         decoder = nn.Sequential(*module_list)
         return decoder
 
@@ -553,22 +553,22 @@ class FullNoiseEncoder(nn.Module):
         self.latent_dim = latent_dim
         self.n_slots = n_slots
         self.fc_mean = nn.Linear(128, out_dim)
-        self.fc_logvar = nn.Linear(128, out_dim)
+        #self.fc_logvar = nn.Linear(128, out_dim)
 
     def encode(self, x):
         x = self.encoder(x)
         mean = self.fc_mean(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
-        logvar = self.fc_logvar(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
+        #logvar = self.fc_logvar(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
         # mean = self.fc_mean(x).view(-1, self.n_slots, self.latent_dim)
         # logvar = self.fc_logvar(x).view(-1, self.n_slots, self.latent_dim)
-        if self.clamp_var: logvar = torch.clamp(logvar, -3., 3.)
-        return mean, logvar
+        #if self.clamp_var: logvar = torch.clamp(logvar, -3., 3.)
+        return mean#, logvar
 
     def forward(self, x):
-        mu, logvar = self.encode(x)
-        stds = torch.exp(0.5*logvar)
-        z = mu + torch.randn_like(mu)*stds
-        return mu, logvar, z
+        mean = self.encode(x)#, logvar = self.encode(x)
+        # stds = torch.exp(0.5*logvar)
+        # z = mean + torch.randn_like(mean)*stds
+        return mean #, logvar, z
     
 
 class AddCoords(nn.Module):

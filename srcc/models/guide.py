@@ -110,17 +110,12 @@ class InvSlotAttentionGuide(nn.Module):
 
         assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
 
-        mu_z, logvar_z, z_scm = self.encoder(img)
+        #mu_z, logvar_z, z_scm = self.encoder(img)
+        z_scm = self.encoder(img)
         
         # get initial predictions and aligned labels
-        mu_z_d = mu_z.detach()
-        preds = self.predictor(mu_z_d)
-        if torch.isnan(preds).any():
-            logger.info(torch.isnan(img).any())
-            for name, param in self.encoder.named_parameters():
-                logger.info(f"\n{name} - {param}")
-            logger.info(f"mu_z: {mu_z_d}")
-            logger.info(f"logvar_z: {logvar_z}")        
+        z_d = z_scm.detach()
+        preds = self.predictor(z_d)        
         self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
 
         # logger.info(f"\npreds: {preds}")
@@ -128,8 +123,8 @@ class InvSlotAttentionGuide(nn.Module):
         # logger.info(f"\naligned labels: {aligned_u_m}")
         
         # get latent-wise distributions
-        mu_z = mu_z.reshape(mu_z.size(0), mu_z.size(1), self.L, self.ldim)
-        logvar_z = logvar_z.reshape(logvar_z.size(0), logvar_z.size(1), self.L, self.ldim)
+        # mu_z = mu_z.reshape(mu_z.size(0), mu_z.size(1), self.L, self.ldim)
+        # logvar_z = logvar_z.reshape(logvar_z.size(0), logvar_z.size(1), self.L, self.ldim)
         z_scm = z_scm.reshape(z_scm.size(0), z_scm.size(1), self.L, self.ldim)       
         
         # causal flow backward
@@ -143,7 +138,8 @@ class InvSlotAttentionGuide(nn.Module):
         #img_hat, recon_figures = self.scene_decoder(z_noise)
 
         if params["running_type"] == "eval": 
-            return mu_z, z_noise, z_scm, img_hat, recon_figures
+            #return mu_z, z_noise, z_scm, img_hat, recon_figures
+            return z_noise, z_scm, img_hat, recon_figures
 
         z_noise_d = z_noise.detach()
         self.noise_pred_loss = []
@@ -166,5 +162,6 @@ class InvSlotAttentionGuide(nn.Module):
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
         self.flatt_noise_pred_loss = torch.stack(self.flatt_noise_pred_loss)
 
-        return img_hat, z_noise, z_scm, mu_z, logvar_z, recon_figures
+        #return img_hat, z_noise, z_scm, mu_z, logvar_z, recon_figures
+        return img_hat, z_noise, z_scm, recon_figures
         

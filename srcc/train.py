@@ -175,7 +175,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   epoch_log_z = 0.
   epoch_log_det = 0.
   epoch_prior_log_det = 0.
-  epoch_logvar_z = 0.
+  #epoch_logvar_z = 0.
   epoch_consistency_loss = 0. 
   
   for img, target in train_dl:
@@ -187,7 +187,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     batch_loss = 0.
     optimizer.zero_grad()
   
-    img_hat, z_noise, z_scm, z_mu, z_logvar, recon_figures = guide(img, target, step=epoch)
+    #img_hat, z_noise, z_scm, z_mu, z_logvar, recon_figures = guide(img, target, step=epoch)
+    img_hat, z_noise, z_scm, recon_figures = guide(img, target, step=epoch)
     recon_loss = recon_loss_fn(img_hat, img)
     batch_loss += 100. * recon_loss + kl_beta * (guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
     
@@ -224,6 +225,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     # log_z = torch.mean(log_z)
 
     log_det = guide.log_det
+    # log-likelihood_z = - (log_e - log_det)
     batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det)
     #batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det + 0.005*torch.square(torch.mean(z_logvar)))
 
@@ -290,7 +292,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     epoch_log_z += log_z
     epoch_log_det += log_det
     #epoch_prior_log_det += guide.prior.log_det
-    epoch_logvar_z += torch.square(torch.mean(z_logvar))
+    #epoch_logvar_z += torch.square(torch.mean(z_logvar))
     epoch_consistency_loss += consistency_loss
     
     if params["TC_minimization"]:
@@ -359,7 +361,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   epoch_log_z /= num_iters
   epoch_log_det /= num_iters
   #epoch_prior_log_det /= num_iters
-  epoch_logvar_z /= num_iters
+  #epoch_logvar_z /= num_iters
   epoch_consistency_loss /= num_iters
 
 
@@ -385,7 +387,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
                                                                               guide.mu_noise_prior[:, :, i],
                                                                               torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))    
       
-      dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(z_logvar[:, :, i, :], dim=-1))
+      #dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(z_logvar[:, :, i, :], dim=-1))
       dict_to_log[f"prior_logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(guide.logvar_noise_prior[:, :, i, :], dim=-1))
 
       dict_to_log[f"s_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ss[:, :, i, :], dim=-1))
