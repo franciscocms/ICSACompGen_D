@@ -226,18 +226,18 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     log_det = guide.log_det
     # log-likelihood_z = - (log_e - log_det)
-    batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det)
+    batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det + 0.01*torch.square(torch.mean(torch.sum(guide.ss[:, :, 1, :], dim=-1))))
     #batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det + 0.005*torch.square(torch.mean(z_logvar)))
 
     # causal consistency
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
       consistency_loss = 0.
       
-      z_int, eps_int, flag = guide.causal_flow.counterfactuals(z_noise, z_scm)
+      #z_int, eps_int, flag = guide.causal_flow.counterfactuals(z_noise, z_scm)
       # int_flag = torch.distributions.Categorical(
       #   torch.tensor([1/2 for _ in range(2)])
       #   ).sample()
-      #z_int, flag = guide.causal_flow.intervention(z_noise, z_scm)
+      z_int, flag = guide.causal_flow.intervention(z_noise, z_scm)
       
       with torch.no_grad():
         x_int, _ = guide.scene_decoder(z_int)
