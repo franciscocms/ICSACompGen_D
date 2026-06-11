@@ -146,26 +146,26 @@ class InvSlotAttentionGuide(nn.Module):
         if params["running_type"] == "eval": 
             return mu_z, z_noise, z_scm, img_hat, recon_figures
 
-        z_noise_d = z_noise.detach()
-        self.noise_pred_loss = []
-        all_noise_preds, all_flat_noise_preds = [], []
-        self.flatt_noise_pred_loss = []
-        for i, var in enumerate(params["latent_vars"]):
-            noise_preds = self.noise_predictors[var](z_noise_d[:, :, i, :])
-            if noise_preds.size(-1) == 1: noise_preds = noise_preds.squeeze(-1)
-            noise_pred_loss, _ = compute_matching_cost(noise_preds, labels[:, :, i]) 
-            self.noise_pred_loss.append(noise_pred_loss)
-            all_noise_preds.append(noise_preds)
+        # z_noise_d = z_noise.detach()
+        # self.noise_pred_loss = []
+        # all_noise_preds, all_flat_noise_preds = [], []
+        # self.flatt_noise_pred_loss = []
+        # for i, var in enumerate(params["latent_vars"]):
+        #     noise_preds = self.noise_predictors[var](z_noise_d[:, :, i, :])
+        #     if noise_preds.size(-1) == 1: noise_preds = noise_preds.squeeze(-1)
+        #     noise_pred_loss, _ = compute_matching_cost(noise_preds, labels[:, :, i]) 
+        #     self.noise_pred_loss.append(noise_pred_loss)
+        #     all_noise_preds.append(noise_preds)
 
-            flat_noise_preds = self.flatt_noise_predictor[var](torch.flatten(z_noise_d, -2)).squeeze(-1)
-            flatt_noise_pred_loss, _ = compute_matching_cost(flat_noise_preds, labels[:, :, i])
-            all_flat_noise_preds.append(flat_noise_preds)
-            self.flatt_noise_pred_loss.append(flatt_noise_pred_loss)
+        #     flat_noise_preds = self.flatt_noise_predictor[var](torch.flatten(z_noise_d, -2)).squeeze(-1)
+        #     flatt_noise_pred_loss, _ = compute_matching_cost(flat_noise_preds, labels[:, :, i])
+        #     all_flat_noise_preds.append(flat_noise_preds)
+        #     self.flatt_noise_pred_loss.append(flatt_noise_pred_loss)
 
-        all_noise_preds = torch.stack(all_noise_preds, dim=-1)
-        all_flat_noise_preds = torch.stack(all_flat_noise_preds, dim=-1)
-        self.noise_pred_loss = torch.stack(self.noise_pred_loss)
-        self.flatt_noise_pred_loss = torch.stack(self.flatt_noise_pred_loss)
+        # all_noise_preds = torch.stack(all_noise_preds, dim=-1)
+        # all_flat_noise_preds = torch.stack(all_flat_noise_preds, dim=-1)
+        # self.noise_pred_loss = torch.stack(self.noise_pred_loss)
+        # self.flatt_noise_pred_loss = torch.stack(self.flatt_noise_pred_loss)
 
         return img_hat, z_noise, z_scm, mu_z, logvar_z, recon_figures
         

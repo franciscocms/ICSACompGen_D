@@ -190,7 +190,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     img_hat, z_noise, z_scm, z_mu, z_logvar, recon_figures = guide(img, target, step=epoch)
     #img_hat, z_noise, z_scm, recon_figures = guide(img, target, step=epoch)
     recon_loss = recon_loss_fn(img_hat, img)
-    batch_loss += 100. * recon_loss + kl_beta * (guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
+    batch_loss += 100. * recon_loss #+ kl_beta * (guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
@@ -287,9 +287,9 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     epoch_train_loss += batch_loss 
     epoch_recon_loss += recon_loss
-    epoch_pred_loss += guide.pred_loss
-    epoch_noise_pred_loss += torch.mean(guide.noise_pred_loss)
-    epoch_flatt_noise_pred_loss += torch.mean(guide.flatt_noise_pred_loss)
+    # epoch_pred_loss += guide.pred_loss
+    # epoch_noise_pred_loss += torch.mean(guide.noise_pred_loss)
+    # epoch_flatt_noise_pred_loss += torch.mean(guide.flatt_noise_pred_loss)
     epoch_log_e += log_e
     epoch_tc_loss += tc_loss
     epoch_log_z += log_z
@@ -356,9 +356,9 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     
   epoch_train_loss /= num_iters
   epoch_recon_loss /= num_iters
-  epoch_pred_loss /= num_iters
-  epoch_noise_pred_loss /= num_iters
-  epoch_flatt_noise_pred_loss /= num_iters
+  # epoch_pred_loss /= num_iters
+  # epoch_noise_pred_loss /= num_iters
+  # epoch_flatt_noise_pred_loss /= num_iters
   epoch_log_e /= num_iters
   epoch_tc_loss /= num_iters
   epoch_log_z /= num_iters
@@ -373,7 +373,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
   dict_to_log = {'train_loss': epoch_train_loss}
   dict_to_log["rec_loss"] = epoch_recon_loss
-  dict_to_log["pred_loss"] = epoch_pred_loss
+  # dict_to_log["pred_loss"] = epoch_pred_loss
   dict_to_log["log_det"] = epoch_log_det
   #dict_to_log["log_det_prior"] = epoch_prior_log_det
   dict_to_log["log_det_coeff"] = log_det_coeff
@@ -396,8 +396,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       dict_to_log[f"s_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ss[:, :, i, :], dim=-1))
       dict_to_log[f"t_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ts[:, :, i, :], dim=-1))
 
-    dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
-    dict_to_log[f"flatt_noise_pred_loss_{params['latent_vars'][i]}"] = guide.flatt_noise_pred_loss[i]
+    # dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
+    # dict_to_log[f"flatt_noise_pred_loss_{params['latent_vars'][i]}"] = guide.flatt_noise_pred_loss[i]
 
   if params["TC_minimization"]:
     dict_to_log["latent_TC"] = tc_loss
