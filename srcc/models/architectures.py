@@ -1090,8 +1090,8 @@ class ConditionalGaussianPrior(nn.Module):
         self.net = nn.ModuleDict()
         # alpha = [2., 3., 1.5, 0.7] 
         # beta = [3., 2., 4., 1.5]
-        alpha = [1., 1., 1., 1.]
-        beta = [1., 1., 1., 1.]
+        alpha = [1., 2., 3., 4.]
+        beta = [4., 3., 2., 1.]
         self.freq_coeff = []
         for i in range(self.L):
             slope = 0.01 #+ (i * 0.05)
