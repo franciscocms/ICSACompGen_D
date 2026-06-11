@@ -233,7 +233,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
                                       guide.mu_noise_prior[:, :, i],
                                       torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
     log_det = guide.log_det
-    kl = 0.1*log_q_z + log_det_coeff*log_det - 0.1*log_e
+    kl = 0.001*log_q_z + log_det_coeff*log_det - 0.1*log_e
     batch_loss += kl_beta * kl
 
     # causal consistency
@@ -276,14 +276,13 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     # epoch_pred_loss += guide.pred_loss
     # epoch_noise_pred_loss += torch.mean(guide.noise_pred_loss)
     # epoch_flatt_noise_pred_loss += torch.mean(guide.flatt_noise_pred_loss)
-    epoch_log_e += log_e
+    epoch_log_e += log_e #
     epoch_tc_loss += tc_loss
     epoch_log_det += log_det
-    #epoch_prior_log_det += guide.prior.log_det
     #epoch_logvar_z += torch.square(torch.mean(z_logvar))
     epoch_consistency_loss += consistency_loss
-    epoch_kl += kl
-    epoch_log_q_z += log_q_z
+    epoch_kl += kl #
+    epoch_log_q_z += log_q_z #
     
     if params["TC_minimization"]:
       for name, param in guide.tc_discriminator.named_parameters():
