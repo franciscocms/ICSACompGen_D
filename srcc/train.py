@@ -111,9 +111,6 @@ if resume_epoch != 0:
   scheduler.load_state_dict(checkpoint["scheduler"])
   beta_scheduler.current_step = resume_epoch  
 
-if params["TC_minimization"]:
-  dis_optimizer = torch.optim.Adam(guide.tc_discriminator.parameters(), lr=params["lr"] * 0.1)
-
 # instatiate dataset and dataloader
 dataset_dir = os.path.join(params["dataset_path"], "train")
 img_dir = os.path.join(dataset_dir, "images")
@@ -154,15 +151,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   epoch_val_loss = 0.
 
   # update coefficients
-  TC_coeff = params["TC_coeff"]
   log_det_coeff = 0.001 # 0.1
-
   kl_beta = beta_scheduler.get_beta()
-
-  # update gradient computation flags
-  if params["TC_minimization"]:
-    for name, param in guide.tc_discriminator.named_parameters():
-      param.requires_grad = False
   
   printed = False
   num_iters = 0
@@ -171,7 +161,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   epoch_noise_pred_loss = 0.
   epoch_flatt_noise_pred_loss = 0.
   epoch_log_e = 0.
-  epoch_tc_loss = 0.
   epoch_log_det = 0.
   epoch_prior_log_det = 0.
   #epoch_logvar_z = 0.
@@ -197,21 +186,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
         os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
     
-    
-    
-    if params["TC_minimization"]:
-      disc_input = torch.flatten(z_noise, -2)
-      disc_input = torch.flatten(disc_input, 0, 1)
-      D_joint = guide.tc_discriminator(disc_input)
-      tc_loss = torch.square(torch.mean(D_joint[:, :1] - D_joint[:, 1:]))
-      fake_z_noise, perms = permute_dims(disc_input, guide.slot_dim)
-      batch_loss += kl_beta * TC_coeff * tc_loss
-      
-      assert not torch.isnan(tc_loss).any()
-    else:
-      tc_loss = torch.tensor(0.)
-    
-    # uncomment for previous prior loss
+    # uncomment for previous prior loss (j515)
     # log_det = guide.log_det
     # # log-likelihood_z = - (log_e - log_det)
     # log_e = 0.
@@ -222,7 +197,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     # batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det)
     # #batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det + 0.005*torch.square(torch.mean(z_logvar)))
 
-    # uncomment for current prior loss
+    # uncomment for current prior loss (j516)
     log_q_z = 0.
     log_e = 0.
     for i in range(L):
@@ -277,35 +252,11 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     # epoch_noise_pred_loss += torch.mean(guide.noise_pred_loss)
     # epoch_flatt_noise_pred_loss += torch.mean(guide.flatt_noise_pred_loss)
     epoch_log_e += log_e #
-    epoch_tc_loss += tc_loss
     epoch_log_det += log_det
     #epoch_logvar_z += torch.square(torch.mean(z_logvar))
     epoch_consistency_loss += consistency_loss
     epoch_kl += kl #
     epoch_log_q_z += log_q_z #
-    
-    if params["TC_minimization"]:
-      for name, param in guide.tc_discriminator.named_parameters():
-        param.requires_grad = True
-      
-      fake_z_noise = fake_z_noise.detach()
-      disc_input = disc_input.detach()
-      D_perm = guide.tc_discriminator(fake_z_noise)
-      D_joint = guide.tc_discriminator(disc_input)
-      ones = torch.ones(D_perm.size(0), dtype=torch.long, device=DEVICE)
-      zeros = torch.zeros(D_perm.size(0), dtype=torch.long, device=DEVICE)
-      disc_tc_loss = torch.mean(0.5*(F.cross_entropy(D_joint, zeros) + F.cross_entropy(D_perm, ones)))
-      assert not torch.isnan(disc_tc_loss).any()
-      
-      dis_optimizer.zero_grad()
-      disc_tc_loss.backward()
-      dis_optimizer.step()
-
-      # if epoch % epoch_step == 0 and not printed:
-      #   logger.info(f"real batches pred: {torch.mean(D_joint)}")
-      #   logger.info(f"fake batches pred: {torch.mean(D_perm)}")
-    else:
-      disc_tc_loss = torch.tensor(0.)
     
     if guide.model_name == "additiveAE":
       if num_iters == 0:
@@ -346,9 +297,11 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   # epoch_noise_pred_loss /= num_iters
   # epoch_flatt_noise_pred_loss /= num_iters
   epoch_log_e /= num_iters
-  epoch_tc_loss /= num_iters
+  epoch_log_q_z /= num_iters
   epoch_log_det /= num_iters
+  epoch_kl /= num_iters
   epoch_consistency_loss /= num_iters
+
 
 
   if epoch % epoch_step == 0:
@@ -380,10 +333,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     # dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
     # dict_to_log[f"flatt_noise_pred_loss_{params['latent_vars'][i]}"] = guide.flatt_noise_pred_loss[i]
-
-  if params["TC_minimization"]:
-    dict_to_log["latent_TC"] = tc_loss
-    dict_to_log["latent_TC_disc"] = disc_tc_loss
   
   if epoch % epoch_step == 0 or epoch == params["training_epochs"]:
     checkpoint = {
