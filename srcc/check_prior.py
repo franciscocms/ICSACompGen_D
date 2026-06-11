@@ -115,6 +115,9 @@ def main():
         plt.savefig(f"{params['check_attn_folder']}/logvar_prior.png")
         plt.close()
 
+        logger.info(mu_noise_prior)
+        logger.info(logvar_noise_prior)
+
 
     
 
