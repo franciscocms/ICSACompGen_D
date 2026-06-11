@@ -565,7 +565,7 @@ class FullNoiseEncoder(nn.Module):
         return mean, logvar
 
     def forward(self, x):
-        mean = self.encode(x), logvar = self.encode(x)
+        mean, logvar = self.encode(x)
         stds = torch.exp(0.5*logvar)
         z = mean + torch.randn_like(mean)*stds
         return mean, logvar, z
