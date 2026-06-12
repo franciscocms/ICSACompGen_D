@@ -115,6 +115,20 @@ def main():
         plt.savefig(f"{params['check_attn_folder']}/logvar_prior.png")
         plt.close()
 
+        for i, var in enumerate(params["latent_vars"]):
+            lambda_1 = mu_noise_prior[:, i, 0].cpu() / torch.exp(logvar_noise_prior[:, i, 0]).cpu()
+            plt.scatter(u[:, i].cpu(), lambda_1, s=2, label=var)
+        plt.legend()
+        plt.savefig(f"{params['check_attn_folder']}/lambda_1.png")
+        plt.close()
+
+        for i, var in enumerate(params["latent_vars"]):
+            lambda_2 = -1/(2*torch.exp(logvar_noise_prior[:, i, 0]).cpu()) 
+            plt.scatter(u[:, i].cpu(), lambda_2, s=2, label=var)
+        plt.legend()
+        plt.savefig(f"{params['check_attn_folder']}/lambda_2.png")
+        plt.close()
+
         logger.info(mu_noise_prior)
         logger.info(logvar_noise_prior)
 
