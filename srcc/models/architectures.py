@@ -1067,8 +1067,24 @@ class GaussianMLP(nn.Module):
         #     nn.ELU()
         # )
         
-        self.mean_head = nn.Linear(nin, nout)
-        if learn_var: self.logvar_head = nn.Linear(nin, nout)
+        # self.mean_head = nn.Linear(nin, nout)
+        # if learn_var: self.logvar_head = nn.Linear(nin, nout)
+
+        self.mean_head = nn.Sequential(
+            nn.Linear(nin, nh),
+            nn.ELU(),
+            nn.Linear(nh, nh),
+            nn.ELU(),
+            nn.Linear(nh, nout)
+        )
+
+        self.logvar_head = nn.Sequential(
+            nn.Linear(nin, nh),
+            nn.ELU(),
+            nn.Linear(nh, nh),
+            nn.ELU(),
+            nn.Linear(nh, nout)
+        )
 
         self.alpha = alpha
         self.beta = beta
