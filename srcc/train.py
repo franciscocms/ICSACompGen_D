@@ -152,7 +152,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
   # update coefficients
   log_det_coeff = 0.001 # 0.1
-  kl_beta = beta_scheduler.get_beta()
+  #kl_beta = beta_scheduler.get_beta()
+  kl_beta = 0.1
   
   printed = False
   num_iters = 0
