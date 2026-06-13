@@ -216,11 +216,11 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
       consistency_loss = 0.
       
-      #z_int, eps_int, flag = guide.causal_flow.counterfactuals(z_noise, z_scm) # job 513
+      z_int, eps_int, flag = guide.causal_flow.counterfactuals(z_noise, z_scm) # job 513
       # int_flag = torch.distributions.Categorical(
       #   torch.tensor([1/2 for _ in range(2)])
       #   ).sample()
-      z_int, flag = guide.causal_flow.intervention(z_noise, z_scm)
+      #z_int, flag = guide.causal_flow.intervention(z_noise, z_scm)
       
       with torch.no_grad():
         x_int, _ = guide.scene_decoder(z_int)
@@ -249,7 +249,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
     epoch_train_loss += batch_loss 
     epoch_recon_loss += recon_loss
-    # epoch_pred_loss += guide.pred_loss
+    epoch_pred_loss += guide.pred_loss
     # epoch_noise_pred_loss += torch.mean(guide.noise_pred_loss)
     # epoch_flatt_noise_pred_loss += torch.mean(guide.flatt_noise_pred_loss)
     epoch_log_e += log_e #
@@ -294,7 +294,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     
   epoch_train_loss /= num_iters
   epoch_recon_loss /= num_iters
-  # epoch_pred_loss /= num_iters
+  epoch_pred_loss /= num_iters
   # epoch_noise_pred_loss /= num_iters
   # epoch_flatt_noise_pred_loss /= num_iters
   epoch_log_e /= num_iters
@@ -310,7 +310,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
   dict_to_log = {'train_loss': epoch_train_loss}
   dict_to_log["rec_loss"] = epoch_recon_loss
-  # dict_to_log["pred_loss"] = epoch_pred_loss
+  dict_to_log["pred_loss"] = epoch_pred_loss
   dict_to_log["log_det"] = epoch_log_det
   dict_to_log["log_det_coeff"] = log_det_coeff
   dict_to_log["log_e"] = epoch_log_e
