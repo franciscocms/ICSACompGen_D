@@ -188,29 +188,31 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
     
     # uncomment for previous prior loss (j515)
-    # log_det = guide.log_det
-    # # log-likelihood_z = - (log_e - log_det)
-    # log_e = 0.
-    # for i in range(L):
-    #   log_e += torch.mean(log_normal(z_noise[:, :, i],
-    #                                  guide.mu_noise_prior[:, :, i],
-    #                                  torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
-    # batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det)
-    # #batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det + 0.005*torch.square(torch.mean(z_logvar)))
-
-    # uncomment for current prior loss (j516)
-    log_q_z = 0.
+    log_det = guide.log_det
+    # log-likelihood_z = - (log_e - log_det)
     log_e = 0.
     for i in range(L):
-      log_q_z += torch.mean(log_normal(z_scm[:, :, i],
-                                     z_mu[:, :, i],
-                                     torch.exp(z_logvar[:, :, i])).sum(-1))
       log_e += torch.mean(log_normal(z_noise[:, :, i],
-                                      guide.mu_noise_prior[:, :, i],
-                                      torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
-    log_det = guide.log_det
-    kl = 0.001*log_q_z + log_det_coeff*log_det - 0.1*log_e
+                                     guide.mu_noise_prior[:, :, i],
+                                     torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
+    kl = -0.1*log_e + log_det_coeff*log_det
+    log_q_z = 0.
     batch_loss += kl_beta * kl
+    #batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det + 0.005*torch.square(torch.mean(z_logvar)))
+
+    # uncomment for current prior loss (j516)
+    # log_q_z = 0.
+    # log_e = 0.
+    # for i in range(L):
+    #   log_q_z += torch.mean(log_normal(z_scm[:, :, i],
+    #                                  z_mu[:, :, i],
+    #                                  torch.exp(z_logvar[:, :, i])).sum(-1))
+    #   log_e += torch.mean(log_normal(z_noise[:, :, i],
+    #                                   guide.mu_noise_prior[:, :, i],
+    #                                   torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
+    # log_det = guide.log_det
+    # kl = 0.001*log_q_z + log_det_coeff*log_det - 0.1*log_e
+    # batch_loss += kl_beta * kl
 
     # causal consistency
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
