@@ -181,7 +181,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     img_hat, z_noise, z_scm, z_mu, z_logvar, recon_figures = guide(img, target, step=epoch)
     #img_hat, z_noise, z_scm, recon_figures = guide(img, target, step=epoch)
     recon_loss = recon_loss_fn(img_hat, img)
-    batch_loss += 100. * recon_loss #+ kl_beta * (guide.pred_loss + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
+    batch_loss += 100. * recon_loss + kl_beta * (guide.pred_loss)# + torch.mean(guide.noise_pred_loss) + torch.mean(guide.flatt_noise_pred_loss))
     
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
