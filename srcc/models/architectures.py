@@ -1067,24 +1067,24 @@ class GaussianMLP(nn.Module):
         #     nn.ELU()
         # )
         
-        # self.mean_head = nn.Linear(nin, nout)
-        # if learn_var: self.logvar_head = nn.Linear(nin, nout)
+        self.mean_head = nn.Linear(nin, nout)
+        if learn_var: self.logvar_head = nn.Linear(nin, nout)
 
-        self.mean_head = nn.Sequential(
-            nn.Linear(nin, nh),
-            nn.ELU(),
-            nn.Linear(nh, nh),
-            nn.ELU(),
-            nn.Linear(nh, nout)
-        )
+        # self.mean_head = nn.Sequential(
+        #     nn.Linear(nin, nh),
+        #     nn.ELU(),
+        #     nn.Linear(nh, nh),
+        #     nn.ELU(),
+        #     nn.Linear(nh, nout)
+        # )
 
-        self.logvar_head = nn.Sequential(
-            nn.Linear(nin, nh),
-            nn.ELU(),
-            nn.Linear(nh, nh),
-            nn.ELU(),
-            nn.Linear(nh, nout)
-        )
+        # self.logvar_head = nn.Sequential(
+        #     nn.Linear(nin, nh),
+        #     nn.ELU(),
+        #     nn.Linear(nh, nh),
+        #     nn.ELU(),
+        #     nn.Linear(nh, nout)
+        # )
 
         self.alpha = alpha
         self.beta = beta
@@ -1104,10 +1104,10 @@ class ConditionalGaussianPrior(nn.Module):
         self.clamp_var = clamp_var
         self.L = L
         self.net = nn.ModuleDict()
-        # alpha = [2., 3., 1.5, 0.7] 
-        # beta = [3., 2., 4., 1.5]
-        alpha = [1., 2., 3., 4.]
-        beta = [4., 3., 2., 1.]
+        alpha = [1., 1., 1., 1.] 
+        beta = [1., 1., 1., 1.]
+        # alpha = [1., 2., 3., 4.]
+        # beta = [4., 3., 2., 1.]
         self.freq_coeff = []
         for i in range(self.L):
             slope = 0.01 #+ (i * 0.05)
@@ -1122,16 +1122,13 @@ class ConditionalGaussianPrior(nn.Module):
         means, logvars = [], []
         for i in range(self.L):
             #u_freq = torch.cat((labels[:, :, i].unsqueeze(-1), torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
-            #out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
+            out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
             #out = self.net[str(i)](u_freq)
             
-            #assert isinstance(out, tuple)
-            #mean, logvar = out[0], out[1]
-
-            # mean = (i+1) * torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))
-            # logvar = (self.L+1-i) * torch.cos(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))
-            mean = torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))
-            logvar = torch.cos(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))
+            assert isinstance(out, tuple)
+            mean, logvar = out[0], out[1]
+            # mean = torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))
+            # logvar = torch.cos(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))
             
             if self.clamp_var:
                 logvar = torch.clamp(logvar, -2., 2.)
