@@ -115,12 +115,19 @@ def hungarian_latents_consistency(z1, z2):
     cost_matrix = F.smooth_l1_loss(z2.unsqueeze(1).expand(-1, z1.size(1), -1, -1),
                                 z1.unsqueeze(2).expand(-1, -1, z2.size(1), -1), reduction="none").mean(-1)
     cost_matrix_ = cost_matrix.detach().cpu().numpy()
-    indices = np.array([linear_sum_assignment(p) for p in cost_matrix_])
-    _, col_ind = indices[:, 0], indices[:, 1]  
-    indices_ = indices.shape[2] * indices[:, 0] + indices[:, 1]
+    
+    try:
+        indices = np.array([linear_sum_assignment(p) for p in cost_matrix_])
+        _, col_ind = indices[:, 0], indices[:, 1]  
+        indices_ = indices.shape[2] * indices[:, 0] + indices[:, 1]
 
-    losses = torch.gather(cost_matrix.flatten(1,2), 1, torch.from_numpy(indices_).to(device=cost_matrix.device))    
-    total_loss = losses.mean()
+        losses = torch.gather(cost_matrix.flatten(1,2), 1, torch.from_numpy(indices_).to(device=cost_matrix.device))    
+        total_loss = losses.mean()
+    except:
+        logger.info(z1)
+        logger.info(z2)
+        logger.info(cost_matrix_)
+        total_loss = torch.tensor(0.)
     return total_loss
 
 def compute_kl_gaussians(mu_q, logvar_q, mu_p, logvar_p):
