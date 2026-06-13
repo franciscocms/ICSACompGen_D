@@ -1122,11 +1122,15 @@ class ConditionalGaussianPrior(nn.Module):
         means, logvars = [], []
         for i in range(self.L):
             #u_freq = torch.cat((labels[:, :, i].unsqueeze(-1), torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))), dim=-1)
-            out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
+            #out = self.net[str(i)](labels[:, :, i].unsqueeze(-1))
             #out = self.net[str(i)](u_freq)
             
-            assert isinstance(out, tuple)
-            mean, logvar = out[0], out[1]
+            #assert isinstance(out, tuple)
+            #mean, logvar = out[0], out[1]
+
+            mean = (i+1) * torch.sin(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))
+            logvar = (self.L+1-i) * torch.cos(self.freq_coeff[i] * labels[:, :, i].unsqueeze(-1))
+            
             if self.clamp_var:
                 logvar = torch.clamp(logvar, -2., 2.)
             means.append(mean)   
