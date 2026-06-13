@@ -274,10 +274,19 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         # self.z2_decoder = ConvDecoder()
         # self.z3_decoder = ConvDecoder()
         # self.z4_decoder = ConvDecoder()
-        self.z1_decoder = self.build_decoder(6, 1)
+        
+        # what I was previously doing with the multiplicative decoder
+        # self.z1_decoder = self.build_decoder(6, 1)
+        # self.z2_decoder = self.build_decoder(6, 3)
+        # self.z3_decoder = self.build_decoder(6, 1)
+        # self.z4_decoder = self.build_decoder(6, 1)
+
+        self.z1_decoder = self.build_decoder(6, 3)
         self.z2_decoder = self.build_decoder(6, 3)
-        self.z3_decoder = self.build_decoder(6, 1)
-        self.z4_decoder = self.build_decoder(6, 1)
+        self.z3_decoder = self.build_decoder(6, 3)
+        self.z4_decoder = self.build_decoder(6, 3)
+
+
         
         self.model_name = "SlotMLPAdditiveDecoder"
 
