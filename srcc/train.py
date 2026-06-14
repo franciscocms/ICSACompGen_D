@@ -227,7 +227,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       with torch.no_grad():
         x_int, _ = guide.scene_decoder(z_int)
         #x_int, _ = guide.scene_decoder(eps_int)
-        x_int = torch.clamp(x_int, 0., 1.)
+        #x_int = torch.clamp(x_int, 0., 1.)
 
       mu_causal_int, _, z_causal_int = guide.encoder(x_int)
       #z_causal_int = guide.encoder(x_int)
@@ -247,7 +247,12 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       batch_loss += kl_beta * 0.1 * consistency_loss
 
       if error_flag:
+        logger.info(torch.isnan(x_int).any())
         logger.info(f"\nx_int: {x_int}")
+        for v in range(x_int.shape[0]):
+          plt.imshow(np.transpose(x_int[v].detach().cpu().numpy(), (1, 2, 0)))
+          plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/x_int_{v}.png")
+          plt.close() 
         break
     
     else:
