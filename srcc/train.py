@@ -227,7 +227,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       with torch.no_grad():
         x_int, _ = guide.scene_decoder(z_int)
         #x_int, _ = guide.scene_decoder(eps_int)
-        #x_int = torch.clamp(x_int, 0., 1.)
+        x_int = torch.clamp(x_int, 0., 1.)
 
       mu_causal_int, _, z_causal_int = guide.encoder(x_int)
       #z_causal_int = guide.encoder(x_int)
@@ -241,22 +241,13 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
       norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8)
       
-      try:
-        #consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
-        consistency_loss += hungarian_latents_consistency(norm_z_causal_int, norm_z_int)
-        #consistency_loss += hungarian_latents_consistency(eps_int_cons, eps_int)
-        batch_loss += kl_beta * 0.1 * consistency_loss
-      except:
+      #consistency_loss = hungarian_latents_consistency(z_causal_int, z_int)
+      consistency_loss, error_flag = hungarian_latents_consistency(norm_z_causal_int, norm_z_int)
+      #consistency_loss = hungarian_latents_consistency(eps_int_cons, eps_int)
+      batch_loss += kl_beta * 0.1 * consistency_loss
 
-        if torch.isnan(z_causal_int).any():
-          indices = torch.isnan(z_causal_int).nonzero()
-          logger.info(indices.shape, "\n")
-          logger.info(indices,"\n")
-        
-        logger.info(z_causal_int)
-        logger.info(x_int)
-        
-        break
+      if error_flag:
+        logger.info(f"\nx_int: {x_int}")
     
     else:
       consistency_loss = 0.
