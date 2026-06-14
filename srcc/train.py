@@ -238,7 +238,11 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         x_int_cons, _ = guide.scene_decoder(z_causal_int)
         #x_int_cons, _ = guide.scene_decoder(eps_int_cons)
 
-      consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
+      norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
+      norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8)
+      
+      #consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
+      consistency_loss += hungarian_latents_consistency(norm_z_causal_int, norm_z_int)
       #consistency_loss += hungarian_latents_consistency(eps_int_cons, eps_int)
       batch_loss += kl_beta * 0.1 * consistency_loss
     else:
