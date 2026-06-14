@@ -227,7 +227,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       with torch.no_grad():
         x_int, _ = guide.scene_decoder(z_int)
         #x_int, _ = guide.scene_decoder(eps_int)
-        x_int = torch.clamp(x_int, 0., 1.)
+        #x_int = torch.clamp(x_int, 0., 1.)
 
       mu_causal_int, _, z_causal_int = guide.encoder(x_int)
       #z_causal_int = guide.encoder(x_int)
@@ -247,6 +247,11 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         #consistency_loss += hungarian_latents_consistency(eps_int_cons, eps_int)
         batch_loss += kl_beta * 0.1 * consistency_loss
       except:
+
+        if torch.isnan(z_causal_int).any():
+          indices = torch.isnan(z_causal_int).nonzero()
+          logger.info(indices.shape, "\n")
+          logger.info(indices,"\n")
         
         logger.info(z_causal_int)
         logger.info(x_int)
