@@ -248,6 +248,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
       if error_flag:
         logger.info(f"\nx_int: {x_int}")
+        break
     
     else:
       consistency_loss = 0.

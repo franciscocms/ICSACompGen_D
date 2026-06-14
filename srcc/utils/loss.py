@@ -131,6 +131,7 @@ def hungarian_latents_consistency(z1, z2):
             logger.info(z2)
         logger.info(cost_matrix_)
         flag = True
+        total_loss = torch.tensor(0.).to(device)
     return total_loss, flag
 
 def compute_kl_gaussians(mu_q, logvar_q, mu_p, logvar_p):
