@@ -365,7 +365,8 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
             nn.ELU(),
             nn.Conv2d(64, 64, kernel_size=3, padding=1),
             nn.ELU(),
-            nn.Conv2d(64, 3, kernel_size=3, padding=1)
+            nn.Conv2d(64, 3, kernel_size=3, padding=1),
+            nn.Sigmoid()
         )
         
         self.geom_decoder = nn.Sequential(
