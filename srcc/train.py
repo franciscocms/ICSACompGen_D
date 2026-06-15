@@ -105,7 +105,7 @@ else:
   
 optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=2)
-beta_scheduler = BetaScheduler(0., 1., 100) # (0., 1., 100)
+beta_scheduler = BetaScheduler(0., 1., params["cc_epoch"]) # (0., 1., 100)
 if resume_epoch != 0: 
   optimizer.load_state_dict(checkpoint["optimizer"])
   scheduler.load_state_dict(checkpoint["scheduler"])
@@ -197,8 +197,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
                                      torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
     kl = -0.1*log_e + log_det_coeff*log_det
     log_q_z = 0.
-    batch_loss += kl_beta * kl
-    #batch_loss += kl_beta * (-0.1*log_e + log_det_coeff*log_det + 0.005*torch.square(torch.mean(z_logvar)))
+    #batch_loss += kl_beta * kl
+    batch_loss += kl_beta * (kl + 0.005*torch.square(torch.mean(z_logvar)))
 
     # uncomment for current prior loss (j516)
     # log_q_z = 0.
@@ -226,35 +226,18 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       
       with torch.no_grad():
         x_int, _ = guide.scene_decoder(z_int)
-        #x_int, _ = guide.scene_decoder(eps_int)
         x_int = torch.clamp(x_int, 0., 1.)
 
-      mu_causal_int, _, z_causal_int = guide.encoder(x_int)
-      #z_causal_int = guide.encoder(x_int)
+      _, _, z_causal_int = guide.encoder(x_int)
       z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim) 
-      #eps_int_cons, _, _, _ = guide.causal_flow.backward(z_causal_int)
       with torch.no_grad():  
-        #x_int_cons, _ = guide.scene_decoder(mu_causal_int)
         x_int_cons, _ = guide.scene_decoder(z_causal_int)
-        #x_int_cons, _ = guide.scene_decoder(eps_int_cons)
 
       # norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
       # norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8)
       
-      consistency_loss, error_flag = hungarian_latents_consistency(z_causal_int, z_int)
-      #consistency_loss, error_flag = hungarian_latents_consistency(norm_z_causal_int, norm_z_int)
-      #consistency_loss = hungarian_latents_consistency(eps_int_cons, eps_int)
-      batch_loss += kl_beta * 0.1 * consistency_loss
-
-      if error_flag:
-        logger.info(torch.isnan(x_int).any())
-        logger.info(f"\nx_int: {x_int}")
-        for v in range(x_int.shape[0]):
-          plt.imshow(np.transpose(x_int[v].detach().cpu().numpy(), (1, 2, 0)))
-          plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/x_int_{v}.png")
-          plt.close() 
-        break
-    
+      consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
+      batch_loss += kl_beta * 0.1 * consistency_loss    
     else:
       consistency_loss = 0.
       x_int = torch.zeros_like(img_hat)
