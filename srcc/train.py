@@ -266,7 +266,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     epoch_train_loss += batch_loss 
     epoch_recon_loss += recon_loss
     epoch_pred_loss += guide.pred_loss
-    # epoch_noise_pred_loss += torch.mean(guide.noise_pred_loss)
+    epoch_noise_pred_loss += torch.mean(guide.noise_pred_loss)
     # epoch_flatt_noise_pred_loss += torch.mean(guide.flatt_noise_pred_loss)
     epoch_log_e += log_e #
     epoch_log_det += log_det
@@ -311,7 +311,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   epoch_train_loss /= num_iters
   epoch_recon_loss /= num_iters
   epoch_pred_loss /= num_iters
-  # epoch_noise_pred_loss /= num_iters
+  epoch_noise_pred_loss /= num_iters
   # epoch_flatt_noise_pred_loss /= num_iters
   epoch_log_e /= num_iters
   epoch_log_q_z /= num_iters
@@ -348,7 +348,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       dict_to_log[f"s_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ss[:, :, i, :], dim=-1))
       dict_to_log[f"t_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ts[:, :, i, :], dim=-1))
 
-    # dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
+    dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
     # dict_to_log[f"flatt_noise_pred_loss_{params['latent_vars'][i]}"] = guide.flatt_noise_pred_loss[i]
   
   if epoch % epoch_step == 0 or epoch == params["training_epochs"]:
