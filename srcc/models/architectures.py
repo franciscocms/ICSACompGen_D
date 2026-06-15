@@ -374,6 +374,7 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
             nn.Conv2d(64, 64, kernel_size=3, padding=1),
             nn.ELU(),
             nn.Conv2d(64, 1, kernel_size=3, padding=1),
+            nn.Sigmoid()
         )
 
         self.model_name = "SlotMLPAdditiveDecoder"
