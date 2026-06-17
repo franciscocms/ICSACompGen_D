@@ -125,8 +125,20 @@ def main():
         u_scale = torch.flatten(targets[:, :, 0], 0, 1).cpu().numpy()
         u_color = torch.flatten(targets[:, :, 1], 0, 1).cpu().numpy()
         mse = mse.repeat_interleave(params["num_slots"])
-        
-        scatter = ax_m.scatter(u_scale, u_color, s=10, c=mse.cpu().numpy(), alpha=0.5, cmap="BuPu", vmin=0., vmax=1.) # vmax=mse.cpu().numpy().max()
+
+        logger.info(mse)
+
+        threshold = torch.quantile(mse, 0.95)  # remove top 5% largest MSEs
+
+        mask = mse <= threshold
+
+        logger.info(mask)
+
+        x_filtered = u_scale[mask]
+        y_filtered = u_color[mask]
+        mse_filtered = mse[mask]
+
+        scatter = ax_m.scatter(x_filtered, y_filtered, s=10, c=mse_filtered.cpu().numpy(), alpha=0.5, cmap="YlGn", vmin=0., vmax=mse_filtered.cpu().numpy().max()) # vmax=
         if OOD_EVAL: cb = figure.colorbar(scatter, ax=ax_m)
         
         save_recons = True
