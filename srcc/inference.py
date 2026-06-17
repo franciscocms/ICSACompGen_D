@@ -134,11 +134,16 @@ def main():
 
         logger.info(mask)
 
+        mask = mask.cpu().numpy()
+        mse = mse.cpu().numpy()
+        u_scale = u_scale.cpu().numpy()
+        u_color = u_color.cpu().numpy()
+
         x_filtered = u_scale[mask]
         y_filtered = u_color[mask]
         mse_filtered = mse[mask]
 
-        scatter = ax_m.scatter(x_filtered, y_filtered, s=10, c=mse_filtered.cpu().numpy(), alpha=0.5, cmap="YlGn", vmin=0., vmax=mse_filtered.cpu().numpy().max()) # vmax=
+        scatter = ax_m.scatter(x_filtered, y_filtered, s=10, c=mse_filtered, alpha=0.5, cmap="YlGn", vmin=0., vmax=mse_filtered.max()) # vmax=
         if OOD_EVAL: cb = figure.colorbar(scatter, ax=ax_m)
         
         save_recons = True
