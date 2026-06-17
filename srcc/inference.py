@@ -127,6 +127,7 @@ def main():
         mse = mse.repeat_interleave(params["num_slots"])
 
         mse = torch.clamp(mse, 0., 0.05)
+        logger.info(torch.max(mse))
 
         scatter = ax_m.scatter(u_scale, u_color, s=10, c=mse.cpu().numpy(), alpha=0.5, cmap="YlGn", vmin=0., vmax=0.1) # vmax=
         if OOD_EVAL: cb = figure.colorbar(scatter, ax=ax_m)
