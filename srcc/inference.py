@@ -128,7 +128,7 @@ def main():
 
         logger.info(mse)
 
-        threshold = torch.quantile(mse, 0.95)  # remove top 5% largest MSEs
+        threshold = torch.quantile(mse, 0.99)  # remove top 5% largest MSEs
 
         mask = mse <= threshold
 
