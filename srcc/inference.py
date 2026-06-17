@@ -136,8 +136,6 @@ def main():
 
         mask = mask.cpu().numpy()
         mse = mse.cpu().numpy()
-        u_scale = u_scale.cpu().numpy()
-        u_color = u_color.cpu().numpy()
 
         x_filtered = u_scale[mask]
         y_filtered = u_color[mask]
