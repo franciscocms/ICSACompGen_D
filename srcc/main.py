@@ -8,8 +8,8 @@ main_dir = os.path.abspath(__file__+'/../../')
 params = {
     "device": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
     "random_seed": 26, # 22
-    "dataset_path": "/nas-ctm01/datasets/public/CG_linear_005", # CG_linear -> 0.5, CG_linear_015 -> 0.15
-    "ID_window": 0.05,
+    "dataset_path": "/nas-ctm01/datasets/public/CG_linear_010", # CG_linear -> 0.5, CG_linear_015 -> 0.15
+    "ID_window": 0.10,
     "latent_vars": ["scale", "color", "x_pos", "y_pos"],
     "factor_ranges": {
         "scale": [0.3, 1.],
@@ -31,12 +31,12 @@ params = {
     "num_slots": 2,
     "batch_size": 64, 
     "lr": 4e-4, 
-    "use_counterfactual_consistency": False,
+    "use_counterfactual_consistency": True,
     "cc_epoch": 100,
     "training_from_scratch" : True,
     "training_epochs": 400, # 400 
     "epoch_step": 10,
-    "running_type": "eval", # train, debug, eval, inspect
+    "running_type": "train", # train, debug, eval, inspect
     "epoch_to_load" : 400, 
     "ood_eval": True,
     "TC_minimization": False, # usually True
@@ -48,7 +48,7 @@ params = {
     "causal_dropout_prob": 0., # 0.6 for models with causal flow, 1.0 for models without
     "latent_dim": 4, # 4
     "check_attn": True,
-    "jobID": 533,  
+    "jobID": 539,  
     "mesh_iters": 4,
     "mesh_lr": 5, 
     "mesh_noise": 1e-3,
