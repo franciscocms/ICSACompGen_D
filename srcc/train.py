@@ -334,7 +334,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
     # dict_to_log[f"flatt_noise_pred_loss_{params['latent_vars'][i]}"] = guide.flatt_noise_pred_loss[i]
   
-  if epoch % epoch_step == 0 or epoch == params["training_epochs"]:
+  if epoch % 100 == 0 or epoch == params["training_epochs"]:
     checkpoint = {
       'epoch': epoch,
       'model': guide.state_dict(),
