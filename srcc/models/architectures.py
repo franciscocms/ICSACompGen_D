@@ -360,7 +360,7 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         self.n_slots = n_slots
         self.n_slot_latents = n_slot_latents
         
-        if params["jobID"] == 533:
+        if params["jobID"] in [533, 570]:
             self.app_decoder = nn.Sequential(
                 nn.Conv2d(10, 64, kernel_size=3, padding=1), # 6
                 nn.ELU(),
@@ -407,7 +407,7 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
 
         H, W = params["resolution"]
         
-        if params["jobID"] == 533:
+        if params["jobID"] in [533, 570]:
             z_app = torch.flatten(reshaped_latents[:, [0, 1]], -2)
             z_geom = torch.flatten(reshaped_latents[:, [2, 3]], -2)
         else:
