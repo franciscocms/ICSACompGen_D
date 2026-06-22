@@ -120,6 +120,7 @@ def main():
         
         #logger.info(f"recon r2: {r2_score(all_img.cpu().numpy().flatten(), all_img_hat.cpu().numpy().flatten())}")
         r2 = np.array(r2)
+        r2 = np.clip(r2, 0., 1.)
         logger.info(f"recon r2: {r2.mean()} - {r2.std()} - {np.median(r2)}")
         
         u_scale = torch.flatten(targets[:, :, 0], 0, 1).cpu().numpy()
