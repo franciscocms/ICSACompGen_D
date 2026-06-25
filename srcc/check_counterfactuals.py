@@ -90,12 +90,14 @@ def main():
                 img = img.to(device)
                 target = target.to(device)
 
+                logger.info(f"targets: {target[:n_scenes]}")
+
                 B = img.size(0)
                 
                 mu_z, z_noise, z_scm, img_hat, recon_figures = guide(img, target)
                 z0, z1, z2, z3 = torch.split(torch.flatten(z_scm, -2), params["latent_dim"], -1)
                 preds = guide.predictor(torch.flatten(mu_z, -2))
-                logger.info(f"initial preds: {preds[:n_scenes]}")
+                logger.info(f"\ninitial preds: {preds[:n_scenes]}")
 
                 _, aligned_targets = compute_matching_cost(preds, target)
                 aligned_targets = torch.flatten(aligned_targets, 0, 1).cpu()
@@ -303,8 +305,8 @@ def main():
                 x_int = torch.clamp(x_int, 0., 1.)
                 mu_causal_int, _, z_causal_int = guide.encoder(x_int)
                 preds = guide.predictor(torch.flatten(mu_causal_int, -2))
-                logger.info(f"interventional preds: {preds[:n_scenes]}")
-                
+                logger.info(f"\ninterventional preds: {preds[:n_scenes]}")
+
                 z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim)
                 x_int_cons, _ = guide.scene_decoder(z_causal_int)
 
