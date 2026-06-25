@@ -323,7 +323,7 @@ def main():
                         ax[i, j].grid(False)
                         ax[i, j].axis('off')
 
-                plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_intervention.eps", format="eps", dpi=1000)
+                plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_intervention.svg", format="svg", dpi=1000)
                 plt.close()
 
                 if b == 0: break
