@@ -310,7 +310,7 @@ def main():
                     ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
                     if i == 0: ax[i, 3].set_title(f"img_hat_cons")
 
-                    for j in range(5):
+                    for j in range(4):
                         ax[i, j].grid(False)
                         ax[i, j].axis('off')
 
