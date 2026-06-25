@@ -83,6 +83,8 @@ def main():
         dataset = MyDataset(dataset_dir, OOD_EVAL)
         dataloader = DataLoader(dataset, 1000, shuffle=True, generator=torch.Generator(device='cuda'))
 
+        n_scenes = 5
+
         with torch.no_grad():
             for b, (img, target) in enumerate(dataloader):
                 img = img.to(device)
@@ -93,6 +95,8 @@ def main():
                 mu_z, z_noise, z_scm, img_hat, recon_figures = guide(img, target)
                 z0, z1, z2, z3 = torch.split(torch.flatten(z_scm, -2), params["latent_dim"], -1)
                 preds = guide.predictor(torch.flatten(mu_z, -2))
+                logger.info(f"initial preds: {preds[:n_scenes]}")
+
                 _, aligned_targets = compute_matching_cost(preds, target)
                 aligned_targets = torch.flatten(aligned_targets, 0, 1).cpu()
 
@@ -272,6 +276,9 @@ def main():
                                        z1_int.unsqueeze(-2),
                                        z2.unsqueeze(-2),
                                        z3.unsqueeze(-2)), dim=-2) 
+                    
+
+
                 elif C == 1:
                     z1_perm = torch.flip(z1, dims=(1,))
                     z_int = torch.cat((z0.unsqueeze(-2),
@@ -294,13 +301,16 @@ def main():
                 #x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
                 x_int, _ = guide.scene_decoder(z_int)
                 x_int = torch.clamp(x_int, 0., 1.)
-                _, _, z_causal_int = guide.encoder(x_int)
+                mu_causal_int, _, z_causal_int = guide.encoder(x_int)
+                preds = guide.predictor(torch.flatten(mu_causal_int, -2))
+                logger.info(f"interventional preds: {preds[:n_scenes]}")
+                
                 z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim)
                 x_int_cons, _ = guide.scene_decoder(z_causal_int)
 
 
-                fig, ax = plt.subplots(5, 4)
-                for i in range(5):
+                fig, ax = plt.subplots(n_scenes, 4)
+                for i in range(n_scenes):
                     ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
                     if i == 0: ax[i, 0].set_title("img")
                     ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
