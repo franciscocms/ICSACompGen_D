@@ -259,7 +259,7 @@ def main():
 
                 #####################################################################################################
 
-                C = 0
+                C = 1
                 
                 if C == 0:
                     z0_int = torch.flip(z0, dims=(1,))
@@ -299,8 +299,8 @@ def main():
                 x_int_cons, _ = guide.scene_decoder(z_causal_int)
 
 
-                fig, ax = plt.subplots(4, 4)
-                for i in range(4):
+                fig, ax = plt.subplots(5, 4)
+                for i in range(5):
                     ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
                     if i == 0: ax[i, 0].set_title("img")
                     ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
@@ -310,7 +310,7 @@ def main():
                     ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
                     if i == 0: ax[i, 3].set_title(f"img_hat_cons")
 
-                    for j in range(4):
+                    for j in range(5):
                         ax[i, j].grid(False)
                         ax[i, j].axis('off')
 
