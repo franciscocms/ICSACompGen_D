@@ -304,7 +304,7 @@ def main():
                 x_int, _ = guide.scene_decoder(z_int)
                 x_int = torch.clamp(x_int, 0., 1.)
                 mu_causal_int, _, z_causal_int = guide.encoder(x_int)
-                preds = guide.predictor(torch.flatten(mu_causal_int, -2))
+                preds = guide.predictor(mu_causal_int)
                 logger.info(f"\ninterventional preds: {preds[:n_scenes]}")
 
                 z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim)
