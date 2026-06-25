@@ -308,7 +308,7 @@ def main():
                 x_int_cons, _ = guide.scene_decoder(z_causal_int)
 
 
-                fig, ax = plt.subplots(n_scenes, 4, figsize=(30, 40))
+                fig, ax = plt.subplots(n_scenes, 4)
                 for i in range(n_scenes):
                     ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
                     if i == 0: ax[i, 0].set_title("img")
@@ -323,7 +323,7 @@ def main():
                         ax[i, j].grid(False)
                         ax[i, j].axis('off')
 
-                plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_intervention.png")
+                plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_intervention.eps", format="eps", dpi=1000)
                 plt.close()
 
                 if b == 0: break
