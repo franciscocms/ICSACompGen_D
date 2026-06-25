@@ -83,7 +83,7 @@ def main():
         dataset = MyDataset(dataset_dir, OOD_EVAL)
         dataloader = DataLoader(dataset, 1000, shuffle=True, generator=torch.Generator(device='cuda'))
 
-        n_scenes = 5
+        n_scenes = 3
 
         with torch.no_grad():
             for b, (img, target) in enumerate(dataloader):
@@ -303,15 +303,12 @@ def main():
                 #x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
                 x_int, _ = guide.scene_decoder(z_int)
                 x_int = torch.clamp(x_int, 0., 1.)
-                mu_causal_int, _, z_causal_int = guide.encoder(x_int)
-                preds = guide.predictor(mu_causal_int)
-                logger.info(f"\ninterventional preds: {preds[:n_scenes]}")
-
+                _, _, z_causal_int = guide.encoder(x_int)
                 z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim)
                 x_int_cons, _ = guide.scene_decoder(z_causal_int)
 
 
-                fig, ax = plt.subplots(n_scenes, 4)
+                fig, ax = plt.subplots(n_scenes, 4, figsize=(30, 40))
                 for i in range(n_scenes):
                     ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
                     if i == 0: ax[i, 0].set_title("img")
