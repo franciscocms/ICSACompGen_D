@@ -325,7 +325,7 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
             z_app = torch.flatten(reshaped_latents[:, [0, 1]], -2)
             z_geom = torch.flatten(reshaped_latents[:, [2, 3]], -2)
         else:
-            z_app = torch.flatten(reshaped_latents[:, [0, 1]], -2)
+            z_app = torch.flatten(reshaped_latents[:, 1:2], -2)
             z_geom = torch.flatten(reshaped_latents[:, [0, 2, 3]], -2)
 
         z_app = z_app.view(z_app.shape + (1, 1))
@@ -334,8 +334,8 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         z_app = z_app.expand((-1, -1, H, W))
         z_geom = z_geom.expand((-1, -1, H, W))
 
-        logger.info(z_app.shape)
-        logger.info(z_geom.shape)
+        # logger.info(z_app.shape)
+        # logger.info(z_geom.shape)
 
         x = torch.linspace(-1, 1, W).to(device)
         y = torch.linspace(-1, 1, H).to(device)
@@ -343,8 +343,8 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         x_grid = x_grid.view((1, 1) + x_grid.shape)
         y_grid = y_grid.view((1, 1) + y_grid.shape)
 
-        logger.info(x_grid.shape)
-        logger.info(y_grid.shape)
+        # logger.info(x_grid.shape)
+        # logger.info(y_grid.shape)
 
         z_app_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
                                 y_grid.expand(batch_size * n_slots, -1, -1, -1), z_app), dim=1)
@@ -352,8 +352,8 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         z_geom_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
                                 y_grid.expand(batch_size * n_slots, -1, -1, -1), z_geom), dim=1)
 
-        logger.info(z_app_grid.shape)
-        logger.info(z_geom_grid.shape)
+        # logger.info(z_app_grid.shape)
+        # logger.info(z_geom_grid.shape)
 
         # Pass reshaped latents through decoder
         reshaped_figures = self.app_decoder(z_app_grid) * self.geom_decoder(z_geom_grid)
