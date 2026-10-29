@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import numpy as np
 from torch.utils.data import DataLoader
 
@@ -278,6 +279,8 @@ def main():
                                         z1_int.unsqueeze(-2),
                                         z2.unsqueeze(-2),
                                         z3.unsqueeze(-2)), dim=-2) 
+
+                        logger.info(f"\nscale intervention")
                         
 
 
@@ -286,7 +289,9 @@ def main():
                         z_int = torch.cat((z0.unsqueeze(-2),
                                         z1_perm.unsqueeze(-2),
                                         z2.unsqueeze(-2),
-                                        z3.unsqueeze(-2)), dim=-2) 
+                                        z3.unsqueeze(-2)), dim=-2)
+
+                        logger.info(f"\ncolor intervention") 
 
                     elif C == 2:
                         z2_perm = torch.flip(z2, dims=(1,))
@@ -295,6 +300,8 @@ def main():
                                         z2_perm.unsqueeze(-2),
                                         z3.unsqueeze(-2)), dim=-2) 
 
+                        logger.info(f"\nx intervention")
+
                     elif C == 3:
                         z3_perm = torch.flip(z3, dims=(1,))
                         z_int = torch.cat((z0.unsqueeze(-2),
@@ -302,12 +309,17 @@ def main():
                                         z2.unsqueeze(-2),
                                         z3_perm.unsqueeze(-2)), dim=-2) 
 
+                        logger.info(f"\ny intervention")
+
                     
                     x_int, _ = guide.scene_decoder(z_int)
                     x_int = torch.clamp(x_int, 0., 1.)
                     _, _, z_causal_int = guide.encoder(x_int)
                     z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim)
                     x_int_cons, _ = guide.scene_decoder(z_causal_int)
+
+                    changes = F.mse_loss(z_causal_int, z_int, reduction="none").mean(dim=[0, 1, 3])
+                    logger.info(f"MSE: {changes}")
 
 
                     fig, ax = plt.subplots(n_scenes, 4)
