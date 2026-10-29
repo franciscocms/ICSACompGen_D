@@ -61,6 +61,7 @@ decoder = SlotMLPAdditiveDecoder(
   n_slots = params["num_slots"],
   n_slot_latents = ldim
 )
+decoder.to(DEVICE)
 run.watch(decoder)
 
 logger.info(f"Training from scratch using {DEVICE}...\n")
