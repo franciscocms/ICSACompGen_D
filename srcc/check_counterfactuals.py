@@ -265,7 +265,7 @@ def main():
 
                 #####################################################################################################
 
-                C = 0
+                C = 2
                 
                 if C == 0:
                     z0_int = torch.flip(z0, dims=(1,))
@@ -287,6 +287,20 @@ def main():
                                     z1_perm.unsqueeze(-2),
                                     z2.unsqueeze(-2),
                                     z3.unsqueeze(-2)), dim=-2) 
+
+                elif C == 2:
+                    z2_perm = torch.flip(z2, dims=(1,))
+                    z_int = torch.cat((z0.unsqueeze(-2),
+                                       z1.unsqueeze(-2),
+                                       z2_perm.unsqueeze(-2),
+                                       z3.unsqueeze(-2)), dim=-2) 
+
+                elif C == 3:
+                    z3_perm = torch.flip(z3, dims=(1,))
+                    z_int = torch.cat((z0.unsqueeze(-2),
+                                       z1.unsqueeze(-2),
+                                       z2.unsqueeze(-2),
+                                       z3_perm.unsqueeze(-2)), dim=-2) 
                     
                 # z_perm = torch.flatten(torch.flatten(z_int[:, :, :2], 0, 1), -2)
 
