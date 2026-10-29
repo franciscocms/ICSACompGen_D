@@ -95,6 +95,7 @@ def main():
         all_img_hat = torch.tensor([])
         recon_loss = 0.  
         r2 = []
+        z_preds = []
         with torch.no_grad():
             for i, (img, target) in enumerate(dataloader):
                 img = img.to(device)
@@ -109,6 +110,11 @@ def main():
                 targets = torch.cat((targets, target), dim=0)  
                 all_img = torch.cat((all_img, img), dim=0)
                 all_img_hat = torch.cat((all_img_hat, img_hat), dim=0)
+
+                z_preds.append(guide.z_preds)
+
+        z_preds = torch.stack(z_preds)
+        logger.info(f"z preds: {z_preds.shape}")
 
         #logger.info(z_noise.shape) # [B, N, L, d] -> B = 5k
         logger.info(targets.shape)
@@ -158,7 +164,17 @@ def main():
             else: plt.savefig(f"{params['check_attn_folder']}/img_recon_id.png")
             plt.close()  
         
-        make_regression = True
+        compute_prediction_performance = True
+        if compute_prediction_performance:
+
+            for i, var in enumerate(params["latent_vars"]):            
+                logger.info(f"\npredictions for variable {params['latent_vars'][i]}\n")
+                r2_pred, a_target, a_preds = hungarian_r2_score(z_preds[:, :, i], targets[:, :, i])
+                logger.info(f"\nprediction r2 score: {r2_pred}\n")
+
+        
+        
+        make_regression = False
         if make_regression:
             for i, var in enumerate(params["latent_vars"]):            
                 logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")

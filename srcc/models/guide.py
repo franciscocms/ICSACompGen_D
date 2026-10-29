@@ -115,6 +115,7 @@ class InvSlotAttentionGuide(nn.Module):
         # get initial predictions and aligned labels
         mu_z_d = mu_z.detach()
         preds = self.predictor(mu_z_d)
+        self.z_preds = preds
         if torch.isnan(preds).any():
             logger.info(torch.isnan(img).any())
             for name, param in self.encoder.named_parameters():
