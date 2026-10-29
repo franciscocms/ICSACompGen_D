@@ -135,7 +135,7 @@ def main():
         scatter = ax_m.scatter(u_scale, u_color, s=10, c=mse, alpha=0.5, cmap="YlGn", vmin=0., vmax=mse.max()) # vmax=
         if OOD_EVAL: cb = figure.colorbar(scatter, ax=ax_m)
         
-        save_recons = True
+        save_recons = False
         if save_recons:
             n_figures = 5
             assert img.size(0) >= n_figures
@@ -158,7 +158,7 @@ def main():
             else: plt.savefig(f"{params['check_attn_folder']}/img_recon_id.png")
             plt.close()  
         
-        make_regression = False
+        make_regression = True
         if make_regression:
             for i, var in enumerate(params["latent_vars"]):            
                 logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
