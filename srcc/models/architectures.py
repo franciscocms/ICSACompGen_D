@@ -293,7 +293,7 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
             )
         else:
             self.app_decoder = nn.Sequential(
-                nn.Conv2d(6, 64, kernel_size=3, padding=1), # 6
+                nn.Conv2d(self.n_slot_latents + 2, 64, kernel_size=3, padding=1), # 6
                 nn.ELU(),
                 nn.Conv2d(64, 64, kernel_size=3, padding=1),
                 nn.ELU(),
@@ -301,7 +301,7 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
             )
             
             self.geom_decoder = nn.Sequential(
-                nn.Conv2d(14, 64, kernel_size=3, padding=1), # 14
+                nn.Conv2d(self.n_slot_latents*3 + 2, 64, kernel_size=3, padding=1), # 14
                 nn.ELU(),
                 nn.Conv2d(64, 64, kernel_size=3, padding=1),
                 nn.ELU(),
@@ -319,8 +319,6 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         batch_size, n_slots, n_features, features = latents.size()
         reshaped_latents = latents.view(batch_size * n_slots, n_features, features)
 
-        logger.info(reshaped_latents.shape)
-
         H, W = params["resolution"]
         
         if params["jobID"] in [533, 570]:
@@ -329,9 +327,6 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         else:
             z_app = torch.flatten(reshaped_latents[:, [0, 1]], -2)
             z_geom = torch.flatten(reshaped_latents[:, [0, 2, 3]], -2)
-
-            logger.info(z_app.shape)
-            logger.info(z_geom.shape)
 
         z_app = z_app.view(z_app.shape + (1, 1))
         z_geom = z_geom.view(z_geom.shape + (1, 1))
