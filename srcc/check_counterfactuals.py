@@ -80,11 +80,9 @@ def main():
         logger.info(f"\nOOD: {OOD_EVAL}\n")
 
         dataset_dir = os.path.join(params["dataset_path"], "eval")
-
-        dataset = MyDataset(dataset_dir, OOD_EVAL)
-        dataloader = DataLoader(dataset, 1000, shuffle=True, generator=torch.Generator(device='cuda'))
-
         n_scenes = 6
+        dataset = MyDataset(dataset_dir, OOD_EVAL)
+        dataloader = DataLoader(dataset, n_scenes, shuffle=True, generator=torch.Generator(device='cuda'))
 
         with torch.no_grad():
             for b, (img, target) in enumerate(dataloader):
