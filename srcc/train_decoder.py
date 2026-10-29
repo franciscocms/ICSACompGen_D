@@ -97,7 +97,7 @@ recon_loss_fn = nn.MSELoss()
 decoder.train()
 for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 1):
   epoch_train_loss = 0.
-  for img, target in train_dl:
+  for num_iters, (img, target) in enumerate(train_dl):
     img = img.to(DEVICE)
     target = target.to(DEVICE)
     B = img.size(0)
