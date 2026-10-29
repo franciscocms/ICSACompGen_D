@@ -319,14 +319,19 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         batch_size, n_slots, n_features, features = latents.size()
         reshaped_latents = latents.view(batch_size * n_slots, n_features, features)
 
+        logger.info(reshaped_latents.shape)
+
         H, W = params["resolution"]
         
         if params["jobID"] in [533, 570]:
             z_app = torch.flatten(reshaped_latents[:, [0, 1]], -2)
             z_geom = torch.flatten(reshaped_latents[:, [2, 3]], -2)
         else:
-            z_app = reshaped_latents[:, [0, 1]]
+            z_app = torch.flatten(reshaped_latents[:, [0, 1]], -2)
             z_geom = torch.flatten(reshaped_latents[:, [0, 2, 3]], -2)
+
+            logger.info(z_app.shape)
+            logger.info(z_geom.shape)
 
         z_app = z_app.view(z_app.shape + (1, 1))
         z_geom = z_geom.view(z_geom.shape + (1, 1))
