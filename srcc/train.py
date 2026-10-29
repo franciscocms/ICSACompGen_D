@@ -107,8 +107,8 @@ optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=2)
 beta_scheduler = BetaScheduler(0., 1., params["cc_epoch"]) # (0., 1., 100)
 if resume_epoch != 0: 
-  optimizer.load_state_dict(checkpoint["optimizer"])
-  scheduler.load_state_dict(checkpoint["scheduler"])
+  # optimizer.load_state_dict(checkpoint["optimizer"])
+  # scheduler.load_state_dict(checkpoint["scheduler"])
   beta_scheduler.current_step = resume_epoch  
 
 # instatiate dataset and dataloader
@@ -321,10 +321,10 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   
   if epoch % 100 == 0 or epoch == params["training_epochs"]:
     checkpoint = {
-      'epoch': epoch,
+      #'epoch': epoch,
       'model': guide.state_dict(),
-      'optimizer': optimizer.state_dict(),
-      'scheduler': scheduler.state_dict()
+      #'optimizer': optimizer.state_dict(),
+      #'scheduler': scheduler.state_dict()
     }
     torch.save(checkpoint, GUIDE_PATH + '/guide_' + str(epoch) + '.pth')
 

@@ -325,7 +325,7 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
             z_app = torch.flatten(reshaped_latents[:, [0, 1]], -2)
             z_geom = torch.flatten(reshaped_latents[:, [2, 3]], -2)
         else:
-            z_app = reshaped_latents[:, 1]
+            z_app = reshaped_latents[:, [0, 1]]
             z_geom = torch.flatten(reshaped_latents[:, [0, 2, 3]], -2)
 
         z_app = z_app.view(z_app.shape + (1, 1))
