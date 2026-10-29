@@ -95,7 +95,7 @@ def main():
         all_img_hat = torch.tensor([])
         recon_loss = 0.  
         r2 = []
-        z_preds = []
+        z_preds = torch.tensor([]) 
         with torch.no_grad():
             for i, (img, target) in enumerate(dataloader):
                 img = img.to(device)
@@ -111,7 +111,7 @@ def main():
                 all_img = torch.cat((all_img, img), dim=0)
                 all_img_hat = torch.cat((all_img_hat, img_hat), dim=0)
 
-                z_preds.append(guide.z_preds)
+                z_preds = torch.cat((z_preds, guide.z_preds), dim=0)
 
         z_preds = torch.stack(z_preds)
         logger.info(f"z preds: {z_preds.shape}")
