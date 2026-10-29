@@ -83,7 +83,7 @@ def main():
         dataset = MyDataset(dataset_dir, OOD_EVAL)
         dataloader = DataLoader(dataset, 1000, shuffle=True, generator=torch.Generator(device='cuda'))
 
-        n_scenes = 3
+        n_scenes = 6
 
         with torch.no_grad():
             for b, (img, target) in enumerate(dataloader):
@@ -265,80 +265,68 @@ def main():
 
                 #####################################################################################################
 
-                C = 2
+                for C in [0, 1, 2, 3]:
                 
-                if C == 0:
-                    z0_int = torch.flip(z0, dims=(1,))
-                    z_noise, _, _, _ = guide.causal_flow.backward(z_scm)
-                    s1_int = guide.causal_flow.s_cond(z0_int) * guide.causal_flow.scale_gain
-                    t1_int = guide.causal_flow.t_cond(z0_int) * guide.causal_flow.shift_gain
-                    z1_int = torch.exp(s1_int)*z_noise[:, :, 1, :] + t1_int
+                    if C == 0:
+                        z0_int = torch.flip(z0, dims=(1,))
+                        z_noise, _, _, _ = guide.causal_flow.backward(z_scm)
+                        s1_int = guide.causal_flow.s_cond(z0_int) * guide.causal_flow.scale_gain
+                        t1_int = guide.causal_flow.t_cond(z0_int) * guide.causal_flow.shift_gain
+                        z1_int = torch.exp(s1_int)*z_noise[:, :, 1, :] + t1_int
+                        
+                        z_int = torch.cat((z0_int.unsqueeze(-2),
+                                        z1_int.unsqueeze(-2),
+                                        z2.unsqueeze(-2),
+                                        z3.unsqueeze(-2)), dim=-2) 
+                        
+
+
+                    elif C == 1:
+                        z1_perm = torch.flip(z1, dims=(1,))
+                        z_int = torch.cat((z0.unsqueeze(-2),
+                                        z1_perm.unsqueeze(-2),
+                                        z2.unsqueeze(-2),
+                                        z3.unsqueeze(-2)), dim=-2) 
+
+                    elif C == 2:
+                        z2_perm = torch.flip(z2, dims=(1,))
+                        z_int = torch.cat((z0.unsqueeze(-2),
+                                        z1.unsqueeze(-2),
+                                        z2_perm.unsqueeze(-2),
+                                        z3.unsqueeze(-2)), dim=-2) 
+
+                    elif C == 3:
+                        z3_perm = torch.flip(z3, dims=(1,))
+                        z_int = torch.cat((z0.unsqueeze(-2),
+                                        z1.unsqueeze(-2),
+                                        z2.unsqueeze(-2),
+                                        z3_perm.unsqueeze(-2)), dim=-2) 
+
                     
-                    z_int = torch.cat((z0_int.unsqueeze(-2),
-                                       z1_int.unsqueeze(-2),
-                                       z2.unsqueeze(-2),
-                                       z3.unsqueeze(-2)), dim=-2) 
-                    
+                    x_int, _ = guide.scene_decoder(z_int)
+                    x_int = torch.clamp(x_int, 0., 1.)
+                    _, _, z_causal_int = guide.encoder(x_int)
+                    z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim)
+                    x_int_cons, _ = guide.scene_decoder(z_causal_int)
 
 
-                elif C == 1:
-                    z1_perm = torch.flip(z1, dims=(1,))
-                    z_int = torch.cat((z0.unsqueeze(-2),
-                                    z1_perm.unsqueeze(-2),
-                                    z2.unsqueeze(-2),
-                                    z3.unsqueeze(-2)), dim=-2) 
+                    fig, ax = plt.subplots(n_scenes, 4)
+                    for i in range(n_scenes):
+                        ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                        if i == 0: ax[i, 0].set_title("img")
+                        ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                        if i == 0: ax[i, 1].set_title("img_hat")
+                        ax[i, 2].imshow(np.clip(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                        if i == 0: ax[i, 2].set_title(f"perm {C}")
+                        ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                        if i == 0: ax[i, 3].set_title(f"img_hat_cons")
 
-                elif C == 2:
-                    z2_perm = torch.flip(z2, dims=(1,))
-                    z_int = torch.cat((z0.unsqueeze(-2),
-                                       z1.unsqueeze(-2),
-                                       z2_perm.unsqueeze(-2),
-                                       z3.unsqueeze(-2)), dim=-2) 
+                        for j in range(4):
+                            ax[i, j].grid(False)
+                            ax[i, j].axis('off')
 
-                elif C == 3:
-                    z3_perm = torch.flip(z3, dims=(1,))
-                    z_int = torch.cat((z0.unsqueeze(-2),
-                                       z1.unsqueeze(-2),
-                                       z2.unsqueeze(-2),
-                                       z3_perm.unsqueeze(-2)), dim=-2) 
-                    
-                # z_perm = torch.flatten(torch.flatten(z_int[:, :, :2], 0, 1), -2)
-
-                # pca = PCA(n_components=2)
-                # z_perm_pca = pca.fit_transform(z_perm.cpu())
-                # logger.info(pca.explained_variance_ratio_)
-
-                # plt.scatter(z_pca[:, 0], z_pca[:, 1], s=2, alpha=0.5, c='blue')
-                # plt.scatter(z_perm_pca[:, 0], z_perm_pca[:, 1], s=2, alpha=0.5, c='red')
-                # plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_permutations_manifold.png")
-                # plt.close()
-
-                   
-                #x_int, _ = guide.scene_decoder(torch.flatten(z_int, -2))
-                x_int, _ = guide.scene_decoder(z_int)
-                x_int = torch.clamp(x_int, 0., 1.)
-                _, _, z_causal_int = guide.encoder(x_int)
-                z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim)
-                x_int_cons, _ = guide.scene_decoder(z_causal_int)
-
-
-                fig, ax = plt.subplots(n_scenes, 4)
-                for i in range(n_scenes):
-                    ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                    if i == 0: ax[i, 0].set_title("img")
-                    ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                    if i == 0: ax[i, 1].set_title("img_hat")
-                    ax[i, 2].imshow(np.clip(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                    if i == 0: ax[i, 2].set_title(f"perm {C}")
-                    ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                    if i == 0: ax[i, 3].set_title(f"img_hat_cons")
-
-                    for j in range(4):
-                        ax[i, j].grid(False)
-                        ax[i, j].axis('off')
-
-                plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_intervention.svg", format="svg", dpi=1000, bbox_inches="tight")
-                plt.close()
+                    plt.savefig(f"{params['check_attn_folder']}/{params['latent_vars'][C]}_intervention.svg", format="svg", dpi=1000, bbox_inches="tight")
+                    plt.close()
 
                 if b == 0: break
      
