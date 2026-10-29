@@ -113,7 +113,6 @@ def main():
 
                 z_preds = torch.cat((z_preds, guide.z_preds), dim=0)
 
-        z_preds = torch.stack(z_preds)
         logger.info(f"z preds: {z_preds.shape}")
 
         #logger.info(z_noise.shape) # [B, N, L, d] -> B = 5k
