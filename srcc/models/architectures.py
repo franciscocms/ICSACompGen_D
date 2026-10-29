@@ -86,7 +86,6 @@ def get_decoder(in_dim, out_channels):
     return decoder
 
 
-
 class FiLMLayer(nn.Module):
     def __init__(self, feature_dim, geo_dim):
         super().__init__()
@@ -182,7 +181,6 @@ class CompositionalObjectDecoder(nn.Module):
         out = self.to_pixels(x)
         return out.view(-1, 3, self.img_size, self.img_size)
 
-
 class ConvDecoder(nn.Module):
     def __init__(self, latent_dim=4):
         super().__init__()
@@ -259,90 +257,6 @@ class ConvDecoder(nn.Module):
 
         return x
 
-# class SlotMLPAdditiveDecoder(torch.nn.Module):
-#     def __init__(
-#         self,
-#         in_channels: int,
-#         n_slots: int,
-#         n_slot_latents: int,
-#     ) -> None:
-#         super(SlotMLPAdditiveDecoder, self).__init__()
-#         self.n_slots = n_slots
-#         self.n_slot_latents = n_slot_latents
-        
-#         # self.z1_decoder = ConvDecoder()
-#         # self.z2_decoder = ConvDecoder()
-#         # self.z3_decoder = ConvDecoder()
-#         # self.z4_decoder = ConvDecoder()
-        
-#         # what I was previously doing with the multiplicative decoder
-#         # self.z1_decoder = self.build_decoder(6, 1)
-#         # self.z2_decoder = self.build_decoder(6, 3)
-#         # self.z3_decoder = self.build_decoder(6, 1)
-#         # self.z4_decoder = self.build_decoder(6, 1)
-
-#         self.z1_decoder = self.build_decoder(6, 3)
-#         self.z2_decoder = self.build_decoder(6, 3)
-#         self.z3_decoder = self.build_decoder(6, 3)
-#         self.z4_decoder = self.build_decoder(6, 3)
-
-
-        
-#         self.model_name = "SlotMLPAdditiveDecoder"
-
-#     def build_decoder(self, in_channels, out_channels):
-#         module_list = [
-#             nn.Conv2d(in_channels, 64, kernel_size=3, padding=1),
-#             nn.ELU(),
-#             nn.Conv2d(64, 64, kernel_size=3, padding=1),
-#             nn.ELU(),
-#             nn.Conv2d(64, out_channels, kernel_size=3, padding=1)       
-#         ]
-#         #if out_channels == 1:
-#         module_list.append(nn.Sigmoid())
-#         #module_list.append(nn.ELU())
-#         decoder = nn.Sequential(*module_list)
-#         return decoder
-
-#     def sbd(self, zi, B, N):
-#         zi = zi.view(zi.squeeze().shape + (1, 1))
-#         zi = zi.expand((-1, -1, params["resolution"][0], params["resolution"][1]))
-#         x = torch.linspace(-1, 1, params["resolution"][0]).to(device)
-#         y = torch.linspace(-1, 1, params["resolution"][1]).to(device)
-#         x_grid, y_grid = torch.meshgrid(x, y)
-#         x_grid = x_grid.view((1, 1) + x_grid.shape)
-#         y_grid = y_grid.view((1, 1) + y_grid.shape)
-#         zi_grid = torch.cat((x_grid.expand(B*N, -1, -1, -1),
-#                             y_grid.expand(B*N, -1, -1, -1), zi), dim=1)
-#         return zi_grid
-
-#     def forward(self, latents):
-#         # Reshape latents from [batch_size, n_slots, features] to [batch_size*n_slots, features]
-#         # batch_size, n_slots, features = latents.size()
-#         # reshaped_latents = latents.view(batch_size * n_slots, features)
-#         batch_size, n_slots, n_features, features = latents.size()
-#         reshaped_latents = latents.view(batch_size * n_slots, n_features, features)
-
-#         H, W = params["resolution"]
-        
-#         z1, z2, z3, z4 = torch.split(reshaped_latents, 1, 1)
-#         z1 = self.sbd(z1, batch_size, n_slots)
-#         z2 = self.sbd(z2, batch_size, n_slots)
-#         z3 = self.sbd(z3, batch_size, n_slots)
-#         z4 = self.sbd(z4, batch_size, n_slots)
-
-#         # Pass reshaped latents through decoder
-#         reshaped_figures = self.z1_decoder(z1.squeeze()) * self.z2_decoder(z2.squeeze()) * self.z3_decoder(z3.squeeze()) * self.z4_decoder(z4.squeeze())
-#         #logger.info(reshaped_figures.shape)
-
-#         # Reshape figures back to [batch_size, n_slots, ...]
-#         figures = reshaped_figures.view(
-#             batch_size, n_slots, *reshaped_figures.shape[1:]
-#         )
-#         # Sum over the n_slots dimension for image  
-#         image = figures.sum(dim=1)
-
-#         return image, figures
 
 """
 uncomment if to use the multiplicative decoder with SBD inspiration for each f_app and f_geom

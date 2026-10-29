@@ -206,7 +206,7 @@ def main():
                         logger.info(f"epoch {epoch}:")
                         logger.info(f"train loss {train_loss} - test r2_score: {r2_pred}")
                     
-                save_preds = True
+                save_preds = False
                 if save_preds:
                     plt.scatter(a_target, a_preds, s=2)
                     if OOD_EVAL: plt.savefig(f"{params['check_attn_folder']}/preds_{params['latent_vars'][i]}_ood.png")
@@ -215,7 +215,7 @@ def main():
 
                 logger.info(f"test r2 score: {r2_pred}")
 
-                if i == 1: break
+                #if i == 1: break
     
     
     plt.savefig(f"{params['check_attn_folder']}/mse.png")
