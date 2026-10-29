@@ -104,7 +104,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     batch_loss = 0.
     optimizer.zero_grad()
   
-    img_hat, recon_figures = decoder(target)
+    img_hat, recon_figures = decoder(target.unsqueeze(-1))
     batch_loss = recon_loss_fn(img_hat, img)
 
     batch_loss.backward()
