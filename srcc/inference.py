@@ -173,22 +173,22 @@ def main():
                 logger.info(f"\npredictions for variable {params['latent_vars'][i]}\n")
                 r2_pred, _, _ = hungarian_r2_score(z_preds[:, :, i], targets[:, :, i])
                 logger.info(f"\nprediction r2 score: {r2_pred}\n")
-                r2_pred, _, _ = hungarian_r2_score(z_scm[:, :, i, 0], targets[:, :, i])
-                logger.info(f"\nprediction r2 score (without regressor): {r2_pred}\n")
+                # r2_pred, _, _ = hungarian_r2_score(z_scm[:, :, i, 0], targets[:, :, i])
+                # logger.info(f"\nprediction r2 score (without regressor): {r2_pred}\n")
 
         
         
-        make_regression = False
+        make_regression = True
         if make_regression:
             for i, var in enumerate(params["latent_vars"]):            
                 logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
                 
                 probe = Predictor(params["latent_dim"],
-                                params["latent_dim"],
+                                10,
                                 1)
                 
-                train_set = ProbeDataset(z_noise[:4000], targets[:4000], var_idx=i, split="train")
-                test_set = ProbeDataset(z_noise[4000:], targets[4000:], var_idx=i, split="test")
+                train_set = ProbeDataset(z_scm[:4000], targets[:4000], var_idx=i, split="train")
+                test_set = ProbeDataset(z_scm[4000:], targets[4000:], var_idx=i, split="test")
                 train_loader = DataLoader(train_set, 64, shuffle=True, generator=torch.Generator(device='cuda'))
                 test_loader = DataLoader(test_set, len(test_set), shuffle=False, generator=torch.Generator(device='cuda'))
 
