@@ -89,6 +89,7 @@ def main():
         dataloader = DataLoader(dataset, 64, shuffle=False, generator=torch.Generator(device='cuda'))
 
         z_noise = torch.tensor([])  
+        z_scm = torch.tensor([])  
         targets = torch.tensor([])  
         mse = torch.tensor([])
         all_img = torch.tensor([])
@@ -101,7 +102,7 @@ def main():
                 img = img.to(device)
                 target = target.to(device)
                 
-                _, batch_z_noise, _, img_hat, recon_figures = guide(img, target) # [B, N, L]
+                _, batch_z_noise, batch_z_scm, img_hat, recon_figures = guide(img, target) # [B, N, L]
                 #batch_z_noise, _, img_hat, recon_figures = guide(img, target) # [B, N, L]
                 recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
                 recon_loss += F.mse_loss(img_hat, img)
@@ -112,6 +113,8 @@ def main():
                 all_img_hat = torch.cat((all_img_hat, img_hat), dim=0)
 
                 z_preds = torch.cat((z_preds, guide.z_preds), dim=0)
+                z_scm = torch.cat((z_scm, batch_z_scm), dim=0)
+
 
         logger.info(f"z preds: {z_preds.shape}")
 
@@ -168,8 +171,10 @@ def main():
 
             for i, var in enumerate(params["latent_vars"]):            
                 logger.info(f"\npredictions for variable {params['latent_vars'][i]}\n")
-                r2_pred, a_target, a_preds = hungarian_r2_score(z_preds[:, :, i], targets[:, :, i])
+                r2_pred, _, _ = hungarian_r2_score(z_preds[:, :, i], targets[:, :, i])
                 logger.info(f"\nprediction r2 score: {r2_pred}\n")
+                r2_pred, _, _ = hungarian_r2_score(z_scm[:, :, i, 0], targets[:, :, i])
+                logger.info(f"\nprediction r2 score (without regressor): {r2_pred}\n")
 
         
         
