@@ -266,7 +266,7 @@ class ConstrainedSlotMLPAdditiveDecoder(torch.nn.Module):
         n_slots: int,
         n_slot_latents: int,
     ) -> None:
-        super(SlotMLPAdditiveDecoder, self).__init__()
+        super(ConstrainedSlotMLPAdditiveDecoder, self).__init__()
         self.n_slots = n_slots
         self.n_slot_latents = n_slot_latents
         
