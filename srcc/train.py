@@ -202,11 +202,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     # causal consistency
     if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]:
       consistency_loss = 0.
-      
-      #z_int, eps_int, flag = guide.causal_flow.counterfactuals(z_noise, z_scm) # job 513
-      # int_flag = torch.distributions.Categorical(
-      #   torch.tensor([1/2 for _ in range(2)])
-      #   ).sample()
       z_int, flag = guide.causal_flow.intervention(z_noise, z_scm)
       
       with torch.no_grad():
@@ -217,12 +212,9 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim) 
       with torch.no_grad():  
         x_int_cons, _ = guide.scene_decoder(z_causal_int)
-
-      # norm_z_int = (z_int - z_int.mean()) / (z_int.std() + 1e-8) 
-      # norm_z_causal_int = (z_causal_int - z_causal_int.mean()) / (z_causal_int.std() + 1e-8)
       
       consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
-      batch_loss += kl_beta * 0.1 * consistency_loss    
+      batch_loss += kl_beta * 0.01 * consistency_loss    # instead it was 0.1 
     else:
       consistency_loss = 0.
       x_int = torch.zeros_like(img_hat)
@@ -235,10 +227,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     epoch_recon_loss += recon_loss
     epoch_pred_loss += guide.pred_loss
     epoch_noise_pred_loss += torch.mean(guide.noise_pred_loss)
-    # epoch_flatt_noise_pred_loss += torch.mean(guide.flatt_noise_pred_loss)
     epoch_log_e += log_e #
     epoch_log_det += log_det
-    #epoch_logvar_z += torch.square(torch.mean(z_logvar))
     epoch_consistency_loss += consistency_loss
     epoch_kl += kl #
     epoch_log_q_z += log_q_z #
