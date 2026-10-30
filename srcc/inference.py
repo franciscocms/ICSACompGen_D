@@ -166,7 +166,7 @@ def main():
             else: plt.savefig(f"{params['check_attn_folder']}/img_recon_id.png")
             plt.close()  
         
-        compute_prediction_performance = True
+        compute_prediction_performance = False
         if compute_prediction_performance:
 
             for i, var in enumerate(params["latent_vars"]):            
@@ -176,8 +176,6 @@ def main():
                 # r2_pred, _, _ = hungarian_r2_score(z_scm[:, :, i, 0], targets[:, :, i])
                 # logger.info(f"\nprediction r2 score (without regressor): {r2_pred}\n")
 
-        
-        
         make_regression = True
         if make_regression:
             for i, var in enumerate(params["latent_vars"]):            
@@ -222,7 +220,7 @@ def main():
                             r2_pred, a_target, a_preds = hungarian_r2_score(pred, target)
 
                     train_loss /= train_iters
-                    if epoch % 50 == 0:
+                    if epoch % 50 == 0 and epoch > 0:
                         logger.info(f"epoch {epoch}:")
                         logger.info(f"train loss {train_loss} - test r2_score: {r2_pred}")
                     
