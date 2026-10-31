@@ -79,7 +79,6 @@ guide = InvSlotAttentionGuide(model_name=params["model_name"], #["slot_attention
                               A = A
                               ).to(DEVICE)
 run.watch(guide)
-
 logger.info(f"Training from scratch using {DEVICE}...\n")
 
 if not os.path.isdir(root_folder): os.mkdir(root_folder)
@@ -115,12 +114,9 @@ if resume_epoch != 0:
 dataset_dir = os.path.join(params["dataset_path"], "train")
 img_dir = os.path.join(dataset_dir, "images")
 target_dir = os.path.join(dataset_dir, "metadata")
-
 train_ds = MyDataset(dataset_dir)
 logger.info(len(train_ds))
-
 train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, num_workers=8)
-
 recon_loss_fn = nn.MSELoss()
 slot_rec_loss_crit = nn.MSELoss()
 
@@ -129,9 +125,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
   for name, param in guide.noise_prior.named_parameters():
     param.requires_grad = False
-  # for name, param in guide.prior.named_parameters():
-  #   param.requires_grad = False
-
   guide.epoch = epoch
 
   if scheduler.get_last_lr()[0] >= 1e-7:
@@ -153,7 +146,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   # update coefficients
   log_det_coeff = 0.001 # 0.1
   kl_beta = beta_scheduler.get_beta()
-  #kl_beta = 0.1
   
   printed = False
   num_iters = 0
@@ -164,7 +156,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   epoch_log_e = 0.
   epoch_log_det = 0.
   epoch_prior_log_det = 0.
-  #epoch_logvar_z = 0.
   epoch_consistency_loss = 0. 
   epoch_kl = 0.
   epoch_log_q_z = 0.
@@ -179,7 +170,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     optimizer.zero_grad()
   
     img_hat, z_noise, z_scm, z_mu, z_logvar, recon_figures = guide(img, target, step=epoch)
-    #img_hat, z_noise, z_scm, recon_figures = guide(img, target, step=epoch)
     recon_loss = recon_loss_fn(img_hat, img)
     batch_loss += 100. * recon_loss + kl_beta * (guide.pred_loss + torch.mean(guide.noise_pred_loss))# + torch.mean(guide.flatt_noise_pred_loss))
     
@@ -195,9 +185,9 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       log_e += torch.mean(log_normal(z_noise[:, :, i],
                                      guide.mu_noise_prior[:, :, i],
                                      torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
-    kl = -0.1*log_e + log_det_coeff*log_det
+    kl = -0.001*log_e + log_det_coeff*log_det
     log_q_z = 0.
-    batch_loss += kl_beta * (kl + 0.005*torch.square(torch.mean(z_logvar)))
+    batch_loss += kl_beta * (kl + 0.005*torch.square(torch.mean(z_logvar))) 
 
     # causal consistency
     if epoch >= params["cc_epoch"]:
@@ -237,11 +227,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     if guide.model_name == "additiveAE":
       if num_iters == 0:
         recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
-        
         if (epoch % epoch_step == 0 or epoch == 0) and not printed:
-          
           if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"]: logger.info(f"{params['latent_vars'][guide.causal_flow.flag]} counterfactual at epoch {epoch}...")
-          
           fig, ax = plt.subplots(5, 4 + params["num_slots"])
           for i in range(5):
               ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
@@ -252,15 +239,12 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
               if i == 0: ax[i, 2].set_title(f"int {guide.causal_flow.flag}" if epoch >= params["cc_epoch"] and params["use_counterfactual_consistency"] else "no count.")
               ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
               if i == 0: ax[i, 3].set_title(f"img_hat_cons")
-
               for j in range(params["num_slots"]):
                   ax[i, j+4].imshow(np.clip(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
                   if i == 0: ax[i, j+4].set_title(f"figs {j}")
-
               for j in range(4 + params["num_slots"]):
                   ax[i, j].grid(False)
                   ax[i, j].axis('off')
-
           plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
           plt.close()   
 
@@ -271,14 +255,11 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   epoch_recon_loss /= num_iters
   epoch_pred_loss /= num_iters
   epoch_noise_pred_loss /= num_iters
-  # epoch_flatt_noise_pred_loss /= num_iters
   epoch_log_e /= num_iters
   epoch_log_q_z /= num_iters
   epoch_log_det /= num_iters
   epoch_kl /= num_iters
   epoch_consistency_loss /= num_iters
-
-
 
   if epoch % epoch_step == 0:
     logger.info(f"epoch {epoch} - train_loss: {epoch_train_loss}")  
@@ -300,15 +281,11 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       dict_to_log[f"log_e_{params['latent_vars'][i]}"] = torch.mean(log_normal(z_noise[:, :, i],
                                                                               guide.mu_noise_prior[:, :, i],
                                                                               torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))    
-      
       dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(z_logvar[:, :, i, :], dim=-1))
       dict_to_log[f"prior_logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(guide.logvar_noise_prior[:, :, i, :], dim=-1))
-
       dict_to_log[f"s_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ss[:, :, i, :], dim=-1))
       dict_to_log[f"t_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ts[:, :, i, :], dim=-1))
-
     dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
-    # dict_to_log[f"flatt_noise_pred_loss_{params['latent_vars'][i]}"] = guide.flatt_noise_pred_loss[i]
   
   if epoch % 100 == 0 or epoch == params["training_epochs"]:
     checkpoint = {
@@ -318,8 +295,6 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       #'scheduler': scheduler.state_dict()
     }
     torch.save(checkpoint, GUIDE_PATH + '/guide_' + str(epoch) + '.pth')
-
   run.log(dict_to_log)
-
 logger.info("\ntraining ended...")
 wandb.finish()
