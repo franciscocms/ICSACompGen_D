@@ -97,7 +97,7 @@ def compute_matching_cost(preds, labels):
         logger.info(f"labels: {labels}")
         logger.info(f"cost_matrix_: {cost_matrix_}")
 
-        total_loss = 0.
+        total_loss = torch.tensor(0.).to(device)
         matched_labels = labels
     
 
