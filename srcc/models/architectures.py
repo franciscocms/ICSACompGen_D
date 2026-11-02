@@ -416,14 +416,14 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         
         if params["jobID"] in [533, 570]:
             self.app_decoder = nn.Sequential(
-                nn.Conv2d(10, 64, kernel_size=3, padding=1), # 6
+                nn.Conv2d(self.n_slot_latents*2 + 2, 64, kernel_size=3, padding=1), # 6
                 nn.ELU(),
                 nn.Conv2d(64, 64, kernel_size=3, padding=1),
                 nn.ELU(),
                 nn.Conv2d(64, 3, kernel_size=3, padding=1),
             )
             self.geom_decoder = nn.Sequential(
-                nn.Conv2d(10, 64, kernel_size=3, padding=1), # 14
+                nn.Conv2d(self.n_slot_latents*2 + 2, 64, kernel_size=3, padding=1), # 14
                 nn.ELU(),
                 nn.Conv2d(64, 64, kernel_size=3, padding=1),
                 nn.ELU(),
