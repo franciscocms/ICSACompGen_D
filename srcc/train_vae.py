@@ -126,76 +126,78 @@ slot_rec_loss_crit = nn.MSELoss()
 
 model.train()
 for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 1):
-  epoch_train_loss = 0.
-  
-  printed = False
-  num_iters = 0
-  epoch_recon_loss = 0.
-  epoch_kl = 0.
-  
-  for img, target in train_dl:
-    img = img.to(DEVICE)
-    target = target.to(DEVICE)
-    B = img.size(0)
-
-    batch_loss = 0.
-    optimizer.zero_grad()
-  
-    img_hat, recon_figures, mean, logvar = model(img)
-    recon_loss = model.compute_recon_loss(img_hat, img)
-    kl_loss = model.compute_kl_div(mean, logvar)
-    batch_loss += recon_loss + kl_loss
+    epoch_train_loss = 0.
     
-    if epoch % epoch_step == 0 and not printed:
-      if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
-        os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
+    printed = False
+    num_iters = 0
+    epoch_recon_loss = 0.
+    epoch_kl = 0.
     
+    for img, target in train_dl:
+        img = img.to(DEVICE)
+        target = target.to(DEVICE)
+        B = img.size(0)
 
-    batch_loss.backward()
-    optimizer.step()
-
-    epoch_train_loss += batch_loss 
-    epoch_recon_loss += recon_loss
+        batch_loss = 0.
+        optimizer.zero_grad()
     
-    if num_iters == 0:
-        recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
-        if (epoch % epoch_step == 0 or epoch == 0) and not printed:
-            fig, ax = plt.subplots(5, 2 + params["num_slots"])
-            for i in range(5):
-                ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                if i == 0: ax[i, 0].set_title("img")
-                ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                if i == 0: ax[i, 1].set_title("img_hat")
-                for j in range(params["num_slots"]):
-                    ax[i, j+2].imshow(np.clip(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                    if i == 0: ax[i, j+2].set_title(f"figs {j}")
-                for j in range(2 + params["num_slots"]):
-                    ax[i, j].grid(False)
-                    ax[i, j].axis('off')
-            plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
-            plt.close()   
+        img_hat, recon_figures, mean, logvar = model(img)
+        recon_loss = model.compute_recon_loss(img_hat, img)
+        kl_loss = model.compute_kl_div(mean, logvar)
+        batch_loss += recon_loss + kl_loss
+        
+        if epoch % epoch_step == 0 and not printed:
+            if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
+                os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
+        
 
-    num_iters += 1
-    printed = True
+        batch_loss.backward()
+        optimizer.step()
+
+        epoch_train_loss += batch_loss 
+        epoch_recon_loss += recon_loss
+        epoch_kl += kl_loss
+        
+        if num_iters == 0:
+            recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
+            if (epoch % epoch_step == 0 or epoch == 0) and not printed:
+                fig, ax = plt.subplots(5, 2 + params["num_slots"])
+                for i in range(5):
+                    ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                    if i == 0: ax[i, 0].set_title("img")
+                    ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                    if i == 0: ax[i, 1].set_title("img_hat")
+                    for j in range(params["num_slots"]):
+                        ax[i, j+2].imshow(np.clip(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                        if i == 0: ax[i, j+2].set_title(f"figs {j}")
+                    for j in range(2 + params["num_slots"]):
+                        ax[i, j].grid(False)
+                        ax[i, j].axis('off')
+                plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
+                plt.close()   
+
+        num_iters += 1
+        printed = True
+        
+    epoch_train_loss /= num_iters
+    epoch_recon_loss /= num_iters
+    epoch_kl /= num_iters
+
+    if epoch % epoch_step == 0:
+        logger.info(f"epoch {epoch} - train_loss: {epoch_train_loss}")  
+
+    dict_to_log = {'train_loss': epoch_train_loss}
+    dict_to_log["rec_loss"] = epoch_recon_loss
+    dict_to_log["kl"] = epoch_kl
     
-  epoch_train_loss /= num_iters
-  epoch_recon_loss /= num_iters
-
-  if epoch % epoch_step == 0:
-    logger.info(f"epoch {epoch} - train_loss: {epoch_train_loss}")  
-
-  dict_to_log = {'train_loss': epoch_train_loss}
-  dict_to_log["rec_loss"] = epoch_recon_loss
-  dict_to_log["kl"] = epoch_kl
-  
-  if epoch % 100 == 0 or epoch == params["training_epochs"]:
-    checkpoint = {
-      #'epoch': epoch,
-      'model': model.state_dict(),
-      #'optimizer': optimizer.state_dict(),
-      #'scheduler': scheduler.state_dict()
-    }
-    torch.save(checkpoint, GUIDE_PATH + '/guide_' + str(epoch) + '.pth')
-  run.log(dict_to_log)
+    if epoch % 50 == 0 or epoch == params["training_epochs"]:
+        checkpoint = {
+        #'epoch': epoch,
+        'model': model.state_dict(),
+        #'optimizer': optimizer.state_dict(),
+        #'scheduler': scheduler.state_dict()
+        }
+        torch.save(checkpoint, GUIDE_PATH + '/guide_' + str(epoch) + '.pth')
+    run.log(dict_to_log)
 logger.info("\ntraining ended...")
 wandb.finish()
