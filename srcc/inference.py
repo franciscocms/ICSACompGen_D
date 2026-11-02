@@ -37,9 +37,9 @@ def main():
 
     assert params["running_type"] == "eval"
 
-    run = wandb.init(project="ICSA",
-                     name=f"{params['jobID']}-eval"
-                     )
+    # run = wandb.init(project="ICSA",
+    #                  name=f"{params['jobID']}-eval"
+    #                  )
 
 
 
@@ -182,6 +182,7 @@ def main():
 
         make_regression = True
         if make_regression:
+            avg_pred_r2 = []
             for i, var in enumerate(params["latent_vars"]):            
                 logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
                 
@@ -221,10 +222,10 @@ def main():
                             if pred.size(-1) == 1: pred = pred.squeeze(-1)
                             r2_pred, a_target, a_preds = hungarian_r2_score(pred, target)
                     train_loss /= train_iters
-                    dict_to_log = {#f"{OOD_EVAL}_probe_{params['latent_vars'][i]}_train_loss": train_loss,
-                                   f"{OOD_EVAL}_probe_{params['latent_vars'][i]}_test_r2": r2_pred}
+                    # dict_to_log = {#f"{OOD_EVAL}_probe_{params['latent_vars'][i]}_train_loss": train_loss,
+                    #                f"{OOD_EVAL}_probe_{params['latent_vars'][i]}_test_r2": r2_pred}
                     
-                    run.log(dict_to_log)
+                    # run.log(dict_to_log)
                     
                 save_preds = False
                 if save_preds:
@@ -234,10 +235,14 @@ def main():
                     plt.close()
 
                 logger.info(f"test r2 score: {r2_pred}")
+                avg_pred_r2.append(r2_pred)
+            
 
                 #if i == 1: break
     
-    wandb.finish()
+            logger.info(f"prediction r2: {avg_pred_r2} with mean {np.asarray(avg_pred_r2).mean()}")
+    
+    # wandb.finish()
     plt.savefig(f"{params['check_attn_folder']}/mse.png")
     plt.close()    
 
