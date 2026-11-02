@@ -91,13 +91,14 @@ class VAEAdditiveDecoder(torch.nn.Module):
         self,
         in_channels: int,
         n_slots: int,
+        n_latents: int,
         n_slot_latents: int,
     ) -> None:
         super(VAEAdditiveDecoder, self).__init__()
         self.n_slots = n_slots
         self.n_slot_latents = n_slot_latents
         
-        self.decoder = get_decoder(n_slot_latents*n_slots, 3)
+        self.decoder = get_decoder(n_latents*n_slot_latents, 3)
 
     def forward(self, latents):
         batch_size, n_slots, n_features, features = latents.size()
