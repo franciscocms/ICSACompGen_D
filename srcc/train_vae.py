@@ -82,8 +82,8 @@ class VAE(nn.Module):
         logvar = logvar.reshape(logvar.size(0), logvar.size(1), self.L, self.ldim)
         z = z.reshape(z.size(0), z.size(1), self.L, self.ldim) 
 
-        #img_hat, recon_figures = self.decoder(z)
-        img_hat, recon_figures = self.decoder(mean) # job 611
+        img_hat, recon_figures = self.decoder(z)
+        #img_hat, recon_figures = self.decoder(mean) # job 611
         return img_hat, recon_figures, mean, logvar
 
     def compute_recon_loss(self, x_hat, x):
@@ -145,8 +145,8 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     
         img_hat, recon_figures, mean, logvar = model(img)
         recon_loss = model.compute_recon_loss(img_hat, img)
-        #kl_loss = model.compute_kl_div(mean, logvar)
-        batch_loss += recon_loss #+ kl_loss
+        kl_loss = model.compute_kl_div(mean, logvar)
+        batch_loss += recon_loss + kl_loss
         
         if epoch % epoch_step == 0 and not printed:
             if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
@@ -158,7 +158,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
 
         epoch_train_loss += batch_loss 
         epoch_recon_loss += recon_loss
-        #epoch_kl += kl_loss
+        epoch_kl += kl_loss
         
         if num_iters == 0:
             recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
