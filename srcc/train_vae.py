@@ -74,12 +74,16 @@ class VAE(nn.Module):
                                           n_slot_latents=params["latent_dim"]
                                           )
 
+        logger.info(self.decoder)
+
     def forward(self, x):
         mean, logvar, z = self.encoder(x)
         
         mean = mean.reshape(mean.size(0), mean.size(1), self.L, self.ldim)
         logvar = logvar.reshape(logvar.size(0), logvar.size(1), self.L, self.ldim)
         z = z.reshape(z.size(0), z.size(1), self.L, self.ldim) 
+
+        logger.info(z.shape)
 
         img_hat, recon_figures = self.decoder(z)
         return img_hat, recon_figures, mean, logvar
