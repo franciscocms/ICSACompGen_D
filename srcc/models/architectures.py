@@ -414,38 +414,38 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         self.n_slots = n_slots
         self.n_slot_latents = n_slot_latents
         
-        if params["jobID"] in [533, 570]:
-            self.app_decoder = nn.Sequential(
-                nn.Conv2d(self.n_slot_latents*2 + 2, 64, kernel_size=3, padding=1), # 6
-                nn.ELU(),
-                nn.Conv2d(64, 64, kernel_size=3, padding=1),
-                nn.ELU(),
-                nn.Conv2d(64, 3, kernel_size=3, padding=1),
-            )
-            self.geom_decoder = nn.Sequential(
-                nn.Conv2d(self.n_slot_latents*2 + 2, 64, kernel_size=3, padding=1), # 14
-                nn.ELU(),
-                nn.Conv2d(64, 64, kernel_size=3, padding=1),
-                nn.ELU(),
-                nn.Conv2d(64, 1, kernel_size=3, padding=1),
-                nn.Sigmoid()
-            )
-        else:
-            self.app_decoder = nn.Sequential(
-                nn.Conv2d(self.n_slot_latents + 2, 64, kernel_size=3, padding=1), # 6
-                nn.ELU(),
-                nn.Conv2d(64, 64, kernel_size=3, padding=1),
-                nn.ELU(),
-                nn.Conv2d(64, 3, kernel_size=3, padding=1),
-            )
-            self.geom_decoder = nn.Sequential(
-                nn.Conv2d(self.n_slot_latents*3 + 2, 64, kernel_size=3, padding=1), # 14
-                nn.ELU(),
-                nn.Conv2d(64, 64, kernel_size=3, padding=1),
-                nn.ELU(),
-                nn.Conv2d(64, 1, kernel_size=3, padding=1),
-                nn.Sigmoid()
-            )
+        assert params["jobID"] in [533, 570, 607]
+        self.app_decoder = nn.Sequential(
+            nn.Conv2d(self.n_slot_latents*2 + 2, 64, kernel_size=3, padding=1), # 6
+            nn.ELU(),
+            nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            nn.ELU(),
+            nn.Conv2d(64, 3, kernel_size=3, padding=1),
+        )
+        self.geom_decoder = nn.Sequential(
+            nn.Conv2d(self.n_slot_latents*2 + 2, 64, kernel_size=3, padding=1), # 14
+            nn.ELU(),
+            nn.Conv2d(64, 64, kernel_size=3, padding=1),
+            nn.ELU(),
+            nn.Conv2d(64, 1, kernel_size=3, padding=1),
+            nn.Sigmoid()
+        )
+        # else:
+        #     self.app_decoder = nn.Sequential(
+        #         nn.Conv2d(self.n_slot_latents + 2, 64, kernel_size=3, padding=1), # 6
+        #         nn.ELU(),
+        #         nn.Conv2d(64, 64, kernel_size=3, padding=1),
+        #         nn.ELU(),
+        #         nn.Conv2d(64, 3, kernel_size=3, padding=1),
+        #     )
+        #     self.geom_decoder = nn.Sequential(
+        #         nn.Conv2d(self.n_slot_latents*3 + 2, 64, kernel_size=3, padding=1), # 14
+        #         nn.ELU(),
+        #         nn.Conv2d(64, 64, kernel_size=3, padding=1),
+        #         nn.ELU(),
+        #         nn.Conv2d(64, 1, kernel_size=3, padding=1),
+        #         nn.Sigmoid()
+        #     )
         self.model_name = "SlotMLPAdditiveDecoder"
 
     def forward(self, latents):
@@ -454,12 +454,12 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         reshaped_latents = latents.view(batch_size * n_slots, n_features, features)
         H, W = params["resolution"]
         
-        if params["jobID"] in [533, 570]:
-            z_app = torch.flatten(reshaped_latents[:, [0, 1]], -2)
-            z_geom = torch.flatten(reshaped_latents[:, [2, 3]], -2)
-        else:
-            z_app = torch.flatten(reshaped_latents[:, 1:2], -2)
-            z_geom = torch.flatten(reshaped_latents[:, [0, 2, 3]], -2)
+        #if params["jobID"] in [533, 570, 607]:
+        z_app = torch.flatten(reshaped_latents[:, [0, 1]], -2)
+        z_geom = torch.flatten(reshaped_latents[:, [2, 3]], -2)
+        # else:
+        #     z_app = torch.flatten(reshaped_latents[:, 1:2], -2)
+        #     z_geom = torch.flatten(reshaped_latents[:, [0, 2, 3]], -2)
         
         z_app = z_app.view(z_app.shape + (1, 1))
         z_geom = z_geom.view(z_geom.shape + (1, 1))
