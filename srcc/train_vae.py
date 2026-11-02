@@ -74,7 +74,6 @@ class VAE(nn.Module):
                                                          )
 
     def forward(self, x):
-        B, N, d = x.shape
         mean, logvar, z = self.encoder(x)
         img_hat, recon_figures = self.decoder(z)
         return img_hat, recon_figures, mean, logvar
