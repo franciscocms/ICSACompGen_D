@@ -60,7 +60,8 @@ torch.manual_seed(params["random_seed"])
 class VAE(nn.Module):
     def __init__(self):
         super().__init__()
-        
+        self.L = len(params["latent_vars"])
+        self.ldim = params["latent_dim"]
         self.encoder = FullNoiseEncoder(in_channels=3,
                                         n_slots=params["num_slots"],
                                         n_latents=len(params["latent_vars"]),
@@ -75,6 +76,11 @@ class VAE(nn.Module):
 
     def forward(self, x):
         mean, logvar, z = self.encoder(x)
+        
+        mean = mean.reshape(mean.size(0), mean.size(1), self.L, self.ldim)
+        logvar = logvar.reshape(logvar.size(0), logvar.size(1), self.L, self.ldim)
+        z = z.reshape(z.size(0), z.size(1), self.L, self.ldim) 
+
         img_hat, recon_figures = self.decoder(z)
         return img_hat, recon_figures, mean, logvar
 
@@ -82,6 +88,9 @@ class VAE(nn.Module):
         return F.mse_loss(x_hat, x)
 
     def compute_kl_div(self, mu, logvar):
+        assert len(mu.shape) == 4
+        mu = torch.flatten(torch.flatten(mu, 0, 1), -2)
+        logvar = torch.flatten(torch.flatten(logvar, 0, 1), -2)
         return compute_kl_loss(mu, logvar)
 
 
