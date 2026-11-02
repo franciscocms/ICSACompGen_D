@@ -146,7 +146,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         img_hat, recon_figures, mean, logvar = model(img)
         recon_loss = model.compute_recon_loss(img_hat, img)
         kl_loss = model.compute_kl_div(mean, logvar)
-        batch_loss += recon_loss + kl_loss
+        batch_loss += recon_loss + 0.1 * kl_loss
         
         if epoch % epoch_step == 0 and not printed:
             if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
@@ -156,9 +156,9 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         batch_loss.backward()
         optimizer.step()
 
-        epoch_train_loss += batch_loss 
-        epoch_recon_loss += recon_loss
-        epoch_kl += kl_loss
+        epoch_train_loss += batch_loss.item() 
+        epoch_recon_loss += recon_loss.item()
+        epoch_kl += kl_loss.item()
         
         if num_iters == 0:
             recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
@@ -188,9 +188,11 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     if epoch % epoch_step == 0:
         logger.info(f"epoch {epoch} - train_loss: {epoch_train_loss}")  
 
-    dict_to_log = {'train_loss': epoch_train_loss}
-    dict_to_log["rec_loss"] = epoch_recon_loss
-    dict_to_log["kl"] = epoch_kl
+    dict_to_log = {'vae_train_loss': epoch_train_loss}
+    dict_to_log["vae_rec_loss"] = epoch_recon_loss
+    dict_to_log["vae_kl"] = epoch_kl
+    dict_to_log["vae_mean"] = torch.mean(mean)
+    dict_to_log["vae_logvar"] = torch.mean(logvar)
     
     if epoch % 50 == 0 or epoch == params["training_epochs"]:
         checkpoint = {
