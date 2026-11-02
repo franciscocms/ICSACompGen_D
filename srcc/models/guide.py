@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
 from srcc.main import params
-from srcc.models.architectures import SlotMLPAdditiveDecoder, FullNoiseEncoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, PriorMultivariateCausalFlow, CausalGaussianPrior, RobustEncoder, ConstrainedSlotMLPAdditiveDecoder
+from srcc.models.architectures import FullNoiseEncoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, ConstrainedSlotMLPAdditiveDecoder, ViolatingConstrainedSlotMLPAdditiveDecoder
 from srcc.models.slot_attention import SlotAttentionAutoEncoder, SlotAttentionEncoder, SlotAttentionDecoder
 from srcc.utils.loss import compute_matching_cost
 
@@ -60,11 +60,6 @@ class InvSlotAttentionGuide(nn.Module):
                                         stage=params["running_type"],
                                         clamp_var=False)
 
-        # self.encoder = RobustEncoder(n_slots=params["num_slots"],
-        #                              n_latents=self.L,
-        #                              latent_dim=self.ldim)
-        
-        # self.noise_encoders = nn.ModuleDict()
         for var_name in params["latent_vars"]:            
             self.noise_predictors[var_name] = Predictor(self.ldim,
                                                         self.ldim,
@@ -73,11 +68,18 @@ class InvSlotAttentionGuide(nn.Module):
             self.flatt_noise_predictor[var_name] = Predictor(self.L*self.ldim, self.L*self.ldim, 1)
 
         
-        self.scene_decoder = ConstrainedSlotMLPAdditiveDecoder(in_channels=3,
-                                                    n_slots=params["num_slots"],
-                                                    #n_slot_latents=self.slot_dim
-                                                    n_slot_latents=self.ldim
-                                                    )
+        if params["jobID"] == 607:
+            self.scene_decoder = ViolatingConstrainedSlotMLPAdditiveDecoder(in_channels=3,
+                                                                n_slots=params["num_slots"],
+                                                                #n_slot_latents=self.slot_dim
+                                                                n_slot_latents=self.ldim
+                                                                )
+        else:
+            self.scene_decoder = ConstrainedSlotMLPAdditiveDecoder(in_channels=3,
+                                                        n_slots=params["num_slots"],
+                                                        #n_slot_latents=self.slot_dim
+                                                        n_slot_latents=self.ldim
+                                                        )
 
         self.causal_flow = MultivariateCausalFlow(self.L,
                                                   self.ldim,
@@ -87,11 +89,6 @@ class InvSlotAttentionGuide(nn.Module):
                                                     self.ldim,
                                                     learn_var=True,
                                                     clamp_var=False)
-        
-        # self.prior = PriorMultivariateCausalFlow(self.ldim)
-        # self.prior = CausalGaussianPrior(self.L,
-        #                                  self.ldim,
-        #                                  self.A)
 
         self.predictor = Predictor(self.slot_dim,
                                    self.slot_dim,
