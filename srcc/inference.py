@@ -186,7 +186,7 @@ def main():
                 logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
                 
                 probe = Predictor(params["latent_dim"],
-                                10,
+                                64,
                                 1)
                 
                 train_set = ProbeDataset(z_scm[:4000], targets[:4000], var_idx=i, split="train")
