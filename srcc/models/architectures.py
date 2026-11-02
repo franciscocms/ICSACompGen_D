@@ -86,177 +86,6 @@ def get_decoder(in_dim, out_channels):
     return decoder
 
 
-class FiLMLayer(nn.Module):
-    def __init__(self, feature_dim, geo_dim):
-        super().__init__()
-        # Generates scale and shift for every single neuron in this layer
-        self.conditioner = nn.Linear(geo_dim, 2 * feature_dim)
-        
-    def forward(self, x, z_geo):
-        params = self.conditioner(z_geo)
-        gamma, beta = torch.chunk(params, 2, dim=-1)
-        # Softplus ensures gamma > 0, keeping the cross-derivative non-zero
-        return F.softplus(gamma) * x + beta
-
-class CompositionalObjectDecoder(nn.Module):
-    def __init__(self, ldim, hidden_dim=256, img_size=64):
-        super().__init__()
-        self.img_size = img_size
-        
-        self.app_dim = ldim 
-        self.geo_dim = ldim 
-
-        # --- The Appearance Trunk ---
-        # This path only 'sees' Color. It learns a generic 'object-ness'.
-        self.fc1 = nn.Linear(self.app_dim, hidden_dim)
-        self.film1 = FiLMLayer(hidden_dim, self.geo_dim)
-        
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
-        self.film2 = FiLMLayer(hidden_dim, self.geo_dim)
-        
-        self.fc3 = nn.Linear(hidden_dim, hidden_dim)
-        self.film3 = FiLMLayer(hidden_dim, self.geo_dim)
-
-        self.to_pixels = nn.Sequential(
-            nn.Linear(256, 256),
-            nn.ELU(),
-            nn.Linear(256, 32 * 4 * 4),
-            nn.ELU(),
-            View((-1, 32, 4, 4)),
-            nn.ConvTranspose2d(32, 32, 4, 2, 1),
-            nn.ELU(),
-            nn.ConvTranspose2d(32, 32, 4, 2, 1),
-            nn.ELU(),
-            nn.ConvTranspose2d(32, 32, 4, 2, 1),
-            nn.ELU(),
-            nn.ConvTranspose2d(32, 3, 4, 2, 1),
-        )
-
-    def forward(self, z):
-        z0, z1, z2, z3 = torch.split(z, params["latent_dim"], -1)
-
-        # Layer 1: Start with Appearance, modulate with Geometry
-        x = self.fc1(z0)
-        x = self.film1(x, z1)
-        x = F.elu(x)
-
-        # Layer 2: Deepen the interaction
-        x = self.fc2(x)
-        x = self.film2(x, z2)
-        x = F.elu(x)
-
-        # Layer 3: Final refinement
-        x = self.fc3(x)
-        x = self.film3(x, z3)
-        x = F.elu(x)
-
-        # Output to image
-        out = self.to_pixels(x)
-        return out.view(-1, 3, self.img_size, self.img_size)
-    
-    def old_forward(self, z):
-        # z shape: (B, L * ldim)
-        # Manually slice the composition (assuming fixed order from your prior)
-        # This is where the causal structure is enforced
-        z_app = z[:, self.app_dim:2*self.app_dim]
-        z_geo = torch.cat((z[:, :self.app_dim],
-                           z[:, 2*self.app_dim:]), dim=-1)
-
-        # Layer 1: Start with Appearance, modulate with Geometry
-        x = self.fc1(z_app)
-        x = self.film1(x, z_geo)
-        x = F.elu(x)
-
-        # Layer 2: Deepen the interaction
-        x = self.fc2(x)
-        x = self.film2(x, z_geo)
-        x = F.elu(x)
-
-        # Layer 3: Final refinement
-        x = self.fc3(x)
-        x = self.film3(x, z_geo)
-        x = F.elu(x)
-
-        # Output to image
-        out = self.to_pixels(x)
-        return out.view(-1, 3, self.img_size, self.img_size)
-
-class ConvDecoder(nn.Module):
-    def __init__(self, latent_dim=4):
-        super().__init__()
-
-        self.net = nn.Sequential(
-            # B x 4
-            nn.Linear(latent_dim, 256),
-            nn.ELU(),
-
-            nn.Linear(256, 512),
-            nn.ELU(),
-
-            nn.Linear(512, 1024),
-            nn.ELU(),
-
-            # Project into feature map
-            nn.Linear(1024, 256 * 8 * 8),
-            nn.ELU()
-        )
-
-        self.conv_net = nn.Sequential(
-            # B x 256 x 8 x 8
-
-            nn.ConvTranspose2d(
-                256, 128,
-                kernel_size=4,
-                stride=2,
-                padding=1
-            ),
-            nn.ELU(),
-
-            # B x 128 x 16 x 16
-
-            nn.ConvTranspose2d(
-                128, 64,
-                kernel_size=4,
-                stride=2,
-                padding=1
-            ),
-            nn.ELU(),
-
-            # B x 64 x 32 x 32
-
-            nn.ConvTranspose2d(
-                64, 32,
-                kernel_size=4,
-                stride=2,
-                padding=1
-            ),
-            nn.ELU(),
-
-            # B x 32 x 64 x 64
-
-            nn.Conv2d(
-                32, 3,
-                kernel_size=3,
-                padding=1
-            ),
-
-            nn.Sigmoid()
-        )
-
-    def forward(self, z):
-        """
-        z: Tensor of shape (B, 4)
-        """
-
-        x = self.net(z)
-
-        # reshape into spatial feature map
-        x = x.view(-1, 256, 8, 8)
-
-        x = self.conv_net(x)
-
-        return x
-
 class VAEAdditiveDecoder(torch.nn.Module):
     def __init__(
         self,
@@ -268,38 +97,17 @@ class VAEAdditiveDecoder(torch.nn.Module):
         self.n_slots = n_slots
         self.n_slot_latents = n_slot_latents
         
-        self.decoder = nn.Sequential(
-            nn.Conv2d(self.n_slot_latents*self.n_slots + 2, 64, kernel_size=3, padding=1), # 6
-            nn.ELU(),
-            nn.Conv2d(64, 64, kernel_size=3, padding=1),
-            nn.ELU(),
-            nn.Conv2d(64, 64, kernel_size=3, padding=1),
-            nn.ELU(),
-            nn.Conv2d(64, 3, kernel_size=3, padding=1),
-        )
+        self.decoder = get_decoder(n_slot_latents*n_slots)
 
     def forward(self, latents):
-        # Reshape latents from [batch_size, n_slots, features] to [batch_size*n_slots, features]
         batch_size, n_slots, n_features, features = latents.size()
         reshaped_latents = latents.view(batch_size * n_slots, n_features, features)
         H, W = params["resolution"]
         
         z = torch.flatten(reshaped_latents, -2)
-        z = z.view(z.shape + (1, 1))        
-        z = z.expand((-1, -1, H, W))
-        
-        x = torch.linspace(-1, 1, W).to(device)
-        y = torch.linspace(-1, 1, H).to(device)
-        
-        x_grid, y_grid = torch.meshgrid(x, y)
-        x_grid = x_grid.view((1, 1) + x_grid.shape)
-        y_grid = y_grid.view((1, 1) + y_grid.shape)
-        
-        z_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
-                            y_grid.expand(batch_size * n_slots, -1, -1, -1), z), dim=1)
         
         # Pass reshaped latents through decoder
-        reshaped_figures = self.decoder(z_grid)
+        reshaped_figures = self.decoder(z)
         # Reshape figures back to [batch_size, n_slots, ...]
         figures = reshaped_figures.view(
             batch_size, n_slots, *reshaped_figures.shape[1:]
