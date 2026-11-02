@@ -240,7 +240,7 @@ def main():
 
                 #if i == 1: break
     
-            logger.info(f"prediction r2: {avg_pred_r2} with mean {round(np.asarray(avg_pred_r2).mean(), 3)}")
+            logger.info(f"prediction r2: {avg_pred_r2} with mean {round(np.asarray(avg_pred_r2).mean(), 3)} and std {round(np.asarray(avg_pred_r2).std(), 3)}")
     
     # wandb.finish()
     plt.savefig(f"{params['check_attn_folder']}/mse.png")
