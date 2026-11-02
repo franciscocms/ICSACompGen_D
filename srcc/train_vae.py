@@ -146,7 +146,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         img_hat, recon_figures, mean, logvar = model(img)
         recon_loss = model.compute_recon_loss(img_hat, img)
         kl_loss = model.compute_kl_div(mean, logvar)
-        batch_loss += recon_loss + 0.1 * kl_loss
+        batch_loss += recon_loss + 0.01 * kl_loss
         
         if epoch % epoch_step == 0 and not printed:
             if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
