@@ -257,34 +257,26 @@ class ConvDecoder(nn.Module):
 
         return x
 
-
-class ViolatingConstrainedSlotMLPAdditiveDecoder(torch.nn.Module):
+class VAEAdditiveDecoder(torch.nn.Module):
     def __init__(
         self,
         in_channels: int,
         n_slots: int,
         n_slot_latents: int,
     ) -> None:
-        super(ViolatingConstrainedSlotMLPAdditiveDecoder, self).__init__()
+        super(VAEAdditiveDecoder, self).__init__()
         self.n_slots = n_slots
         self.n_slot_latents = n_slot_latents
         
-        self.app_decoder = nn.Sequential(
-            nn.Conv2d(self.n_slot_latents*2 + 2, 64, kernel_size=3, padding=1),
+        self.decoder = nn.Sequential(
+            nn.Conv2d(self.n_slot_latents*self.n_slots + 2, 64, kernel_size=3, padding=1), # 6
+            nn.ELU(),
+            nn.Conv2d(64, 64, kernel_size=3, padding=1),
             nn.ELU(),
             nn.Conv2d(64, 64, kernel_size=3, padding=1),
             nn.ELU(),
             nn.Conv2d(64, 3, kernel_size=3, padding=1),
         )
-        self.geom_decoder = nn.Sequential(
-            nn.Conv2d(2, 64, kernel_size=3, padding=1),
-            nn.ELU(),
-            nn.Conv2d(64, 64, kernel_size=3, padding=1),
-            nn.ELU(),
-            nn.Conv2d(64, 1, kernel_size=3, padding=1),
-            nn.Sigmoid()
-        )
-        self.model_name = "SlotMLPAdditiveDecoder"
 
     def forward(self, latents):
         # Reshape latents from [batch_size, n_slots, features] to [batch_size*n_slots, features]
@@ -292,32 +284,22 @@ class ViolatingConstrainedSlotMLPAdditiveDecoder(torch.nn.Module):
         reshaped_latents = latents.view(batch_size * n_slots, n_features, features)
         H, W = params["resolution"]
         
-        z_app = torch.flatten(reshaped_latents[:, [0, 1]], -2)
-        z_x = reshaped_latents[:, 2:3]
-        z_y = reshaped_latents[:, 3:4]
-
-        z_app = z_app.view(z_app.shape + (1, 1))
-        z_app = z_app.expand((-1, -1, H, W))
-        
-        tx = 2. * torch.sigmoid(z_x) - 1.
-        ty = 2. * torch.sigmoid(z_y) - 1.
+        z = torch.flatten(reshaped_latents, -2)
+        z = z.view(z.shape + (1, 1))        
+        z = z.expand((-1, -1, H, W))
         
         x = torch.linspace(-1, 1, W).to(device)
         y = torch.linspace(-1, 1, H).to(device)
-        yy, xx = torch.meshgrid(y, x, indexing="ij")
-
-        x_grid = xx.view((1, 1) + xx.shape)
-        y_grid = yy.view((1, 1) + yy.shape)
         
-        z_app_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
-                                y_grid.expand(batch_size * n_slots, -1, -1, -1), z_app), dim=1)
-
-        x_local = (xx - tx[:, :, None])
-        y_local = (yy - ty[:, :, None])
-        coords = torch.cat([x_local, y_local], dim=1)
+        x_grid, y_grid = torch.meshgrid(x, y)
+        x_grid = x_grid.view((1, 1) + x_grid.shape)
+        y_grid = y_grid.view((1, 1) + y_grid.shape)
+        
+        z_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
+                            y_grid.expand(batch_size * n_slots, -1, -1, -1), z), dim=1)
         
         # Pass reshaped latents through decoder
-        reshaped_figures = self.app_decoder(z_app_grid) * self.geom_decoder(coords)
+        reshaped_figures = self.decoder(z_grid)
         # Reshape figures back to [batch_size, n_slots, ...]
         figures = reshaped_figures.view(
             batch_size, n_slots, *reshaped_figures.shape[1:]

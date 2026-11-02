@@ -12,7 +12,7 @@ import sys
 
 sys.path.insert(0, '..') # add parent dir
 
-from models.architectures import FullNoiseEncoder, ConstrainedSlotMLPAdditiveDecoder
+from models.architectures import FullNoiseEncoder, VAEAdditiveDecoder
 from main import params
 from utils.loss import compute_kl_loss
 from datasets.data_utils import MyDataset
@@ -69,10 +69,10 @@ class VAE(nn.Module):
                                         stage=params["running_type"],
                                         clamp_var=False)
 
-        self.decoder = ConstrainedSlotMLPAdditiveDecoder(in_channels=3,
-                                                         n_slots=params["num_slots"],
-                                                         n_slot_latents=params["latent_dim"]
-                                                         )
+        self.decoder = VAEAdditiveDecoder(in_channels=3,
+                                          n_slots=params["num_slots"],
+                                          n_slot_latents=params["latent_dim"]
+                                          )
 
     def forward(self, x):
         mean, logvar, z = self.encoder(x)
