@@ -720,6 +720,24 @@ class Predictor(nn.Module):
         out = self.net(x)
         return out
 
+class Probe(nn.Module):
+    def __init__(self, nin, nhidden, nout):
+        super().__init__()
+        
+        self.net = nn.Sequential(
+            nn.Linear(nin, nhidden),
+            nn.ReLU(),
+            nn.Linear(nhidden, nhidden),
+            nn.ReLU(),
+            nn.Linear(nhidden, nout),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        B, N, d = x.shape
+        out = self.net(x)
+        return out
+
 
 class Flow(nn.Module):
     def __init__(self, L, ldim, A=None, net_class=MLP, nh=100, f_act="identity"):

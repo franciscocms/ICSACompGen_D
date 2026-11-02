@@ -14,7 +14,7 @@ import sys
 sys.path.insert(0, '..') # add parent dir
 
 from models.guide import InvSlotAttentionGuide
-from models.architectures import Predictor
+from models.architectures import Probe
 from main import params
 from datasets.data_utils import MyDataset, ProbeDataset
 from utils.loss import hungarian_r2_score, compute_matching_cost
@@ -185,9 +185,7 @@ def main():
             for i, var in enumerate(params["latent_vars"]):            
                 logger.info(f"\nprobe for variable {params['latent_vars'][i]}\n")
                 
-                probe = Predictor(params["latent_dim"],
-                                64,
-                                1)
+                probe = Probe(nin = params["latent_dim"], nhidden = 64, nout = 1)
                 
                 train_set = ProbeDataset(z_scm[:4000], targets[:4000], var_idx=i, split="train")
                 test_set = ProbeDataset(z_scm[4000:], targets[4000:], var_idx=i, split="test")
