@@ -223,8 +223,8 @@ def main():
                             if pred.size(-1) == 1: pred = pred.squeeze(-1)
                             r2_pred, a_target, a_preds = hungarian_r2_score(pred, target)
                     train_loss /= train_iters
-                    dict_to_log = {f"probe_{params['latent_vars'][i]}_train_loss": train_loss,
-                                   f"probe_{params['latent_vars'][i]}_test_r2": r2_pred}
+                    dict_to_log = {f"{OOD_EVAL}_probe_{params['latent_vars'][i]}_train_loss": train_loss,
+                                   f"{OOD_EVAL}_probe_{params['latent_vars'][i]}_test_r2": r2_pred}
                     
                     run.log(dict_to_log)
                     
