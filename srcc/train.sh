@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-#SBATCH --partition=gpu_min24gb     # Debug partition
-#SBATCH --qos=gpu_min24gb           # Debug QoS level
-#SBATCH --job-name=607              # Job name
+#SBATCH --partition=gpu_min12gb     # Debug partition
+#SBATCH --qos=gpu_min12gb           # Debug QoS level
+#SBATCH --job-name=608              # Job name
 #SBATCH -o slurm.%N.%j.out          # File containing STDOUT output
 #SBATCH -e slurm.%N.%j.err          # File containing STDERR output
 
-python train.py
+python train_vae.py

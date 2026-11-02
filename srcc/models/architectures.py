@@ -489,101 +489,6 @@ class SlotMLPAdditiveDecoder(torch.nn.Module):
         image = figures.sum(dim=1)
         return image, figures
 
-
-"""
-uncomment if to use the standard multiplicative decoder
-f(z) = f_app(z_color) + f_geom(z_geom), where z_geom = cat(z_scale, z_x, z_y)
-"""
-
-# class SlotMLPAdditiveDecoder(torch.nn.Module):
-#     """
-#     Model generates x_hat = sum_{i=1}^{n_slots} f(z_i),
-#     by summing the output of each slot.  Model outputs x_hat and list of x_hat_i.
-#     """
-
-#     def __init__(
-#         self,
-#         in_channels: int,
-#         n_slots: int,
-#         n_slot_latents: int,
-#     ) -> None:
-#         super(SlotMLPAdditiveDecoder, self).__init__()
-#         self.n_slots = n_slots
-#         self.n_slot_latents = n_slot_latents
-#         self.app_decoder = get_decoder(params["latent_dim"], 3)
-#         self.geom_decoder = get_decoder(params["latent_dim"]*3, 1)
-#         self.model_name = "SlotMLPAdditiveDecoder"
-
-#     def forward(self, latents):
-#         # Reshape latents from [batch_size, n_slots, features] to [batch_size*n_slots, features]
-#         # batch_size, n_slots, features = latents.size()
-#         # reshaped_latents = latents.view(batch_size * n_slots, features)
-#         batch_size, n_slots, n_features, features = latents.size()
-#         reshaped_latents = latents.view(batch_size * n_slots, n_features, features)
-
-#         # Pass reshaped latents through decoder
-#         reshaped_figures = self.app_decoder(reshaped_latents[:, 1]) * self.geom_decoder(torch.flatten(reshaped_latents[:, [0, 2, 3]], -2))
-#         #logger.info(reshaped_figures.shape)
-
-#         # Reshape figures back to [batch_size, n_slots, ...]
-#         figures = reshaped_figures.view(
-#             batch_size, n_slots, *reshaped_figures.shape[1:]
-#         )
-#         # Sum over the n_slots dimension for image  
-#         image = figures.sum(dim=1)
-
-#         return image, figures
-
-class old_SlotMLPAdditiveDecoder(torch.nn.Module):
-    """
-    Model generates x_hat = sum_{i=1}^{n_slots} f(z_i),
-    by summing the output of each slot.  Model outputs x_hat and list of x_hat_i.
-    """
-
-    def __init__(
-        self,
-        in_channels: int,
-        n_slots: int,
-        n_slot_latents: int,
-    ) -> None:
-        super(old_SlotMLPAdditiveDecoder, self).__init__()
-        self.n_slots = n_slots
-        self.n_slot_latents = n_slot_latents
-        self.decoder = get_decoder(n_slot_latents, in_channels)
-        #self.decoder = CompositionalObjectDecoder(params["latent_dim"])
-        self.model_name = "SlotMLPAdditiveDecoder"
-
-    def forward(self, latents):
-        # Reshape latents from [batch_size, n_slots, features] to [batch_size*n_slots, features]
-        # batch_size, n_slots, features = latents.size()
-        # reshaped_latents = latents.view(batch_size * n_slots, features)
-        batch_size, n_slots, n_features, features = latents.size()
-        reshaped_latents = latents.view(batch_size * n_slots, n_features, features)
-
-        # Pass reshaped latents through decoder
-        reshaped_figures = self.decoder(reshaped_latents)
-        #logger.info(reshaped_figures.shape)
-
-        # Reshape figures back to [batch_size, n_slots, ...]
-        figures = reshaped_figures.view(
-            batch_size, n_slots, n_features, *reshaped_figures.shape[1:]
-        ).sum(dim=2)
-        # Sum over the n_slots dimension for image  
-        image = figures.sum(dim=1)
-
-        # 3. Split into RGB and Mask Logits
-        # figures_rgb = figures[:, :, :3, :, :]
-        # figures_mask = figures[:, :, 3:, :, :]            
-        
-        # # 4. ENFORCE COMPOSITIONALITY: Softmax over the Slot Dimension (N)
-        # # This ensures that for every pixel, the masks sum to 1.0 across all slots.
-        # figures_mask = torch.nn.functional.softmax(figures_mask, dim=1)             # [B, N, 1, H, W]
-        
-        # # 5. Composite the final image
-        # # This is the "Additive" step constrained by the disjoint masks
-        # image = torch.sum(figures_rgb * figures_mask, dim=1) # [B, 3, H, W]
-
-        return image, figures
     
 class FullNoiseEncoder(nn.Module):
     def __init__(self, in_channels, n_slots, n_latents, latent_dim, stage="train", clamp_var=False):
@@ -631,7 +536,6 @@ class FullNoiseEncoder(nn.Module):
         z = mean + torch.randn_like(mean)*stds
         return mean, logvar, z
     
-
 class AddCoords(nn.Module):
     """ Adds (x, y) coordinates as extra channels to help measure scale/position. """
     def forward(self, x):
@@ -700,10 +604,7 @@ class RobustEncoder(nn.Module):
         mu, logvar = self.encode(x)
         stds = torch.exp(0.5*logvar)
         z = mu + torch.randn_like(mu)*stds
-        return mu, logvar, z
-        
-
-
+        return mu, logvar, z 
 
 class MLP(nn.Module):
     def __init__(self, nin, nout, nh, f_act="identity"):
