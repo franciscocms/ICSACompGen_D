@@ -37,6 +37,10 @@ def main():
 
     assert params["running_type"] == "eval"
 
+    run = wandb.init(project="ICSA",
+                     name=f"{params['jobID']}-eval"
+                     )
+
 
 
     logger.info(device)
@@ -218,11 +222,11 @@ def main():
                             pred = probe(e[:, :, i])
                             if pred.size(-1) == 1: pred = pred.squeeze(-1)
                             r2_pred, a_target, a_preds = hungarian_r2_score(pred, target)
-
                     train_loss /= train_iters
-                    if epoch % 50 == 0 and epoch > 0:
-                        logger.info(f"epoch {epoch}:")
-                        logger.info(f"train loss {train_loss} - test r2_score: {r2_pred}")
+                    dict_to_log = {f"probe_{params['latent_vars'][i]}_train_loss": train_loss,
+                                   f"probe_{params['latent_vars'][i]}_test_r2": r2_pred}
+                    
+                    run.log(dict_to_log)
                     
                 save_preds = False
                 if save_preds:
@@ -235,7 +239,7 @@ def main():
 
                 #if i == 1: break
     
-    
+    wandb.finish()
     plt.savefig(f"{params['check_attn_folder']}/mse.png")
     plt.close()    
 
