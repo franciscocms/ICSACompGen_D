@@ -16,7 +16,7 @@ import sys
 sys.path.insert(0, '../..') # add parent-parent dir
 
 from srcc.main import params
-from srcc.models.architectures import FullNoiseEncoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, ConstrainedSlotMLPAdditiveDecoder, ViolatingConstrainedSlotMLPAdditiveDecoder, SlotMLPAdditiveDecoder
+from srcc.models.architectures import FullNoiseEncoder, TCDiscriminator, MultivariateCausalFlow, ConditionalGaussianPrior, Predictor, ConstrainedSlotMLPAdditiveDecoder, SlotMLPAdditiveDecoder, VAEAdditiveDecoder
 from srcc.models.slot_attention import SlotAttentionAutoEncoder, SlotAttentionEncoder, SlotAttentionDecoder
 from srcc.utils.loss import compute_matching_cost
 
@@ -74,6 +74,12 @@ class InvSlotAttentionGuide(nn.Module):
                                                                 #n_slot_latents=self.slot_dim
                                                                 n_slot_latents=self.ldim
                                                                 )
+        elif params["jobID"] in [610]:
+            self.scene_decoder = VAEAdditiveDecoder(in_channels=3,
+                                                    n_slots=params["num_slots"],
+                                                    n_latents=len(params["latent_vars"]),
+                                                    n_slot_latents=params["latent_dim"]
+                                                    )
         else:
             self.scene_decoder = ConstrainedSlotMLPAdditiveDecoder(in_channels=3,
                                                         n_slots=params["num_slots"],
