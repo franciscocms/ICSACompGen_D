@@ -15,6 +15,7 @@ sys.path.insert(0, '..') # add parent dir
 from models.architectures import FullNoiseEncoder, VAEAdditiveDecoder
 from main import params
 from utils.loss import compute_kl_loss
+from utils.train import BetaScheduler
 from datasets.data_utils import MyDataset
 
 import wandb # type: ignore
@@ -127,6 +128,8 @@ train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, num_workers=
 recon_loss_fn = nn.MSELoss()
 slot_rec_loss_crit = nn.MSELoss()
 
+beta_scheduler = BetaScheduler(0., 1., 100)
+
 model.train()
 for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 1):
     epoch_train_loss = 0.
@@ -135,25 +138,25 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     num_iters = 0
     epoch_recon_loss = 0.
     epoch_kl = 0.
+
+    kl_beta = beta_scheduler.get_beta()
     
     for img, target in train_dl:
         img = img.to(DEVICE)
         target = target.to(DEVICE)
         B = img.size(0)
 
-        batch_loss = 0.
         optimizer.zero_grad()
     
         img_hat, recon_figures, mean, logvar = model(img)
         recon_loss = model.compute_recon_loss(img_hat, img)
         kl_loss = model.compute_kl_div(mean, logvar)
-        batch_loss += 100 * recon_loss + kl_loss
+        batch_loss = recon_loss + kl_beta * kl_loss
         
         if epoch % epoch_step == 0 and not printed:
             if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
                 os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
         
-
         batch_loss.backward()
         optimizer.step()
 
@@ -194,6 +197,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     dict_to_log["vae_kl"] = epoch_kl
     dict_to_log["vae_mean"] = torch.mean(mean)
     dict_to_log["vae_logvar"] = torch.mean(logvar)
+    dict_to_log["vae_kl_beta"] = kl_beta
     
     if epoch % 50 == 0 or epoch == params["training_epochs"]:
         checkpoint = {
