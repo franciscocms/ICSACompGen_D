@@ -69,8 +69,6 @@ def main():
         dataset = MyDataset(dataset_dir, OOD_EVAL)
         dataloader = DataLoader(dataset, 64, shuffle=False, generator=torch.Generator(device='cuda'))
 
-        z_noise = torch.tensor([])  
-        z_scm = torch.tensor([])  
         targets = torch.tensor([])  
         mse = torch.tensor([])
         all_img = torch.tensor([])
@@ -78,17 +76,19 @@ def main():
         recon_loss = 0.  
         r2 = []
         z_preds = torch.tensor([]) 
+        z = torch.tensor([])
         with torch.no_grad():
             for i, (img, target) in enumerate(dataloader):
                 img = img.to(device)
                 target = target.to(device)
                 
-                img_hat, recon_figures, mean, logvar, z = model(img) # [B, N, L]
+                img_hat, recon_figures, mean, logvar, batch_z = model(img) # [B, N, L]
                 recon_loss += F.mse_loss(img_hat, img)
                 mse = torch.cat((mse, F.mse_loss(img_hat, img, reduction='none').mean((-1, -2, -3))), dim=0)
                 targets = torch.cat((targets, target), dim=0)  
                 all_img = torch.cat((all_img, img), dim=0)
                 all_img_hat = torch.cat((all_img_hat, img_hat), dim=0)
+                z = torch.cat((z, batch_z), dim=0)
 
         #logger.info(z_noise.shape) # [B, N, L, d] -> B = 5k
         logger.info(targets.shape)
