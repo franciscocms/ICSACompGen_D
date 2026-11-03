@@ -12,7 +12,7 @@ import sys
 
 sys.path.insert(0, '..') # add parent dir
 
-from models.architectures import FullNoiseEncoder, VAEAdditiveDecoder
+from models.architectures import FullNoiseEncoder, VAEAdditiveDecoder, VAE
 from main import params
 from utils.loss import compute_kl_loss
 from utils.train import BetaScheduler
@@ -48,7 +48,6 @@ CHECK_ATTN = params["check_attn"]
 root_folder = params["check_attn_folder"]
 TRAIN_BATCH_SIZE = params["batch_size"]
 LR = params["lr"]
-training_epochs = params["training_epochs"]
 epoch_step = params["epoch_step"]
 L = len(params["latent_vars"])
 ldim = params["latent_dim"]
@@ -58,47 +57,7 @@ logger.info(params)
 
 torch.manual_seed(params["random_seed"])
 
-class VAE(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.L = len(params["latent_vars"])
-        self.ldim = params["latent_dim"]
-        self.encoder = FullNoiseEncoder(in_channels=3,
-                                        n_slots=params["num_slots"],
-                                        n_latents=len(params["latent_vars"]),
-                                        latent_dim=params["latent_dim"],
-                                        stage=params["running_type"],
-                                        clamp_var=False)
-
-        self.decoder = VAEAdditiveDecoder(in_channels=3,
-                                          n_slots=params["num_slots"],
-                                          n_latents=len(params["latent_vars"]),
-                                          n_slot_latents=params["latent_dim"],
-                                          add_sigmoid=False
-                                          )
-
-    def forward(self, x):
-        mean, logvar, z = self.encoder(x)
-        
-        mean = mean.reshape(mean.size(0), mean.size(1), self.L, self.ldim)
-        logvar = logvar.reshape(logvar.size(0), logvar.size(1), self.L, self.ldim)
-        z = z.reshape(z.size(0), z.size(1), self.L, self.ldim) 
-
-        img_hat, recon_figures = self.decoder(z)
-        #img_hat, recon_figures = self.decoder(mean) # job 611
-        return img_hat, recon_figures, mean, logvar
-
-    def compute_recon_loss(self, x_hat, x):
-        return F.mse_loss(x_hat, x)
-
-    def compute_kl_div(self, mu, logvar):
-        assert len(mu.shape) == 4
-        mu = torch.flatten(torch.flatten(mu, 0, 1), -2)
-        logvar = torch.flatten(torch.flatten(logvar, 0, 1), -2)
-        return compute_kl_loss(mu, logvar)
-
-
-model = VAE().to(DEVICE)
+model = VAE(num_slots=params["num_slots"], L=L, ldim=ldim, stage=params["running_type"]).to(DEVICE)
 run.watch(model)
 logger.info(f"Training from scratch using {DEVICE}...\n")
 
@@ -148,7 +107,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + 120 + 1):
 
         optimizer.zero_grad()
     
-        img_hat, recon_figures, mean, logvar = model(img)
+        img_hat, recon_figures, mean, logvar, z = model(img)
         recon_loss = model.compute_recon_loss(img_hat, img)
         kl_loss = model.compute_kl_div(mean, logvar)
         batch_loss = recon_loss + kl_beta * kl_loss

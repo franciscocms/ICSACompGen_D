@@ -11,6 +11,7 @@ sys.path.insert(0, '../..') # add parent-parent dir
 
 from srcc.main import params
 from srcc.utils.guide import permute_dims, inverse_permutation
+from srcc.utils.loss import compute_kl_loss
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -86,6 +87,44 @@ def get_decoder(in_dim, out_channels, add_sigmoid=False):
     return decoder
 
 
+class VAE(nn.Module):
+    def __init__(self, num_slots, L, ldim, stage):
+        super().__init__()
+        self.L = L
+        self.ldim = ldim
+        self.encoder = FullNoiseEncoder(in_channels=3,
+                                        n_slots=num_slots,
+                                        n_latents=L,
+                                        latent_dim=ldim,
+                                        stage=stage,
+                                        clamp_var=False)
+
+        self.decoder = VAEAdditiveDecoder(in_channels=3,
+                                          n_slots=num_slots,
+                                          n_latents=L,
+                                          n_slot_latents=ldim,
+                                          add_sigmoid=False
+                                          )
+
+    def forward(self, x):
+        mean, logvar, z = self.encoder(x)
+        
+        mean = mean.reshape(mean.size(0), mean.size(1), self.L, self.ldim)
+        logvar = logvar.reshape(logvar.size(0), logvar.size(1), self.L, self.ldim)
+        z = z.reshape(z.size(0), z.size(1), self.L, self.ldim) 
+
+        img_hat, recon_figures = self.decoder(z)
+        return img_hat, recon_figures, mean, logvar, z
+
+    def compute_recon_loss(self, x_hat, x):
+        return F.mse_loss(x_hat, x)
+
+    def compute_kl_div(self, mu, logvar):
+        assert len(mu.shape) == 4
+        mu = torch.flatten(torch.flatten(mu, 0, 1), -2)
+        logvar = torch.flatten(torch.flatten(logvar, 0, 1), -2)
+        return compute_kl_loss(mu, logvar)
+    
 class VAEAdditiveDecoder(torch.nn.Module):
     def __init__(
         self,
