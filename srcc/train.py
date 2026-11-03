@@ -182,9 +182,15 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     # log-likelihood_z = - (log_e - log_det)
     log_e = 0.
     for i in range(L):
-      log_e += torch.mean(log_normal(z_noise[:, :, i],
-                                     guide.mu_noise_prior[:, :, i],
-                                     torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
+      if params["jobID"] == 615:
+        log_e += torch.mean(log_normal(z_noise[:, :, i],
+                                      torch.zeros_like(z_noise[:, :, i]).to(DEVICE),
+                                      torch.ones_like(z_noise[:, :, i]).to(DEVICE)).sum(-1))
+      else:
+        log_e += torch.mean(log_normal(z_noise[:, :, i],
+                                       guide.mu_noise_prior[:, :, i],
+                                       torch.exp(guide.logvar_noise_prior[:, :, i])).sum(-1))
+    
     kl = -0.001*log_e + log_det_coeff*log_det
     log_q_z = 0.
     batch_loss += kl_beta * (kl + 0.005*torch.square(torch.mean(z_logvar))) 

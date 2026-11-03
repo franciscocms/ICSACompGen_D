@@ -183,6 +183,23 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     batch_loss += kl_beta * (kl + 0.005*torch.square(torch.mean(z_logvar))) 
 
     # causal consistency
+    # if epoch >= params["cc_epoch"]:
+    #     consistency_loss = 0.
+    #     z_int = guide.intervention(z_scm)
+        
+    #     with torch.no_grad():
+    #         x_int, _ = guide.scene_decoder(z_int)
+    #         x_int = torch.clamp(x_int, 0., 1.)
+
+    #     _, _, z_causal_int = guide.encoder(x_int)
+    #     z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim) 
+    #     with torch.no_grad():
+    #         x_int_cons, _ = guide.scene_decoder(z_causal_int)
+        
+    #     if params["use_counterfactual_consistency"]: 
+    #         consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
+    #         batch_loss += kl_beta * 0.05 * consistency_loss    # instead it was 0.1 
+    # else:
     consistency_loss = 0.
     x_int = torch.zeros_like(img_hat)
     x_int_cons = torch.zeros_like(img_hat)
@@ -227,8 +244,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
   epoch_kl /= num_iters
   epoch_consistency_loss /= num_iters
 
-  if epoch % epoch_step == 0:
-    logger.info(f"epoch {epoch} - train_loss: {epoch_train_loss}")  
+  if epoch % epoch_step == 0: logger.info(f"epoch {epoch} - train_loss: {epoch_train_loss}")  
 
   dict_to_log = {'train_loss': epoch_train_loss}
   dict_to_log["rec_loss"] = epoch_recon_loss

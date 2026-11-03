@@ -120,6 +120,45 @@ class iVAE(nn.Module):
         self.iter = 0
         
     
+    def intervention(self, z):
+        B, N, _, _ = z.shape
+        z0, z1, z2, z3 = torch.split(torch.flatten(z, -2), params["latent_dim"], -1)
+
+        flag = torch.distributions.Categorical(
+            torch.tensor([1/len(params["latent_vars"]) for _ in range(len(params["latent_vars"]))])
+            ).sample()
+        
+        if flag == 0:
+            z0_int, self.perm = permute_dims(torch.flatten(z0, 0, 1), z0.size(-1))
+            z0_int = z0_int.view(B, N, -1)
+            z_int = torch.cat((z0_int.unsqueeze(-2),
+                                    z1.unsqueeze(-2),
+                                    z2.unsqueeze(-2),
+                                    z3.unsqueeze(-2)), dim=-2)
+        elif flag == 1:
+            z1_perm, self.perm = permute_dims(torch.flatten(z1, 0, 1), z1.size(-1))
+            z1_int = z1_perm.view(B, N, -1)
+            z_int = torch.cat((z0.unsqueeze(-2),
+                                    z1_int.unsqueeze(-2),
+                                    z2.unsqueeze(-2),
+                                    z3.unsqueeze(-2)), dim=-2)
+        elif flag == 2:
+            z2_perm, self.perm = permute_dims(torch.flatten(z2, 0, 1), z2.size(-1))
+            z2_int = z2_perm.view(B, N, -1)
+            z_int = torch.cat((z0.unsqueeze(-2),
+                                    z1.unsqueeze(-2),
+                                    z2_int.unsqueeze(-2),
+                                    z3.unsqueeze(-2)), dim=-2)
+        elif flag == 3:
+            z3_perm, self.perm = permute_dims(torch.flatten(z3, 0, 1), z2.size(-1))
+            z3_int = z3_perm.view(B, N, -1)
+            z_int = torch.cat((z0.unsqueeze(-2),
+                                    z1.unsqueeze(-2),
+                                    z2.unsqueeze(-2),
+                                    z3_int.unsqueeze(-2)), dim=-2)
+        return z_int
+
+    
     def forward(self, img, labels, step=0):
 
         B, _, _, _ = img.shape
