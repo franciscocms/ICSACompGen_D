@@ -83,7 +83,7 @@ def main():
                 img = img.to(device)
                 target = target.to(device)
                 
-                img_hat, recon_figures, mean, logvar, z = model(img, target) # [B, N, L]
+                img_hat, recon_figures, mean, logvar, z = model(img) # [B, N, L]
                 recon_loss += F.mse_loss(img_hat, img)
                 mse = torch.cat((mse, F.mse_loss(img_hat, img, reduction='none').mean((-1, -2, -3))), dim=0)
                 targets = torch.cat((targets, target), dim=0)  
