@@ -72,7 +72,8 @@ class VAE(nn.Module):
         self.decoder = VAEAdditiveDecoder(in_channels=3,
                                           n_slots=params["num_slots"],
                                           n_latents=len(params["latent_vars"]),
-                                          n_slot_latents=params["latent_dim"]
+                                          n_slot_latents=params["latent_dim"],
+                                          add_sigmoid=True
                                           )
 
     def forward(self, x):

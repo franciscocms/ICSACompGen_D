@@ -59,7 +59,7 @@ def get_encoder(in_channels, out_dim):
     encoder = nn.Sequential(*modules_list)
     return encoder
 
-def get_decoder(in_dim, out_channels):
+def get_decoder(in_dim, out_channels, add_sigmoid=False):
     """
     Decoder f: Z -> X; X - input image, Z - latent space.
     """
@@ -79,7 +79,7 @@ def get_decoder(in_dim, out_channels):
         nn.ELU(),
         nn.ConvTranspose2d(32, out_channels, 4, 2, 1),       
     ]
-    if out_channels == 1:
+    if add_sigmoid:
         module_list.append(nn.Sigmoid())
 
     decoder = nn.Sequential(*module_list)
@@ -93,12 +93,13 @@ class VAEAdditiveDecoder(torch.nn.Module):
         n_slots: int,
         n_latents: int,
         n_slot_latents: int,
+        add_sigmoid: bool,
     ) -> None:
         super(VAEAdditiveDecoder, self).__init__()
         self.n_slots = n_slots
         self.n_slot_latents = n_slot_latents
         
-        self.decoder = get_decoder(n_latents*n_slot_latents, 3)
+        self.decoder = get_decoder(n_latents*n_slot_latents, 3, add_sigmoid)
 
     def forward(self, latents):
         batch_size, n_slots, n_features, features = latents.size()

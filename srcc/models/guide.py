@@ -78,7 +78,8 @@ class InvSlotAttentionGuide(nn.Module):
             self.scene_decoder = VAEAdditiveDecoder(in_channels=3,
                                                     n_slots=params["num_slots"],
                                                     n_latents=len(params["latent_vars"]),
-                                                    n_slot_latents=params["latent_dim"]
+                                                    n_slot_latents=params["latent_dim"],
+                                                    add_sigmoid=False
                                                     )
         else:
             self.scene_decoder = ConstrainedSlotMLPAdditiveDecoder(in_channels=3,
