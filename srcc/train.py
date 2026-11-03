@@ -196,7 +196,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     batch_loss += kl_beta * (kl + 0.005*torch.square(torch.mean(z_logvar))) 
 
     # causal consistency
-    if epoch >= params["cc_epoch"]:
+    if epoch > params["cc_epoch"]:
       consistency_loss = 0.
       z_int, flag = guide.causal_flow.intervention(z_noise, z_scm)
       
@@ -293,7 +293,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       dict_to_log[f"t_{params['latent_vars'][i]}"] = torch.mean(torch.sum(guide.ts[:, :, i, :], dim=-1))
     dict_to_log[f"noise_pred_loss_{params['latent_vars'][i]}"] = guide.noise_pred_loss[i]
   
-  if epoch % 100 == 0 or epoch == params["training_epochs"]:
+  if epoch % 50 == 0 or epoch == params["training_epochs"]:
     checkpoint = {
       #'epoch': epoch,
       'model': guide.state_dict(),
