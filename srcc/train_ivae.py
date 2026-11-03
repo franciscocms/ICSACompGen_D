@@ -173,10 +173,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     if epoch % epoch_step == 0 and not printed:
       if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
         os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
-    
-    # uncomment for previous prior loss (j515)
-    log_det = guide.log_det
-    # log-likelihood_z = - (log_e - log_det)
+
     log_e = 0.
     for i in range(L):
       log_e += torch.mean(log_normal(z_scm[:, :, i],
