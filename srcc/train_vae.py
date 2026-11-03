@@ -115,7 +115,7 @@ if CHECK_ATTN and TRAINING_FROM_SCRATCH:
       logger.info("Error occurred while deleting files.")
   resume_epoch = 0
   
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
 
 # instatiate dataset and dataloader
 dataset_dir = os.path.join(params["dataset_path"], "train")
