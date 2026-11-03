@@ -128,11 +128,10 @@ train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, num_workers=
 recon_loss_fn = nn.MSELoss()
 slot_rec_loss_crit = nn.MSELoss()
 
-#beta_scheduler = BetaScheduler(0., 1., 100) # 613
-beta_scheduler = BetaScheduler(0., 2., 100) # 614
+beta_scheduler = BetaScheduler(0., 1., 100) # 613
 
 model.train()
-for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 1):
+for epoch in range(resume_epoch + 1, resume_epoch + 120 + 1):
     epoch_train_loss = 0.
     
     printed = False
@@ -154,7 +153,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         kl_loss = model.compute_kl_div(mean, logvar)
         batch_loss = recon_loss + kl_beta * kl_loss
         
-        if epoch % epoch_step == 0 and not printed:
+        if epoch % 5 == 0 and not printed:
             if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
                 os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
         
@@ -167,7 +166,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         
         if num_iters == 0:
             recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
-            if (epoch % epoch_step == 0 or epoch == 0) and not printed:
+            if (epoch % 5 == 0 or epoch == 0) and not printed:
                 fig, ax = plt.subplots(5, 2 + params["num_slots"])
                 for i in range(5):
                     ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
@@ -200,7 +199,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     dict_to_log["vae_logvar"] = torch.mean(logvar)
     dict_to_log["vae_kl_beta"] = kl_beta
     
-    if epoch % 50 == 0 or epoch == params["training_epochs"]:
+    if epoch % 5 == 0:
         checkpoint = {
         #'epoch': epoch,
         'model': model.state_dict(),
