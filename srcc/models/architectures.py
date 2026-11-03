@@ -158,7 +158,6 @@ class iVAE(nn.Module):
                                     z3_int.unsqueeze(-2)), dim=-2)
         return z_int
 
-    
     def forward(self, img, labels, step=0):
 
         B, _, _, _ = img.shape

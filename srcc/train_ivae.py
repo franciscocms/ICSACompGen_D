@@ -72,8 +72,6 @@ A = torch.tensor([
 logger.info(f"\nA: {A}\n")
 torch.manual_seed(params["random_seed"])
 
-
-
 guide = iVAE(model_name=params["model_name"], #["slot_attention", "additiveAE"]
              resolution = params['resolution'],
              num_iterations = 3,
