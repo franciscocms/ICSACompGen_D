@@ -128,7 +128,8 @@ train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, num_workers=
 recon_loss_fn = nn.MSELoss()
 slot_rec_loss_crit = nn.MSELoss()
 
-beta_scheduler = BetaScheduler(0., 1., 100)
+#beta_scheduler = BetaScheduler(0., 1., 100) # 613
+beta_scheduler = BetaScheduler(0., 2., 100) # 614
 
 model.train()
 for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 1):
