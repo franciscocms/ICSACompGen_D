@@ -11,7 +11,7 @@ sys.path.insert(0, '../..') # add parent-parent dir
 
 from srcc.main import params
 from srcc.utils.guide import permute_dims, inverse_permutation
-from srcc.utils.loss import compute_kl_loss
+from srcc.utils.loss import compute_kl_loss, compute_matching_cost
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -86,6 +86,73 @@ def get_decoder(in_dim, out_channels, add_sigmoid=False):
     decoder = nn.Sequential(*module_list)
     return decoder
 
+class iVAE(nn.Module):
+    def __init__(self, model_name, resolution, num_iterations, latent_dim, nlatents, A):
+        """Builds the Slot Attention-based auto-encoder.
+        Args:
+        resolution: Tuple of integers specifying width and height of input image.
+        num_slots: Number of slots in Slot Attention.
+        num_iterations: Number of iterations in Slot Attention.
+        """
+        super().__init__()
+        self.resolution = resolution
+        self.num_slots = 0
+        self.num_iterations = num_iterations
+        self.L = nlatents
+        self.A = A
+        self.ldim = latent_dim
+        #self.slot_dim = self.L*self.ldim*4
+        self.slot_dim = self.L*self.ldim
+        self.model_name = model_name
+        self.cc = params["use_counterfactual_consistency"]
+        
+        self.encoder = FullNoiseEncoder(in_channels=3,
+                                        n_slots=params["num_slots"],
+                                        n_latents=self.L,
+                                        latent_dim=self.ldim,
+                                        stage=params["running_type"],
+                                        clamp_var=False)
+        self.scene_decoder = VAEAdditiveDecoder(in_channels=3, n_slots=params["num_slots"], n_latents=len(params["latent_vars"]), n_slot_latents=params["latent_dim"], add_sigmoid=False)
+        self.prior = ConditionalGaussianPrior(self.L, self.ldim, learn_var=True, clamp_var=False)
+        self.predictor = Predictor(self.slot_dim, self.slot_dim, self.L)
+                
+        self.epoch = 0
+        self.iter = 0
+        
+    
+    def forward(self, img, labels, step=0):
+
+        B, _, _, _ = img.shape
+        n_s = params['num_slots'] 
+
+        assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
+
+        mu_z, logvar_z, z_scm = self.encoder(img)
+        
+        # get initial predictions and aligned labels
+        mu_z_d = mu_z.detach()
+        preds = self.predictor(mu_z_d)
+        self.z_preds = preds
+        if torch.isnan(preds).any():
+            logger.info(torch.isnan(img).any())
+            for name, param in self.encoder.named_parameters():
+                logger.info(f"\n{name} - {param}")
+            logger.info(f"mu_z: {mu_z_d}")
+            logger.info(f"logvar_z: {logvar_z}")        
+        self.pred_loss, aligned_u_m = compute_matching_cost(preds, labels)
+        
+        # get latent-wise distributions
+        mu_z = mu_z.reshape(mu_z.size(0), mu_z.size(1), self.L, self.ldim)
+        logvar_z = logvar_z.reshape(logvar_z.size(0), logvar_z.size(1), self.L, self.ldim)
+        z_scm = z_scm.reshape(z_scm.size(0), z_scm.size(1), self.L, self.ldim)             
+        # get noise and causal priors
+        self.mu_prior, self.logvar_prior = self.prior(aligned_u_m)
+        img_hat, recon_figures = self.scene_decoder(z_scm)
+
+        if params["running_type"] == "eval": 
+            return z_scm, img_hat, recon_figures
+
+        return img_hat, z_scm, mu_z, logvar_z, recon_figures
 
 class VAE(nn.Module):
     def __init__(self, num_slots, L, ldim, stage):

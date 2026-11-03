@@ -1,1 +1,264 @@
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from torch.utils.data import DataLoader
+
+import os
+import shutil
+import matplotlib.pyplot as plt
+import sys
+
+sys.path.insert(0, '..') # add parent dir
+
+from models.guide import InvSlotAttentionGuide
+from models.architectures import iVAE
+from main import params
+from utils.guide import permute_dims, linear_scheduler, exp_scheduler
+from utils.loss import compute_log_det, compute_kl_gaussians, log_normal, hungarian_latents_consistency
+from utils.train import BetaScheduler, get_scheduled_coefficient
+from datasets.data_utils import MyDataset
+
+import wandb # type: ignore
+
+import logging
+logfile_name = f"log-{params['jobID']}.log"
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+fh = logging.FileHandler(logfile_name, mode='w')
+logger.addHandler(fh)
+
+main_dir = os.path.abspath(__file__+'/../')
+
+torch.autograd.detect_anomaly(check_nan=True)
+
+assert params["running_type"] == "train"
+
+# start a new wandb run to track this script
+run = wandb.init(project="ICSA",
+                  name=f"{params['jobID']}"
+                  )
+
+DEVICE = params["device"]
+TRAINING_FROM_SCRATCH = params["training_from_scratch"]
+GUIDE_PATH = f"{main_dir}/checkpoint-{params['jobID']}"
+for p in [GUIDE_PATH]: 
+  if not os.path.isdir(p): os.mkdir(p)
+logger.info(f"\n... saving model checkpoints in {GUIDE_PATH}")
+CHECK_ATTN = params["check_attn"]
+root_folder = params["check_attn_folder"]
+TRAIN_BATCH_SIZE = params["batch_size"]
+LR = params["lr"]
+training_epochs = params["training_epochs"]
+epoch_step = params["epoch_step"]
+L = len(params["latent_vars"])
+ldim = params["latent_dim"]
+
+logger.info(params)
+
+l_to_label = {i: l for i, l in enumerate(params["latent_vars"])}
+# A = torch.tensor([
+#   [0., 0.],
+#   [1., 0.],
+# ])
+A = torch.tensor([
+    [0., 0., 0., 0.],
+    [1., 0., 0., 0.],
+    [0., 0., 0., 0.],
+    [0., 0., 0., 0.],
+  ])
+
+logger.info(f"\nA: {A}\n")
+torch.manual_seed(params["random_seed"])
+
+
+
+guide = iVAE(model_name=params["model_name"], #["slot_attention", "additiveAE"]
+             resolution = params['resolution'],
+             num_iterations = 3,
+             latent_dim = params["latent_dim"],
+             nlatents = len(params["latent_vars"]),
+             A = A
+             ).to(DEVICE)
+run.watch(guide)
+logger.info(f"Training from scratch using {DEVICE}...\n")
+
+if not os.path.isdir(root_folder): os.mkdir(root_folder)
+
+if CHECK_ATTN and TRAINING_FROM_SCRATCH:
+  if len(os.listdir(root_folder)) > 0:
+    try:
+      folders = os.listdir(root_folder)
+      for folder in folders: 
+        folder_path = os.path.join(root_folder, folder)
+        if os.path.isdir(folder_path) and folder.split("-")[0] == "attn":
+          shutil.rmtree(folder_path)
+    except OSError:
+      logger.info("Error occurred while deleting files.")
+  resume_epoch = 0
+
+else:
+  resume_epoch = params['epoch_to_load']
+  logger.info(f"resume training from epoch {resume_epoch}...")
+  checkpoint = torch.load(f"{main_dir}/checkpoint-{params['jobID']}/guide_{resume_epoch}.pth", weights_only=False)
+  #checkpoint = torch.load(f"{main_dir}/checkpoint-273/guide_{resume_epoch}.pth", weights_only=False)
+  guide.load_state_dict(checkpoint["model"])
+  
+optimizer = torch.optim.AdamW(guide.parameters(), lr=1e-7, weight_decay=0.001)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=2)
+beta_scheduler = BetaScheduler(0., 1., params["cc_epoch"]) # (0., 1., 100)
+if resume_epoch != 0: 
+  # optimizer.load_state_dict(checkpoint["optimizer"])
+  # scheduler.load_state_dict(checkpoint["scheduler"])
+  beta_scheduler.current_step = resume_epoch  
+
+# instatiate dataset and dataloader
+dataset_dir = os.path.join(params["dataset_path"], "train")
+img_dir = os.path.join(dataset_dir, "images")
+target_dir = os.path.join(dataset_dir, "metadata")
+train_ds = MyDataset(dataset_dir)
+logger.info(len(train_ds))
+train_dl = DataLoader(train_ds, params["batch_size"], shuffle=True, num_workers=8)
+recon_loss_fn = nn.MSELoss()
+slot_rec_loss_crit = nn.MSELoss()
+
+guide.train()
+for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 1):
+
+  for name, param in guide.prior.named_parameters():
+    param.requires_grad = False
+  guide.epoch = epoch
+
+  if scheduler.get_last_lr()[0] >= 1e-7:
+    scheduler.step()
+  
+  if scheduler.get_last_lr()[0] > params["lr"]:
+    optimizer.param_groups[0]["lr"] = params["lr"]
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer, step_size=50, gamma=0.5
+    )
+
+  for group in optimizer.param_groups:    
+    epoch_lr = group['lr']
+  
+  guide.epoch = epoch
+  epoch_train_loss = 0.
+  epoch_val_loss = 0.
+
+  # update coefficients
+  kl_beta = beta_scheduler.get_beta()
+  
+  printed = False
+  num_iters = 0
+  epoch_recon_loss = 0.
+  epoch_pred_loss = 0.
+  epoch_log_e = 0.
+  epoch_consistency_loss = 0. 
+  epoch_kl = 0.
+
+  for img, target in train_dl:
+    img = img.to(DEVICE)
+    target = target.to(DEVICE)
+    B = img.size(0)
+    guide.iter = num_iters
+
+    batch_loss = 0.
+    optimizer.zero_grad()
+  
+    img_hat, z_scm, z_mu, z_logvar, recon_figures = guide(img, target, step=epoch)
+    recon_loss = recon_loss_fn(img_hat, img)
+    batch_loss += 100. * recon_loss + kl_beta * guide.pred_loss
+    
+    if epoch % epoch_step == 0 and not printed:
+      if not os.path.isdir(f"{params['check_attn_folder']}/epoch-{epoch}"):
+        os.mkdir(f"{params['check_attn_folder']}/epoch-{epoch}")     
+    
+    # uncomment for previous prior loss (j515)
+    log_det = guide.log_det
+    # log-likelihood_z = - (log_e - log_det)
+    log_e = 0.
+    for i in range(L):
+      log_e += torch.mean(log_normal(z_scm[:, :, i],
+                                     guide.mu_prior[:, :, i],
+                                     torch.exp(guide.logvar_prior[:, :, i])).sum(-1))
+    kl = -0.001*log_e
+    batch_loss += kl_beta * (kl + 0.005*torch.square(torch.mean(z_logvar))) 
+
+    # causal consistency
+    consistency_loss = 0.
+    x_int = torch.zeros_like(img_hat)
+    x_int_cons = torch.zeros_like(img_hat)
+
+    batch_loss.backward()
+    optimizer.step()
+
+    epoch_train_loss += batch_loss 
+    epoch_recon_loss += recon_loss
+    epoch_pred_loss += guide.pred_loss
+    epoch_log_e += log_e #
+    epoch_consistency_loss += consistency_loss
+    epoch_kl += kl #
+    
+    if guide.model_name == "additiveAE":
+      if num_iters == 0:
+        recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
+        if (epoch % epoch_step == 0 or epoch == 0) and not printed:
+          fig, ax = plt.subplots(5, 2 + params["num_slots"])
+          for i in range(5):
+              ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+              if i == 0: ax[i, 0].set_title("img")
+              ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+              if i == 0: ax[i, 1].set_title("img_hat")
+    
+              for j in range(params["num_slots"]):
+                  ax[i, j+2].imshow(np.clip(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+                  if i == 0: ax[i, j+2].set_title(f"figs {j}")
+              for j in range(2 + params["num_slots"]):
+                  ax[i, j].grid(False)
+                  ax[i, j].axis('off')
+          plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
+          plt.close()   
+
+    num_iters += 1
+    printed = True
+    
+  epoch_train_loss /= num_iters
+  epoch_recon_loss /= num_iters
+  epoch_pred_loss /= num_iters
+  epoch_log_e /= num_iters
+  epoch_kl /= num_iters
+  epoch_consistency_loss /= num_iters
+
+  if epoch % epoch_step == 0:
+    logger.info(f"epoch {epoch} - train_loss: {epoch_train_loss}")  
+
+  dict_to_log = {'train_loss': epoch_train_loss}
+  dict_to_log["rec_loss"] = epoch_recon_loss
+  dict_to_log["pred_loss"] = epoch_pred_loss
+  dict_to_log["log_e"] = epoch_log_e
+  dict_to_log["kl"] = epoch_kl
+  dict_to_log["consistency_loss"] = epoch_consistency_loss
+  dict_to_log["beta"] = kl_beta
+  dict_to_log["LR"] = epoch_lr
+  
+  for i in range(L):
+    with torch.no_grad():
+      dict_to_log[f"log_e_{params['latent_vars'][i]}"] = torch.mean(log_normal(z_scm[:, :, i],
+                                                                              guide.mu_prior[:, :, i],
+                                                                              torch.exp(guide.logvar_prior[:, :, i])).sum(-1))    
+      dict_to_log[f"logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(z_logvar[:, :, i, :], dim=-1))
+      dict_to_log[f"prior_logvar_{params['latent_vars'][i]}"] = torch.mean(torch.mean(guide.logvar_prior[:, :, i, :], dim=-1))
+  
+  if epoch % 50 == 0 or epoch == params["training_epochs"]:
+    checkpoint = {
+      #'epoch': epoch,
+      'model': guide.state_dict(),
+      #'optimizer': optimizer.state_dict(),
+      #'scheduler': scheduler.state_dict()
+    }
+    torch.save(checkpoint, GUIDE_PATH + '/guide_' + str(epoch) + '.pth')
+  run.log(dict_to_log)
+logger.info("\ntraining ended...")
+wandb.finish()
 
