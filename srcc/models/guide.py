@@ -115,6 +115,7 @@ class InvSlotAttentionGuide(nn.Module):
         assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
 
         mu_z, logvar_z, z_scm = self.encoder(img)
+        assert not torch.isnan(z_scm).any()
         
         # get initial predictions and aligned labels
         mu_z_d = mu_z.detach()
@@ -139,13 +140,17 @@ class InvSlotAttentionGuide(nn.Module):
         
         # causal flow backward
         z_noise, ss, ts, log_det = self.causal_flow.backward(z_scm)
-        self.ss, self.ts, self.log_det = ss, ts, log_det       
+        self.ss, self.ts, self.log_det = ss, ts, log_det  
+        assert not torch.isnan(z_noise).any()     
         
         # get noise and causal priors
         self.mu_noise_prior, self.logvar_noise_prior = self.noise_prior(aligned_u_m)
+        assert not torch.isnan(self.mu_noise_prior).any()
+        assert not torch.isnan(self.logvar_noise_prior).any()
 
         #img_hat, recon_figures = self.scene_decoder(mu_z)
         img_hat, recon_figures = self.scene_decoder(z_scm)
+        assert not torch.isnan(img_hat).any()
         #img_hat, recon_figures = self.scene_decoder(z_noise)
 
         if params["running_type"] == "eval": 
@@ -162,15 +167,7 @@ class InvSlotAttentionGuide(nn.Module):
             self.noise_pred_loss.append(noise_pred_loss)
             all_noise_preds.append(noise_preds)
 
-        #     flat_noise_preds = self.flatt_noise_predictor[var](torch.flatten(z_noise_d, -2)).squeeze(-1)
-        #     flatt_noise_pred_loss, _ = compute_matching_cost(flat_noise_preds, labels[:, :, i])
-        #     all_flat_noise_preds.append(flat_noise_preds)
-        #     self.flatt_noise_pred_loss.append(flatt_noise_pred_loss)
-
         all_noise_preds = torch.stack(all_noise_preds, dim=-1)
-        # all_flat_noise_preds = torch.stack(all_flat_noise_preds, dim=-1)
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
-        # self.flatt_noise_pred_loss = torch.stack(self.flatt_noise_pred_loss)
-
         return img_hat, z_noise, z_scm, mu_z, logvar_z, recon_figures
         
