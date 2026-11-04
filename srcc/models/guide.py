@@ -113,6 +113,7 @@ class InvSlotAttentionGuide(nn.Module):
         n_s = params['num_slots'] 
 
         assert labels.shape == (B, n_s, self.L), f"{labels.shape}"
+        assert not torch.isnan(img).any()
 
         mu_z, logvar_z, z_scm = self.encoder(img)
         assert not torch.isnan(z_scm).any()

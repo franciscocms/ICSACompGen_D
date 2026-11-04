@@ -461,6 +461,8 @@ class FullNoiseEncoder(nn.Module):
 
     def encode(self, x):
         x = self.encoder(x)
+        assert not torch.isnan(x).any()
+        
         mean = self.fc_mean(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
         logvar = self.fc_logvar(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
         #if self.clamp_var: logvar = torch.clamp(logvar, -3., 3.)
