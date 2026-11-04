@@ -319,8 +319,8 @@ class ConstrainedSlotMLPAdditiveDecoder(torch.nn.Module):
         z_color_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
                                 y_grid.expand(batch_size * n_slots, -1, -1, -1), z_color), dim=1)
 
-        x_local = (xx - tx[:, :, None]) / z_scale[:, :, None, None]
-        y_local = (yy - ty[:, :, None]) / z_scale[:, :, None, None]
+        x_local = (xx - tx[:, :, None]) / (z_scale[:, :, None, None] + 1e-3)
+        y_local = (yy - ty[:, :, None]) / (z_scale[:, :, None, None] + 1e-3)
         coords = torch.cat([x_local, y_local], dim=1)
         
         # Pass reshaped latents through decoder
