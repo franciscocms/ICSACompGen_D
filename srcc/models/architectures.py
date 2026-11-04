@@ -301,11 +301,10 @@ class ConstrainedSlotMLPAdditiveDecoder(torch.nn.Module):
         z_x = reshaped_latents[:, 2:3]
         z_y = reshaped_latents[:, 3:4]
 
-        
         z_color = z_color.view(z_color.shape + (1, 1))
         z_color = z_color.expand((-1, -1, H, W))
         
-        z_scale = torch.sigmoid(z_scale)
+        z_scale = 0.3 + 0.7*torch.sigmoid(z_scale)
         tx = 2. * torch.sigmoid(z_x) - 1.
         ty = 2. * torch.sigmoid(z_y) - 1.
         
@@ -319,8 +318,8 @@ class ConstrainedSlotMLPAdditiveDecoder(torch.nn.Module):
         z_color_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
                                 y_grid.expand(batch_size * n_slots, -1, -1, -1), z_color), dim=1)
 
-        x_local = (xx - tx[:, :, None]) / (z_scale[:, :, None, None] + 1e-3)
-        y_local = (yy - ty[:, :, None]) / (z_scale[:, :, None, None] + 1e-3)
+        x_local = (xx - tx[:, :, None]) / z_scale[:, :, None, None]
+        y_local = (yy - ty[:, :, None]) / z_scale[:, :, None, None]
         coords = torch.cat([x_local, y_local], dim=1)
         
         # Pass reshaped latents through decoder
@@ -462,7 +461,7 @@ class FullNoiseEncoder(nn.Module):
     def encode(self, x):
         x = self.encoder(x)
         assert not torch.isnan(x).any()
-        
+
         mean = self.fc_mean(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
         logvar = self.fc_logvar(x).view(-1, self.n_slots, self.n_latents*self.latent_dim)
         #if self.clamp_var: logvar = torch.clamp(logvar, -3., 3.)
