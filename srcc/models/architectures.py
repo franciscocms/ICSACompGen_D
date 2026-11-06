@@ -322,16 +322,27 @@ class ConstrainedSlotMLPAdditiveDecoder(torch.nn.Module):
         x_local = (xx - tx[:, :, None]) / z_scale[:, :, None, None]
         y_local = (yy - ty[:, :, None]) / z_scale[:, :, None, None]
         coords = torch.cat([x_local, y_local], dim=1)
+
+        app_figure = self.app_decoder(z_color_grid)
+        geom_figure = self.geom_decoder(coords)
         
         # Pass reshaped latents through decoder
-        reshaped_figures = self.app_decoder(z_color_grid) * self.geom_decoder(coords)
+        reshaped_figures = app_figure * geom_figure
+        
+        app_figure = app_figure.view(
+            batch_size, n_slots, *reshaped_figures.shape[1:]
+        )
+        geom_figure = geom_figure.view(
+            batch_size, n_slots, *reshaped_figures.shape[1:]
+        )
+
         # Reshape figures back to [batch_size, n_slots, ...]
         figures = reshaped_figures.view(
             batch_size, n_slots, *reshaped_figures.shape[1:]
         )
         # Sum over the n_slots dimension for image  
         image = figures.sum(dim=1)
-        return image, figures
+        return image, figures, app_figure, geom_figure
 
 
 """

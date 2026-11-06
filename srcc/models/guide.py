@@ -150,7 +150,7 @@ class InvSlotAttentionGuide(nn.Module):
         assert not torch.isnan(self.logvar_noise_prior).any()
 
         #img_hat, recon_figures = self.scene_decoder(mu_z)
-        img_hat, recon_figures = self.scene_decoder(z_scm)
+        img_hat, recon_figures, app_fig, geom_fig = self.scene_decoder(z_scm)
         assert not torch.isnan(img_hat).any()
         #img_hat, recon_figures = self.scene_decoder(z_noise)
 
@@ -170,5 +170,5 @@ class InvSlotAttentionGuide(nn.Module):
 
         all_noise_preds = torch.stack(all_noise_preds, dim=-1)
         self.noise_pred_loss = torch.stack(self.noise_pred_loss)
-        return img_hat, z_noise, z_scm, mu_z, logvar_z, recon_figures
+        return img_hat, z_noise, z_scm, mu_z, logvar_z, recon_figures, app_fig, geom_fig
         

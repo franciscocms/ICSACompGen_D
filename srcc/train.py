@@ -169,7 +169,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     batch_loss = 0.
     optimizer.zero_grad()
   
-    img_hat, z_noise, z_scm, z_mu, z_logvar, recon_figures = guide(img, target, step=epoch)
+    img_hat, z_noise, z_scm, z_mu, z_logvar, recon_figures, app_fig, geom_fig = guide(img, target, step=epoch)
     recon_loss = recon_loss_fn(img_hat, img)
     batch_loss += 100. * recon_loss + kl_beta * (guide.pred_loss + torch.mean(guide.noise_pred_loss))# + torch.mean(guide.flatt_noise_pred_loss))
     
@@ -201,13 +201,13 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       z_int, flag = guide.causal_flow.intervention(z_noise, z_scm)
       
       with torch.no_grad():
-        x_int, _ = guide.scene_decoder(z_int)
+        x_int, _, _, _ = guide.scene_decoder(z_int)
         x_int = torch.clamp(x_int, 0., 1.)
 
       _, _, z_causal_int = guide.encoder(x_int)
       z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim) 
       with torch.no_grad():  
-        x_int_cons, _ = guide.scene_decoder(z_causal_int)
+        x_int_cons, _, _, _ = guide.scene_decoder(z_causal_int)
       
       if params["use_counterfactual_consistency"]: 
         consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
@@ -235,22 +235,31 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
         recon_figures = recon_figures.permute(1, 0, 2, 3, 4) # shape is (N, B, C, W, H)
         if (epoch % epoch_step == 0 or epoch == 0) and not printed:
           if epoch > params["cc_epoch"] and params["use_counterfactual_consistency"]: logger.info(f"{params['latent_vars'][guide.causal_flow.flag]} counterfactual at epoch {epoch}...")
-          fig, ax = plt.subplots(5, 4 + params["num_slots"])
+          fig, ax = plt.subplots(5, 8 + params["num_slots"])
           for i in range(5):
-              ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-              if i == 0: ax[i, 0].set_title("img")
-              ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-              if i == 0: ax[i, 1].set_title("img_hat")
-              ax[i, 2].imshow(np.clip(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-              if i == 0: ax[i, 2].set_title(f"int {guide.causal_flow.flag}" if epoch > params["cc_epoch"] and params["use_counterfactual_consistency"] else "no count.")
-              ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-              if i == 0: ax[i, 3].set_title(f"img_hat_cons")
-              for j in range(params["num_slots"]):
-                  ax[i, j+4].imshow(np.clip(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
-                  if i == 0: ax[i, j+4].set_title(f"figs {j}")
-              for j in range(4 + params["num_slots"]):
-                  ax[i, j].grid(False)
-                  ax[i, j].axis('off')
+            ax[i, 0].imshow(np.clip(np.transpose(img[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+            if i == 0: ax[i, 0].set_title("img")
+            ax[i, 1].imshow(np.clip(np.transpose(img_hat[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+            if i == 0: ax[i, 1].set_title("img_hat")
+            ax[i, 2].imshow(np.clip(np.transpose(x_int[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+            if i == 0: ax[i, 2].set_title(f"int {guide.causal_flow.flag}" if epoch > params["cc_epoch"] and params["use_counterfactual_consistency"] else "no count.")
+            ax[i, 3].imshow(np.clip(np.transpose(x_int_cons[i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+            if i == 0: ax[i, 3].set_title(f"img_hat_cons")
+            for j in range(params["num_slots"]):
+              ax[i, j+4].imshow(np.clip(np.transpose(recon_figures[j, i].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+              if i == 0: ax[i, j+4].set_title(f"figs {j}")
+            
+            for j in range(params["num_slots"]):
+              ax[i, j+6].imshow(np.clip(np.transpose(app_fig[i, j].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+              if i == 0: ax[i, j+6].set_title(f"app figs {j}")
+
+            for j in range(params["num_slots"]):
+              ax[i, j+8].imshow(np.clip(np.transpose(geom_fig[i, j].detach().cpu().numpy(), (1, 2, 0)), 0., 1.))
+              if i == 0: ax[i, j+8].set_title(f"geom figs {j}")
+            
+            for j in range(8 + params["num_slots"]):
+              ax[i, j].grid(False)
+              ax[i, j].axis('off')
           plt.savefig(f"{params['check_attn_folder']}/epoch-{epoch}/img_recon.png")
           plt.close()   
 
