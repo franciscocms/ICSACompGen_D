@@ -333,7 +333,7 @@ class ConstrainedSlotMLPAdditiveDecoder(torch.nn.Module):
             batch_size, n_slots, *reshaped_figures.shape[1:]
         )
         geom_figure = geom_figure.view(
-            batch_size, n_slots, *reshaped_figures.shape[1:]
+            batch_size, n_slots, 1, *reshaped_figures.shape[2:]
         )
 
         # Reshape figures back to [batch_size, n_slots, ...]
