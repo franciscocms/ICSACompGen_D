@@ -147,7 +147,7 @@ def main():
         scatter = ax_m.scatter(u_scale, u_color, s=10, c=mse, alpha=0.5, cmap="YlGn", vmin=0., vmax=mse.max()) # vmax=
         if OOD_EVAL: cb = figure.colorbar(scatter, ax=ax_m)
         
-        save_recons = False
+        save_recons = True
         if save_recons:
             n_figures = 5
             assert img.size(0) >= n_figures
