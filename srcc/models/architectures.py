@@ -281,7 +281,7 @@ class ConstrainedSlotMLPAdditiveDecoder(torch.nn.Module):
             nn.Conv2d(64, 3, kernel_size=3, padding=1),
         )
         self.geom_decoder = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, padding=1), # added on jobID 622 - previously (2, 64)
+            nn.Conv2d(2, 64, kernel_size=3, padding=1),
             nn.ELU(),
             nn.Conv2d(64, 64, kernel_size=3, padding=1),
             nn.ELU(),
@@ -304,7 +304,8 @@ class ConstrainedSlotMLPAdditiveDecoder(torch.nn.Module):
         z_color = z_color.view(z_color.shape + (1, 1))
         z_color = z_color.expand((-1, -1, H, W))
         
-        z_scale = 0.3 + 0.7*torch.sigmoid(z_scale)
+        #z_scale = 0.3 + 0.7*torch.sigmoid(z_scale)
+        z_scale = torch.sigmoid(z_scale)
         tx = 2. * torch.sigmoid(z_x) - 1.
         ty = 2. * torch.sigmoid(z_y) - 1.
         
@@ -318,12 +319,9 @@ class ConstrainedSlotMLPAdditiveDecoder(torch.nn.Module):
         z_color_grid = torch.cat((x_grid.expand(batch_size * n_slots, -1, -1, -1),
                                 y_grid.expand(batch_size * n_slots, -1, -1, -1), z_color), dim=1)
 
-        x_local = (xx - tx[:, :, None]) / z_scale[:, :, None, None]
-        y_local = (yy - ty[:, :, None]) / z_scale[:, :, None, None]
-
-        #coords = torch.cat([x_local, y_local], dim=1)              # added on jobID 622
-        scale_grid = z_scale[:, :, None, None].expand(-1, -1, H, W) # added on jobID 622
-        coords = torch.cat([x_local, y_local, scale_grid], dim=1)   # added on jobID 622
+        x_local = (xx - tx[:, :, None]) / (z_scale[:, :, None, None] + 1e-3)
+        y_local = (yy - ty[:, :, None]) / (z_scale[:, :, None, None] + 1e-3)
+        coords = torch.cat([x_local, y_local], dim=1)
 
         app_figure = self.app_decoder(z_color_grid)
         geom_figure = self.geom_decoder(coords)
