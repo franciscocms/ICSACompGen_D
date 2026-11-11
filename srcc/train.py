@@ -211,7 +211,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       
       if params["use_counterfactual_consistency"]: 
         consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
-        batch_loss += kl_beta * 0.05 * consistency_loss    # instead it was 0.1 
+        batch_loss += kl_beta * 0.1 * consistency_loss    # instead it was 0.1 
     else:
       consistency_loss = 0.
       x_int = torch.zeros_like(img_hat)
