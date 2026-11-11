@@ -304,8 +304,8 @@ class ConstrainedSlotMLPAdditiveDecoder(torch.nn.Module):
         z_color = z_color.view(z_color.shape + (1, 1))
         z_color = z_color.expand((-1, -1, H, W))
         
-        z_scale = 0.3 + 0.7*torch.sigmoid(z_scale)
-        #z_scale = torch.sigmoid(z_scale)
+        #z_scale = 0.3 + 0.7*torch.sigmoid(z_scale)
+        z_scale = torch.sigmoid(z_scale)
         tx = 2. * torch.sigmoid(z_x) - 1.
         ty = 2. * torch.sigmoid(z_y) - 1.
         
