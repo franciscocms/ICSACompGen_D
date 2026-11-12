@@ -223,11 +223,11 @@ def main():
                             r2_pred, a_target, a_preds = hungarian_r2_score(pred, target)
 
                             if OOD_EVAL: 
-                                np.save(f"{params['check_attn_folder']}/z_pred_{params['latent_vars'][i]}_ood.npy", a_preds.cpu().numpy())
-                                np.save(f"{params['check_attn_folder']}/u_{params['latent_vars'][i]}_ood.npy", a_target.cpu().numpy())
+                                np.save(f"{params['check_attn_folder']}/z_pred_{params['latent_vars'][i]}_ood.npy", a_preds)
+                                np.save(f"{params['check_attn_folder']}/u_{params['latent_vars'][i]}_ood.npy", a_target)
                             else:
-                                np.save(f"{params['check_attn_folder']}/z_pred_{params['latent_vars'][i]}_id.npy", a_preds.cpu().numpy())
-                                np.save(f"{params['check_attn_folder']}/u_{params['latent_vars'][i]}_id.npy", a_target.cpu().numpy())
+                                np.save(f"{params['check_attn_folder']}/z_pred_{params['latent_vars'][i]}_id.npy", a_preds)
+                                np.save(f"{params['check_attn_folder']}/u_{params['latent_vars'][i]}_id.npy", a_target)
 
                     train_loss /= train_iters
                     # dict_to_log = {#f"{OOD_EVAL}_probe_{params['latent_vars'][i]}_train_loss": train_loss,
