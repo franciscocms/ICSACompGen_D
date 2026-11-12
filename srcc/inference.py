@@ -90,7 +90,7 @@ def main():
         dataset_dir = os.path.join(params["dataset_path"], "eval")
 
         dataset = MyDataset(dataset_dir, OOD_EVAL)
-        dataloader = DataLoader(dataset, 64, shuffle=False, generator=torch.Generator(device='cuda'))
+        dataloader = DataLoader(dataset, 256, shuffle=False, generator=torch.Generator(device='cuda'), num_workers=4)
 
         z_noise = torch.tensor([])  
         z_scm = torch.tensor([])  
@@ -190,7 +190,7 @@ def main():
                 
                 train_set = ProbeDataset(z_scm[:4000], targets[:4000], var_idx=i, split="train")
                 test_set = ProbeDataset(z_scm[4000:], targets[4000:], var_idx=i, split="test")
-                train_loader = DataLoader(train_set, 64, shuffle=True, generator=torch.Generator(device='cuda'))
+                train_loader = DataLoader(train_set, 64, shuffle=True, generator=torch.Generator(device='cuda'), num_workers=4)
                 test_loader = DataLoader(test_set, len(test_set), shuffle=False, generator=torch.Generator(device='cuda'))
 
                 optimizer = torch.optim.AdamW(probe.parameters(), lr=1e-3, weight_decay=0.001)
