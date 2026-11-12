@@ -170,7 +170,7 @@ def main():
             else: plt.savefig(f"{params['check_attn_folder']}/img_recon_id.png")
             plt.close()  
         
-        compute_prediction_performance = True
+        compute_prediction_performance = False
         if compute_prediction_performance:
 
             for i, var in enumerate(params["latent_vars"]):            
@@ -221,6 +221,14 @@ def main():
                             pred = probe(e[:, :, i])
                             if pred.size(-1) == 1: pred = pred.squeeze(-1)
                             r2_pred, a_target, a_preds = hungarian_r2_score(pred, target)
+
+                            if OOD_EVAL: 
+                                np.save(f"{params['check_attn_folder']}/z_pred_{params['latent_vars'][i]}_ood.npy", pred)
+                                np.save(f"{params['check_attn_folder']}/u_{params['latent_vars'][i]}_ood.npy", target)
+                            else:
+                                np.save(f"{params['check_attn_folder']}/z_pred_{params['latent_vars'][i]}_id.npy", pred)
+                                np.save(f"{params['check_attn_folder']}/u_{params['latent_vars'][i]}_ood.npy", target)
+
                     train_loss /= train_iters
                     # dict_to_log = {#f"{OOD_EVAL}_probe_{params['latent_vars'][i]}_train_loss": train_loss,
                     #                f"{OOD_EVAL}_probe_{params['latent_vars'][i]}_test_r2": r2_pred}
