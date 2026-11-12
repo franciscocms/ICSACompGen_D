@@ -182,7 +182,7 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
     # log-likelihood_z = - (log_e - log_det)
     log_e = 0.
     for i in range(L):
-      if params["jobID"] == 615:
+      if params["jobID"] in [615, 628, 629, 630, 631]:
         log_e += torch.mean(log_normal(z_noise[:, :, i],
                                       torch.zeros_like(z_noise[:, :, i]).to(DEVICE),
                                       torch.ones_like(z_noise[:, :, i]).to(DEVICE)).sum(-1))
