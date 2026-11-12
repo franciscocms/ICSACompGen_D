@@ -227,7 +227,7 @@ def main():
                                 np.save(f"{params['check_attn_folder']}/u_{params['latent_vars'][i]}_ood.npy", target.cpu().numpy())
                             else:
                                 np.save(f"{params['check_attn_folder']}/z_pred_{params['latent_vars'][i]}_id.npy", pred.cpu().numpy())
-                                np.save(f"{params['check_attn_folder']}/u_{params['latent_vars'][i]}_ood.npy", target.cpu().numpy())
+                                np.save(f"{params['check_attn_folder']}/u_{params['latent_vars'][i]}_id.npy", target.cpu().numpy())
 
                     train_loss /= train_iters
                     # dict_to_log = {#f"{OOD_EVAL}_probe_{params['latent_vars'][i]}_train_loss": train_loss,
