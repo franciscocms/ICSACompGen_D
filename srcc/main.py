@@ -8,8 +8,8 @@ main_dir = os.path.abspath(__file__+'/../../')
 params = {
     "device": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
     "random_seed": 28, # 22
-    "dataset_path": "/nas-ctm01/datasets/public/CG_linear_035_r", # CG_linear -> 0.5, CG_linear_015 -> 0.15
-    "ID_window": 0.35,
+    "dataset_path": "/nas-ctm01/datasets/public/CG_linear_005_r", # CG_linear -> 0.5, CG_linear_015 -> 0.15
+    "ID_window": 0.05,
     "latent_vars": ["scale", "color", "x_pos", "y_pos"],
     "factor_ranges": {
         "scale": [0.3, 1.],
@@ -36,7 +36,7 @@ params = {
     "training_from_scratch" : True,
     "training_epochs": 300, # 400 
     "epoch_step": 10,
-    "running_type": "train", # train, debug, eval, inspect
+    "running_type": "eval", # train, debug, eval, inspect
     "epoch_to_load" : 300, # 400
     "ood_eval": True,
     "TC_minimization": False, # usually True
