@@ -46,12 +46,6 @@ def sample_adjacency_matrix(params):
     [0., 0., 0., 0.],
     [0., 0., 0., 0.],
   ])
-
-  # A = torch.tensor([
-  #   [0., 0.],
-  #   [1., 0.],
-  # ])
-
   return A
 
 

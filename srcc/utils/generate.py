@@ -22,19 +22,22 @@ def norm(v, min, max):
 
 def render(scene, resolution = (128, 128)):  
   background_code = (0, 0, 0)
-  image = Image.new('RGB', resolution, background_code)
+  factor = 8
+  image = Image.new('RGB', (resolution[0]*factor, resolution[1]*factor), background_code)
   draw = ImageDraw.Draw(image)
 
   for object in scene:
     scale, color, x, y = object
     
-    scale *= params["factor_scaling"]["scale"]
+    scale *= params["factor_scaling"]["scale"] * factor
     #color *= params["factor_scaling"]["color"] # color remains between [0., 1.]
-    x *= params["factor_scaling"]["x_pos"]
-    y *= params["factor_scaling"]["y_pos"]
+    x *= params["factor_scaling"]["x_pos"] * factor
+    y *= params["factor_scaling"]["y_pos"] * factor
     
     draw.ellipse(
         [x - scale//2, y - scale//2, x + scale//2, y + scale//2],
-        fill=hsv_to_rgb([color, 1., 1.])
+        fill=hsv_to_rgb([color, 1., 1.]),
+        width=factor
         )
+  image = image.resize((64, 64), Image.LANCZOS)
   return image
