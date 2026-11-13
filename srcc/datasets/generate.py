@@ -12,7 +12,7 @@ from srcc.main import params
 from srcc.datasets.data_utils import sample_identifiable_bounded_, sample_ood, sample_id_linear, sample_ood_linear
 
 import logging
-logfile_name = f"generate.log"
+logfile_name = f"generate_{params['running_type']}_{params['ID_window']}.log"
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 fh = logging.FileHandler(logfile_name, mode='w')
