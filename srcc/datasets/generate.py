@@ -173,6 +173,9 @@ def generate_training_dataset(params):
     with open(f"{metadata_dir}/{str(scene_id).zfill(len(str(params['train_dataset_len'])))}.json", "w") as outfile:
       json.dump(scene_dict, outfile)  
     img.save(f"{img_dir}/{str(scene_id).zfill(len(str(params['train_dataset_len'])))}.png")
+
+    if scene_id % 1000 == 0:
+      logger.info(scene_id)
   
   logger.info(f"(train set): {scene_id} scenes stored...")
   
