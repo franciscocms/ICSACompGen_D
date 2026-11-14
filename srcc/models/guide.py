@@ -74,7 +74,7 @@ class InvSlotAttentionGuide(nn.Module):
                                                                 #n_slot_latents=self.slot_dim
                                                                 n_slot_latents=self.ldim
                                                                 )
-        elif params["jobID"] in [610]:
+        elif params["jobID"] in [610, 650]:
             self.scene_decoder = VAEAdditiveDecoder(in_channels=3,
                                                     n_slots=params["num_slots"],
                                                     n_latents=len(params["latent_vars"]),
