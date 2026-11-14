@@ -7,7 +7,7 @@ main_dir = os.path.abspath(__file__+'/../../')
 
 params = {
     "device": torch.device("cuda:0" if torch.cuda.is_available() else "cpu"),
-    "random_seed": 28, # 22
+    "random_seed": 29, # 22
     "dataset_path": "/nas-ctm01/datasets/public/CG_linear_025_r", # CG_linear -> 0.5, CG_linear_015 -> 0.15
     "ID_window": 0.25,
     "latent_vars": ["scale", "color", "x_pos", "y_pos"],
