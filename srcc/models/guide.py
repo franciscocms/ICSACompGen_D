@@ -149,8 +149,12 @@ class InvSlotAttentionGuide(nn.Module):
         assert not torch.isnan(self.mu_noise_prior).any()
         assert not torch.isnan(self.logvar_noise_prior).any()
 
-        #img_hat, recon_figures = self.scene_decoder(mu_z)
-        img_hat, recon_figures, app_fig, geom_fig = self.scene_decoder(z_scm)
+        if params["jobID"] not in [650]:
+            img_hat, recon_figures, app_fig, geom_fig = self.scene_decoder(z_scm)
+        else: 
+            img_hat, recon_figures = self.scene_decoder(z_scm)
+            app_fig = torch.zeros_like(img_hat).to(device)
+            geom_fig = torch.zeros_like(img_hat).to(device)
         assert not torch.isnan(img_hat).any()
         #img_hat, recon_figures = self.scene_decoder(z_noise)
 
