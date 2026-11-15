@@ -153,8 +153,8 @@ class InvSlotAttentionGuide(nn.Module):
             img_hat, recon_figures, app_fig, geom_fig = self.scene_decoder(z_scm)
         else: 
             img_hat, recon_figures = self.scene_decoder(z_scm)
-            app_fig = torch.zeros_like(img_hat).to(device)
-            geom_fig = torch.zeros_like(img_hat).to(device)
+            app_fig = torch.zeros_like(recon_figures).to(device)
+            geom_fig = torch.zeros_like(recon_figures).to(device)
         assert not torch.isnan(img_hat).any()
         #img_hat, recon_figures = self.scene_decoder(z_noise)
 
