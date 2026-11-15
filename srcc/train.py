@@ -201,13 +201,15 @@ for epoch in range(resume_epoch + 1, resume_epoch + params["training_epochs"] + 
       z_int, flag = guide.causal_flow.intervention(z_noise, z_scm)
       
       with torch.no_grad():
-        x_int, _, _, _ = guide.scene_decoder(z_int)
+        if params["jobID"] not in [650]: x_int, _, _, _ = guide.scene_decoder(z_int)
+        else: x_int, _ = guide.scene_decoder(z_int)
         x_int = torch.clamp(x_int, 0., 1.)
 
       _, _, z_causal_int = guide.encoder(x_int)
       z_causal_int = z_causal_int.reshape(z_causal_int.size(0), z_causal_int.size(1), L, ldim) 
       with torch.no_grad():  
-        x_int_cons, _, _, _ = guide.scene_decoder(z_causal_int)
+        if params["jobID"] not in [650]: x_int_cons, _, _, _ = guide.scene_decoder(z_causal_int)
+        else: x_int_cons, _ = guide.scene_decoder(z_causal_int)
       
       if params["use_counterfactual_consistency"]: 
         consistency_loss += hungarian_latents_consistency(z_causal_int, z_int)
